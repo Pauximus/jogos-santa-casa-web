@@ -1,4 +1,4 @@
-const CACHE_NAME = "jogos-santa-casa-v4-historico";
+const CACHE_NAME = "jogos-santa-casa-v6-apostas-cloud";
 const FILES = ["./", "./index.html", "./style.css", "./app.js", "./manifest.json"];
 
 self.addEventListener("install", event => {

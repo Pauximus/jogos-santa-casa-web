@@ -2,7 +2,8 @@ const API = "https://jogos-santa-casa-api.onrender.com";
 
 const SUPABASE_URL = "https://whnokdkqobtgyywqmrju.supabase.co";
 const SUPABASE_KEY = "sb_publishable_t1ONYEGH_h11uFDENsINJw_RqlNxcpc";
-const SUPABASE_TABLE = "historico_premios";
+const SUPABASE_HISTORICO = "historico_premios";
+const SUPABASE_APOSTAS = "apostas_guardadas";
 
 const jogos = {
   euromilhoes: { nome: "Euromilhões", endpoint: "euromilhoes", numeros: 5, extras: 2, maxNum: 50, maxExtra: 12, extraLabel: "⭐", tab: "EUROMILHÕES", tipo: "numeros_extra" },
@@ -46,10 +47,12 @@ function supabaseHeaders(extra = {}) {
   };
 }
 
-async function carregarHistoricoCloud() {
+async function carregarApostasCloud() {
   try {
+    estado.textContent = "A carregar apostas da cloud...";
+
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*&order=data_registo.desc&limit=200`,
+      `${SUPABASE_URL}/rest/v1/${SUPABASE_APOSTAS}?select=*&order=data_registo.asc&limit=1000`,
       { headers: supabaseHeaders() }
     );
 
@@ -57,20 +60,118 @@ async function carregarHistoricoCloud() {
 
     const dados = await res.json();
 
-    historico = dados.map(h => ({
-      id: String(h.id),
-      jogo: h.jogo,
-      sorteio: h.sorteio,
-      dataSorteio: "",
-      aposta: h.aposta,
-      resultado: h.acertos,
-      premio: h.premio,
-      valor: "",
-      dataRegisto: h.data_registo ? new Date(h.data_registo).toLocaleString("pt-PT") : ""
-    }));
+    const novasApostas = {};
+    for (const key of Object.keys(jogos)) novasApostas[key] = [];
 
+    dados.forEach(row => {
+      if (novasApostas[row.jogo] && row.aposta && !novasApostas[row.jogo].includes(row.aposta)) {
+        novasApostas[row.jogo].push(row.aposta);
+      }
+    });
+
+    // Junta cloud + local, sem duplicados.
+    for (const key of Object.keys(jogos)) {
+      const local = apostas[key] || [];
+      apostas[key] = [...new Set([...novasApostas[key], ...local])];
+    }
+
+    guardar();
+    renderLista();
+    verificar();
+
+    estado.textContent = "Apostas cloud carregadas.";
+
+  } catch (err) {
+    console.warn("Apostas cloud indisponíveis, a usar localStorage:", err);
+    renderLista();
+  }
+}
+
+async function apostaExisteNaCloud(jogo, aposta) {
+  const url =
+    `${SUPABASE_URL}/rest/v1/${SUPABASE_APOSTAS}` +
+    `?select=id` +
+    `&jogo=eq.${encodeURIComponent(jogo)}` +
+    `&aposta=eq.${encodeURIComponent(aposta)}` +
+    `&limit=1`;
+
+  const res = await fetch(url, { headers: supabaseHeaders() });
+  if (!res.ok) return false;
+
+  const dados = await res.json();
+  return dados.length > 0;
+}
+
+async function guardarApostaCloud(jogo, aposta) {
+  try {
+    const existe = await apostaExisteNaCloud(jogo, aposta);
+    if (existe) return;
+
+    const payload = { jogo, aposta };
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_APOSTAS}`, {
+      method: "POST",
+      headers: supabaseHeaders({ "Prefer": "return=minimal" }),
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+
+  } catch (err) {
+    console.warn("Não foi possível guardar aposta na cloud:", err);
+  }
+}
+
+async function apagarApostaCloud(jogo, aposta) {
+  try {
+    const url =
+      `${SUPABASE_URL}/rest/v1/${SUPABASE_APOSTAS}` +
+      `?jogo=eq.${encodeURIComponent(jogo)}` +
+      `&aposta=eq.${encodeURIComponent(aposta)}`;
+
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: supabaseHeaders()
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+
+  } catch (err) {
+    console.warn("Não foi possível apagar aposta na cloud:", err);
+  }
+}
+
+function normalizarRegistoCloud(h) {
+  return {
+    idLocal: `cloud-${h.id}`,
+    jogo: h.jogo || "",
+    sorteio: h.sorteio || "último sorteio",
+    dataSorteio: h.data_sorteio || h.sata_sorteio || "",
+    aposta: h.aposta || "",
+    resultado: h.acertos || "",
+    premio: h.premio || "",
+    dataRegisto: h.data_registo ? new Date(h.data_registo).toLocaleString("pt-PT") : ""
+  };
+}
+
+async function carregarHistoricoCloud() {
+  historicoDiv.innerHTML = `<div class="result-card warn">A carregar histórico da cloud...</div>`;
+
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/${SUPABASE_HISTORICO}?select=*&order=data_registo.desc&limit=200`,
+      { headers: supabaseHeaders() }
+    );
+
+    if (!res.ok) throw new Error(await res.text());
+
+    const dados = await res.json();
+
+    historico = dados.map(normalizarRegistoCloud);
     guardarHistoricoLocal();
     renderHistorico();
+
+    estado.textContent = `Histórico cloud carregado: ${historico.length} registo(s)`;
 
   } catch (err) {
     console.warn("Histórico cloud indisponível, a usar localStorage:", err);
@@ -80,7 +181,7 @@ async function carregarHistoricoCloud() {
 
 async function premioExisteNaCloud(ev) {
   const url =
-    `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}` +
+    `${SUPABASE_URL}/rest/v1/${SUPABASE_HISTORICO}` +
     `?select=id` +
     `&jogo=eq.${encodeURIComponent(ev.jogo)}` +
     `&aposta=eq.${encodeURIComponent(ev.aposta)}` +
@@ -108,7 +209,7 @@ async function guardarPremioCloud(ev) {
       acertos: ev.resultado
     };
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_HISTORICO}`, {
       method: "POST",
       headers: supabaseHeaders({ "Prefer": "return=minimal" }),
       body: JSON.stringify(payload)
@@ -117,7 +218,7 @@ async function guardarPremioCloud(ev) {
     if (!res.ok) throw new Error(await res.text());
 
   } catch (err) {
-    console.warn("Não foi possível guardar na cloud:", err);
+    console.warn("Não foi possível guardar prémio na cloud:", err);
   }
 }
 
@@ -140,6 +241,7 @@ function init() {
   }
 
   carregarHistoricoCloud();
+  carregarApostasCloud();
   mudarJogo(jogoAtual);
 }
 
@@ -246,9 +348,10 @@ function renderLista() {
     btn.className = "delete";
     btn.textContent = "Apagar";
 
-    btn.onclick = () => {
+    btn.onclick = async () => {
       apostas[jogoAtual].splice(index, 1);
       guardar();
+      await apagarApostaCloud(jogoAtual, aposta);
       renderLista();
       verificar();
     };
@@ -258,7 +361,7 @@ function renderLista() {
   });
 }
 
-function adicionarAposta() {
+async function adicionarAposta() {
   const aposta = normalizarAposta();
   if (!aposta) return;
 
@@ -269,6 +372,7 @@ function adicionarAposta() {
 
   apostas[jogoAtual].push(aposta);
   guardar();
+  await guardarApostaCloud(jogoAtual, aposta);
   renderCampos();
   renderLista();
   verificar();
@@ -517,7 +621,7 @@ function renderHistorico() {
   historicoDiv.innerHTML = historico.map(h => `
     <div class="history-item">
       <strong>🏆 ${h.jogo} — ${h.premio}</strong><br>
-      Sorteio: ${h.sorteio}<br>
+      Sorteio: ${h.sorteio}${h.dataSorteio ? " — " + h.dataSorteio : ""}<br>
       Aposta: ${h.aposta}<br>
       Acertos/resultado: ${h.resultado}<br>
       <span class="small">Guardado em: ${h.dataRegisto || ""}</span>
@@ -546,6 +650,8 @@ jogoSelect.addEventListener("change", () => mudarJogo(jogoSelect.value));
 document.getElementById("adicionar").addEventListener("click", adicionarAposta);
 document.getElementById("exportarHistorico").addEventListener("click", exportarHistorico);
 document.getElementById("limparHistorico").addEventListener("click", limparHistorico);
+document.getElementById("recarregarHistorico").addEventListener("click", carregarHistoricoCloud);
+document.getElementById("recarregarApostas").addEventListener("click", carregarApostasCloud);
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js");
