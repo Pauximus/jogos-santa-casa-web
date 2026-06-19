@@ -1,27 +1,16 @@
 const API = "https://jogos-santa-casa-api.onrender.com";
 
+const SUPABASE_URL = "https://whnokdkqobtgyywqmrju.supabase.co";
+const SUPABASE_KEY = "sb_publishable_t1ONYEGH_h11uFDENsINJw_RqlNxcpc";
+const SUPABASE_TABLE = "historico_premios";
+
 const jogos = {
-  euromilhoes: {
-    nome: "Euromilhões", endpoint: "euromilhoes", numeros: 5, extras: 2,
-    maxNum: 50, maxExtra: 12, extraLabel: "⭐", tab: "EUROMILHÕES", tipo: "numeros_extra"
-  },
-  totoloto: {
-    nome: "Totoloto", endpoint: "totoloto", numeros: 5, extras: 1,
-    maxNum: 49, maxExtra: 13, extraLabel: "Nº da Sorte", tab: "totoloto", tipo: "numeros_extra"
-  },
-  eurodreams: {
-    nome: "EuroDreams", endpoint: "eurodreams", numeros: 6, extras: 1,
-    maxNum: 40, maxExtra: 5, extraLabel: "Nº de Sonho", tab: "EURO★DREAMS", tipo: "numeros_extra"
-  },
-  milhao: {
-    nome: "M1lhão", endpoint: "milhao", codigo: true, tab: "M1LHÃO", tipo: "codigo"
-  },
-  lotaria_classica: {
-    nome: "Lotaria Clássica", endpoint: "lotaria_classica", lotaria: true, tab: "lotaria clássica", tipo: "lotaria"
-  },
-  lotaria_popular: {
-    nome: "Lotaria Popular", endpoint: "lotaria_popular", lotaria: true, tab: "lotaria popular", tipo: "lotaria"
-  }
+  euromilhoes: { nome: "Euromilhões", endpoint: "euromilhoes", numeros: 5, extras: 2, maxNum: 50, maxExtra: 12, extraLabel: "⭐", tab: "EUROMILHÕES", tipo: "numeros_extra" },
+  totoloto: { nome: "Totoloto", endpoint: "totoloto", numeros: 5, extras: 1, maxNum: 49, maxExtra: 13, extraLabel: "Nº da Sorte", tab: "totoloto", tipo: "numeros_extra" },
+  eurodreams: { nome: "EuroDreams", endpoint: "eurodreams", numeros: 6, extras: 1, maxNum: 40, maxExtra: 5, extraLabel: "Nº de Sonho", tab: "EURO★DREAMS", tipo: "numeros_extra" },
+  milhao: { nome: "M1lhão", endpoint: "milhao", codigo: true, tab: "M1LHÃO", tipo: "codigo" },
+  lotaria_classica: { nome: "Lotaria Clássica", endpoint: "lotaria_classica", lotaria: true, tab: "lotaria clássica", tipo: "lotaria" },
+  lotaria_popular: { nome: "Lotaria Popular", endpoint: "lotaria_popular", lotaria: true, tab: "lotaria popular", tipo: "lotaria" }
 };
 
 const jogoSelect = document.getElementById("jogo");
@@ -44,8 +33,92 @@ function guardar() {
   localStorage.setItem("apostasJSC", JSON.stringify(apostas));
 }
 
-function guardarHistorico() {
+function guardarHistoricoLocal() {
   localStorage.setItem("historicoJSC", JSON.stringify(historico));
+}
+
+function supabaseHeaders(extra = {}) {
+  return {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json",
+    ...extra
+  };
+}
+
+async function carregarHistoricoCloud() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*&order=data_registo.desc&limit=200`,
+      { headers: supabaseHeaders() }
+    );
+
+    if (!res.ok) throw new Error(await res.text());
+
+    const dados = await res.json();
+
+    historico = dados.map(h => ({
+      id: String(h.id),
+      jogo: h.jogo,
+      sorteio: h.sorteio,
+      dataSorteio: "",
+      aposta: h.aposta,
+      resultado: h.acertos,
+      premio: h.premio,
+      valor: "",
+      dataRegisto: h.data_registo ? new Date(h.data_registo).toLocaleString("pt-PT") : ""
+    }));
+
+    guardarHistoricoLocal();
+    renderHistorico();
+
+  } catch (err) {
+    console.warn("Histórico cloud indisponível, a usar localStorage:", err);
+    renderHistorico();
+  }
+}
+
+async function premioExisteNaCloud(ev) {
+  const url =
+    `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}` +
+    `?select=id` +
+    `&jogo=eq.${encodeURIComponent(ev.jogo)}` +
+    `&aposta=eq.${encodeURIComponent(ev.aposta)}` +
+    `&premio=eq.${encodeURIComponent(ev.premio)}` +
+    `&sorteio=eq.${encodeURIComponent(ev.sorteio)}` +
+    `&limit=1`;
+
+  const res = await fetch(url, { headers: supabaseHeaders() });
+  if (!res.ok) return false;
+
+  const dados = await res.json();
+  return dados.length > 0;
+}
+
+async function guardarPremioCloud(ev) {
+  try {
+    const existe = await premioExisteNaCloud(ev);
+    if (existe) return;
+
+    const payload = {
+      jogo: ev.jogo,
+      aposta: ev.aposta,
+      premio: ev.premio,
+      sorteio: ev.sorteio,
+      acertos: ev.resultado
+    };
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
+      method: "POST",
+      headers: supabaseHeaders({ "Prefer": "return=minimal" }),
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+
+  } catch (err) {
+    console.warn("Não foi possível guardar na cloud:", err);
+  }
 }
 
 function init() {
@@ -66,7 +139,7 @@ function init() {
     tabs.appendChild(tab);
   }
 
-  renderHistorico();
+  carregarHistoricoCloud();
   mudarJogo(jogoAtual);
 }
 
@@ -156,7 +229,6 @@ function normalizarAposta() {
 
 function parseAposta(aposta) {
   const [numsTxt, extrasTxt] = aposta.split("+");
-
   return {
     nums: numsTxt.trim().split(/\s+/).map(Number),
     extras: extrasTxt ? extrasTxt.trim().split(/\s+/).map(Number) : []
@@ -227,8 +299,6 @@ async function obterResultadoAtual() {
 }
 
 async function verificar() {
-console.log("VERIFICAR EXECUTADO", jogoAtual);
-
   const cfg = jogos[jogoAtual];
   estado.textContent = "A obter resultados...";
 
@@ -244,7 +314,7 @@ console.log("VERIFICAR EXECUTADO", jogoAtual);
       eventos = renderResultadoLotaria(data);
     }
 
-    guardarEventosHistorico(data, eventos);
+    await guardarEventosHistorico(data, eventos);
     estado.textContent = `${cfg.nome}: ${apostas[jogoAtual].length} aposta(s)`;
 
   } catch (err) {
@@ -280,13 +350,10 @@ function renderResultadoNumerosExtra(data) {
 
   apostas[jogoAtual].forEach((aposta, index) => {
     const { nums, extras: apostaExtras } = parseAposta(aposta);
-
     const acertosNums = nums.filter(n => numeros.includes(n)).length;
     const acertosExtras = apostaExtras.filter(e => extras.includes(e)).length;
-
     const categoria = `${acertosNums}+${acertosExtras}`;
     const premioInfo = data.premios ? data.premios[categoria] : null;
-
     const premiado = !!premioInfo || categoriaTemPremio(jogoAtual, acertosNums, acertosExtras);
     const comAcertos = acertosNums || acertosExtras;
 
@@ -307,10 +374,11 @@ function renderResultadoNumerosExtra(data) {
 
     if (premiado) {
       eventos.push({
+        jogo: data.jogo,
         aposta,
         resultado: `${acertosNums} número(s) + ${acertosExtras} ${data.extra_nome || "extra"}(s)`,
-        premio,
-        valor
+        sorteio: data.sorteio || "último sorteio",
+        premio: `${premio} — ${valor}`
       });
     }
 
@@ -346,10 +414,11 @@ function renderResultadoCodigo(data) {
 
     if (premiado) {
       eventos.push({
+        jogo: data.jogo,
         aposta,
         resultado: codigoResultado,
-        premio: "M1lhão",
-        valor: "valor a consultar"
+        sorteio: data.sorteio || "último sorteio",
+        premio: "M1lhão — valor a consultar"
       });
     }
 
@@ -389,10 +458,11 @@ function renderResultadoLotaria(data) {
 
     if (premiado) {
       eventos.push({
+        jogo: data.jogo,
         aposta: numero,
         resultado: numero,
-        premio,
-        valor: "valor a consultar"
+        sorteio: data.sorteio || "último sorteio",
+        premio
       });
     }
 
@@ -408,34 +478,34 @@ function renderResultadoLotaria(data) {
   return eventos;
 }
 
-function guardarEventosHistorico(data, eventos) {
+async function guardarEventosHistorico(data, eventos) {
   if (!eventos.length) {
     renderHistorico();
     return;
   }
 
-  eventos.forEach(ev => {
-    const id = `${jogoAtual}|${data.sorteio}|${ev.aposta}|${ev.premio}|${ev.valor}`;
-    const existe = historico.some(h => h.id === id);
+  for (const ev of eventos) {
+    const idLocal = `${ev.jogo}|${ev.sorteio}|${ev.aposta}|${ev.premio}|${ev.resultado}`;
+    const existeLocal = historico.some(h => h.idLocal === idLocal);
 
-    if (!existe) {
+    if (!existeLocal) {
       historico.unshift({
-        id,
-        dataRegisto: new Date().toLocaleString("pt-PT"),
-        jogo: data.jogo,
-        sorteio: data.sorteio || "último sorteio",
-        dataSorteio: data.data || "",
+        idLocal,
+        jogo: ev.jogo,
+        sorteio: ev.sorteio,
         aposta: ev.aposta,
         resultado: ev.resultado,
         premio: ev.premio,
-        valor: ev.valor
+        dataRegisto: new Date().toLocaleString("pt-PT")
       });
+
+      await guardarPremioCloud(ev);
     }
-  });
+  }
 
   historico = historico.slice(0, 200);
-  guardarHistorico();
-  renderHistorico();
+  guardarHistoricoLocal();
+  await carregarHistoricoCloud();
 }
 
 function renderHistorico() {
@@ -446,11 +516,11 @@ function renderHistorico() {
 
   historicoDiv.innerHTML = historico.map(h => `
     <div class="history-item">
-      <strong>🏆 ${h.jogo} — ${h.premio} — ${h.valor}</strong><br>
-      Sorteio: ${h.sorteio} ${h.dataSorteio ? "— " + h.dataSorteio : ""}<br>
+      <strong>🏆 ${h.jogo} — ${h.premio}</strong><br>
+      Sorteio: ${h.sorteio}<br>
       Aposta: ${h.aposta}<br>
       Acertos/resultado: ${h.resultado}<br>
-      <span class="small">Guardado em: ${h.dataRegisto}</span>
+      <span class="small">Guardado em: ${h.dataRegisto || ""}</span>
     </div>
   `).join("");
 }
@@ -466,9 +536,9 @@ function exportarHistorico() {
 }
 
 function limparHistorico() {
-  if (!confirm("Queres mesmo limpar o histórico de prémios?")) return;
+  if (!confirm("Queres mesmo limpar o histórico local? A cloud não será apagada.")) return;
   historico = [];
-  guardarHistorico();
+  guardarHistoricoLocal();
   renderHistorico();
 }
 
@@ -482,5 +552,3 @@ if ("serviceWorker" in navigator) {
 }
 
 init();
-
-console.log("APP INICIADA");
