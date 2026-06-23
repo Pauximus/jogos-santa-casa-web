@@ -5,49 +5,91 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
   <meta name="theme-color" content="#ffffff">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><div class="brand-icon">🍀</div><div class="brand-text">JOGOS<br><span>SANTA CASA</span></div></div>
+    <div class="brand">
+      <div class="brand-icon">🍀</div>
+      <div class="brand-text">JOGOS<br><span>SANTA CASA</span></div>
+    </div>
     <h1>Verificador de Resultados</h1>
   </header>
+
   <main class="app">
     <section id="authBox" class="panel auth-panel">
       <h2>Entrar</h2>
       <p>Usa a tua conta para sincronizar apostas e histórico entre dispositivos.</p>
+
       <div class="auth-grid">
-        <label>Email:</label><input id="authEmail" class="auth-input" type="email" autocomplete="email" placeholder="email@exemplo.pt">
-        <label>Password:</label><input id="authPassword" class="auth-input" type="password" autocomplete="current-password" placeholder="Password">
+        <label>Email:</label>
+        <input id="authEmail" class="auth-input" type="email" autocomplete="email" placeholder="email@exemplo.pt">
+
+        <label>Password:</label>
+        <input id="authPassword" class="auth-input" type="password" autocomplete="current-password" placeholder="Password">
       </div>
+
       <div class="auth-actions">
         <button id="loginBtn">Entrar</button>
         <button id="signupBtn">Criar conta</button>
         <button id="resetPasswordBtn">Recuperar password</button>
       </div>
+
       <div id="authMsg" class="result-card warn" style="display:none;"></div>
     </section>
+
     <section id="userBox" class="panel user-panel" style="display:none;">
-      <div><strong id="userInfo">Sessão iniciada</strong><div id="syncInfo" class="small">Sincronização automática ativa.</div></div>
-      <div class="user-actions"><button id="syncNowBtn">Sincronizar agora</button><button id="logoutBtn">Terminar sessão</button></div>
+      <div>
+        <strong id="userInfo">Sessão iniciada</strong>
+        <div id="syncInfo" class="small">Sincronização automática ativa.</div>
+      </div>
+      <div class="user-actions">
+        <button id="syncNowBtn">Sincronizar agora</button>
+        <button id="logoutBtn">Terminar sessão</button>
+      </div>
     </section>
+
     <div id="appBox" style="display:none;">
       <nav class="tabs" id="tabs"></nav>
+
       <section class="panel">
-        <div class="row"><label>Jogo:</label><select id="jogo"></select><span class="hint">Atualiza automaticamente.</span></div>
-        <div class="form-area"><div id="campos"></div><button id="adicionar">Adicionar aposta</button></div>
-        <h3>Apostas guardadas:</h3><ul id="lista-apostas" class="bet-list"></ul>
+        <div class="row">
+          <label>Jogo:</label>
+          <select id="jogo"></select>
+          <span class="hint">Atualiza automaticamente.</span>
+        </div>
+
+        <div class="form-area">
+          <div id="campos"></div>
+          <button id="adicionar">Adicionar aposta</button>
+        </div>
+
+        <h3>Apostas guardadas:</h3>
+        <ul id="lista-apostas" class="bet-list"></ul>
       </section>
-      <section class="results"><h2>Resultados:</h2><div id="resultado" class="result-box"></div></section>
+
       <section class="results">
-        <div class="history-head"><h2>Histórico:</h2><div><button id="exportarHistorico">Exportar histórico</button><button id="limparHistorico">Limpar histórico local</button></div></div>
+        <h2>Resultados:</h2>
+        <div id="resultado" class="result-box"></div>
+      </section>
+
+      <section class="results">
+        <div class="history-head">
+          <h2>Histórico:</h2>
+          <div>
+            <button id="exportarHistorico">Exportar histórico</button>
+            <button id="limparHistorico">Limpar histórico local</button>
+          </div>
+        </div>
         <div id="historico" class="result-box historico-box"></div>
       </section>
     </div>
   </main>
+
   <footer id="estado">Pronto.</footer>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
