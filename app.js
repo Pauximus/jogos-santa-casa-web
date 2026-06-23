@@ -5,6 +5,8 @@ const SUPABASE_KEY = "sb_publishable_t1ONYEGH_h11uFDENsINJw_RqlNxcpc";
 const SUPABASE_HISTORICO = "historico_premios";
 const SUPABASE_APOSTAS = "apostas_guardadas";
 
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const jogos = {
   euromilhoes: { nome: "Euromilhões", endpoint: "euromilhoes", numeros: 5, extras: 2, maxNum: 50, maxExtra: 12, extraLabel: "⭐", tab: "EUROMILHÕES", tipo: "numeros_extra" },
   totoloto: { nome: "Totoloto", endpoint: "totoloto", numeros: 5, extras: 1, maxNum: 49, maxExtra: 13, extraLabel: "Nº da Sorte", tab: "totoloto", tipo: "numeros_extra" },
@@ -22,37 +24,158 @@ const resultado = document.getElementById("resultado");
 const historicoDiv = document.getElementById("historico");
 const estado = document.getElementById("estado");
 
+const authBox = document.getElementById("authBox");
+const userBox = document.getElementById("userBox");
+const appBox = document.getElementById("appBox");
+const authEmail = document.getElementById("authEmail");
+const authPassword = document.getElementById("authPassword");
+const authMsg = document.getElementById("authMsg");
+const userInfo = document.getElementById("userInfo");
+
+let currentSession = null;
+let currentUser = null;
 let jogoAtual = "euromilhoes";
-let apostas = JSON.parse(localStorage.getItem("apostasJSC") || "{}");
-let historico = JSON.parse(localStorage.getItem("historicoJSC") || "[]");
+let apostas = {};
+let historico = [];
 
 for (const key of Object.keys(jogos)) {
   if (!apostas[key]) apostas[key] = [];
 }
 
+function storageKey(nome) {
+  return currentUser ? `${nome}_${currentUser.id}` : nome;
+}
+
+function carregarLocal() {
+  apostas = JSON.parse(localStorage.getItem(storageKey("apostasJSC")) || "{}");
+  historico = JSON.parse(localStorage.getItem(storageKey("historicoJSC")) || "[]");
+  for (const key of Object.keys(jogos)) {
+    if (!apostas[key]) apostas[key] = [];
+  }
+}
+
 function guardar() {
-  localStorage.setItem("apostasJSC", JSON.stringify(apostas));
+  localStorage.setItem(storageKey("apostasJSC"), JSON.stringify(apostas));
 }
 
 function guardarHistoricoLocal() {
-  localStorage.setItem("historicoJSC", JSON.stringify(historico));
+  localStorage.setItem(storageKey("historicoJSC"), JSON.stringify(historico));
 }
 
 function supabaseHeaders(extra = {}) {
   return {
     "apikey": SUPABASE_KEY,
-    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Authorization": `Bearer ${currentSession?.access_token || SUPABASE_KEY}`,
     "Content-Type": "application/json",
     ...extra
   };
 }
 
+function mostrarAuthMensagem(texto, tipo = "warn") {
+  authMsg.className = `result-card ${tipo}`;
+  authMsg.textContent = texto;
+  authMsg.style.display = "block";
+}
+
+function esconderAuthMensagem() {
+  authMsg.style.display = "none";
+}
+
+async function obterSessao() {
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) {
+    console.warn(error);
+    currentSession = null;
+    currentUser = null;
+    return;
+  }
+  currentSession = data.session || null;
+  currentUser = currentSession?.user || null;
+}
+
+async function login() {
+  esconderAuthMensagem();
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+
+  if (!email || !password) {
+    mostrarAuthMensagem("Preenche email e password.");
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    mostrarAuthMensagem("Erro ao entrar: " + error.message, "bad");
+    return;
+  }
+
+  currentSession = data.session;
+  currentUser = data.user;
+  await iniciarAppAutenticada();
+}
+
+async function criarConta() {
+  esconderAuthMensagem();
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+
+  if (!email || !password) {
+    mostrarAuthMensagem("Preenche email e password.");
+    return;
+  }
+  if (password.length < 6) {
+    mostrarAuthMensagem("A password deve ter pelo menos 6 caracteres.");
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) {
+    mostrarAuthMensagem("Erro ao criar conta: " + error.message, "bad");
+    return;
+  }
+
+  if (data.user && !data.session) {
+    mostrarAuthMensagem("Conta criada. Confirma o email antes de entrar.", "warn");
+    return;
+  }
+
+  currentSession = data.session;
+  currentUser = data.user;
+  await iniciarAppAutenticada();
+}
+
+async function logout() {
+  await supabaseClient.auth.signOut();
+  currentSession = null;
+  currentUser = null;
+  authBox.style.display = "";
+  userBox.style.display = "none";
+  appBox.style.display = "none";
+  estado.textContent = "Sessão terminada.";
+}
+
+async function iniciarAppAutenticada() {
+  if (!currentUser) return;
+  carregarLocal();
+  authBox.style.display = "none";
+  userBox.style.display = "";
+  appBox.style.display = "";
+  userInfo.textContent = `Sessão iniciada: ${currentUser.email}`;
+
+  montarInterface();
+  await carregarHistoricoCloud();
+  await carregarApostasCloud();
+  mudarJogo(jogoAtual);
+  estado.textContent = "Sessão iniciada.";
+}
+
 async function carregarApostasCloud() {
+  if (!currentUser) return;
   try {
     estado.textContent = "A carregar apostas da cloud...";
 
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/${SUPABASE_APOSTAS}?select=*&order=data_registo.asc&limit=1000`,
+      `${SUPABASE_URL}/rest/v1/${SUPABASE_APOSTAS}?select=*&user_id=eq.${currentUser.id}&order=data_registo.asc&limit=1000`,
       { headers: supabaseHeaders() }
     );
 
@@ -88,9 +211,11 @@ async function carregarApostasCloud() {
 }
 
 async function apostaExisteNaCloud(jogo, aposta) {
+  if (!currentUser) return false;
   const url =
     `${SUPABASE_URL}/rest/v1/${SUPABASE_APOSTAS}` +
     `?select=id` +
+    `&user_id=eq.${currentUser.id}` +
     `&jogo=eq.${encodeURIComponent(jogo)}` +
     `&aposta=eq.${encodeURIComponent(aposta)}` +
     `&limit=1`;
@@ -103,11 +228,12 @@ async function apostaExisteNaCloud(jogo, aposta) {
 }
 
 async function guardarApostaCloud(jogo, aposta) {
+  if (!currentUser) { alert("Tens de iniciar sessão para guardar apostas na cloud."); return; }
   try {
     const existe = await apostaExisteNaCloud(jogo, aposta);
     if (existe) return;
 
-    const payload = { jogo, aposta };
+    const payload = { jogo, aposta, user_id: currentUser.id };
 
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_APOSTAS}`, {
       method: "POST",
@@ -123,10 +249,12 @@ async function guardarApostaCloud(jogo, aposta) {
 }
 
 async function apagarApostaCloud(jogo, aposta) {
+  if (!currentUser) return;
   try {
     const url =
       `${SUPABASE_URL}/rest/v1/${SUPABASE_APOSTAS}` +
-      `?jogo=eq.${encodeURIComponent(jogo)}` +
+      `?user_id=eq.${currentUser.id}` +
+      `&jogo=eq.${encodeURIComponent(jogo)}` +
       `&aposta=eq.${encodeURIComponent(aposta)}`;
 
     const res = await fetch(url, {
@@ -155,11 +283,12 @@ function normalizarRegistoCloud(h) {
 }
 
 async function carregarHistoricoCloud() {
+  if (!currentUser) return;
   historicoDiv.innerHTML = `<div class="result-card warn">A carregar histórico da cloud...</div>`;
 
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/${SUPABASE_HISTORICO}?select=*&order=data_registo.desc&limit=200`,
+      `${SUPABASE_URL}/rest/v1/${SUPABASE_HISTORICO}?select=*&user_id=eq.${currentUser.id}&order=data_registo.desc&limit=200`,
       { headers: supabaseHeaders() }
     );
 
@@ -180,9 +309,11 @@ async function carregarHistoricoCloud() {
 }
 
 async function premioExisteNaCloud(ev) {
+  if (!currentUser) return false;
   const url =
     `${SUPABASE_URL}/rest/v1/${SUPABASE_HISTORICO}` +
     `?select=id` +
+    `&user_id=eq.${currentUser.id}` +
     `&jogo=eq.${encodeURIComponent(ev.jogo)}` +
     `&aposta=eq.${encodeURIComponent(ev.aposta)}` +
     `&premio=eq.${encodeURIComponent(ev.premio)}` +
@@ -197,6 +328,7 @@ async function premioExisteNaCloud(ev) {
 }
 
 async function guardarPremioCloud(ev) {
+  if (!currentUser) return;
   try {
     const existe = await premioExisteNaCloud(ev);
     if (existe) return;
@@ -206,7 +338,8 @@ async function guardarPremioCloud(ev) {
       aposta: ev.aposta,
       premio: ev.premio,
       sorteio: ev.sorteio,
-      acertos: ev.resultado
+      acertos: ev.resultado,
+      user_id: currentUser.id
     };
 
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_HISTORICO}`, {
@@ -222,7 +355,7 @@ async function guardarPremioCloud(ev) {
   }
 }
 
-function init() {
+function montarInterface() {
   jogoSelect.innerHTML = "";
   tabs.innerHTML = "";
 
@@ -240,9 +373,6 @@ function init() {
     tabs.appendChild(tab);
   }
 
-  carregarHistoricoCloud();
-  carregarApostasCloud();
-  mudarJogo(jogoAtual);
 }
 
 function mudarJogo(key) {
@@ -403,6 +533,7 @@ async function obterResultadoAtual() {
 }
 
 async function verificar() {
+  if (!currentUser) return;
   const cfg = jogos[jogoAtual];
   estado.textContent = "A obter resultados...";
 
@@ -646,6 +777,11 @@ function limparHistorico() {
   renderHistorico();
 }
 
+document.getElementById("loginBtn").addEventListener("click", login);
+document.getElementById("signupBtn").addEventListener("click", criarConta);
+document.getElementById("logoutBtn").addEventListener("click", logout);
+authPassword.addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+
 jogoSelect.addEventListener("change", () => mudarJogo(jogoSelect.value));
 document.getElementById("adicionar").addEventListener("click", adicionarAposta);
 document.getElementById("exportarHistorico").addEventListener("click", exportarHistorico);
@@ -657,4 +793,22 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js");
 }
 
-init();
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  currentSession = session || null;
+  currentUser = currentSession?.user || null;
+  if (currentUser && event !== "INITIAL_SESSION") {
+    await iniciarAppAutenticada();
+  }
+});
+
+(async function boot() {
+  await obterSessao();
+  if (currentUser) {
+    await iniciarAppAutenticada();
+  } else {
+    authBox.style.display = "";
+    userBox.style.display = "none";
+    appBox.style.display = "none";
+    estado.textContent = "Inicia sessão para continuar.";
+  }
+})();
