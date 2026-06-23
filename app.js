@@ -1,4 +1,4 @@
-window.APP_VERSION = "v10-visual-responsivo";
+window.APP_VERSION = "v11-visual-moderno";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const SUPABASE_URL = "https://whnokdkqobtgyywqmrju.supabase.co";
