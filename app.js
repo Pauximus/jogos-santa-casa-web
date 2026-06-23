@@ -1,4 +1,4 @@
-window.APP_VERSION = "v12-estatisticas-historico";
+window.APP_VERSION = "v13-dashboard-data-sorteio";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const SUPABASE_URL = "https://whnokdkqobtgyywqmrju.supabase.co";
@@ -39,6 +39,13 @@ const statUltimoPremio = document.getElementById("statUltimoPremio");
 const statJogoMaisPremiado = document.getElementById("statJogoMaisPremiado");
 const pesquisaHistorico = document.getElementById("pesquisaHistorico");
 const filtrosHistorico = document.getElementById("filtrosHistorico");
+const dashboardResumo = document.getElementById("dashboardResumo");
+const dashTotalApostas = document.getElementById("dashTotalApostas");
+const dashTotalPremios = document.getElementById("dashTotalPremios");
+const dashTaxaSucesso = document.getElementById("dashTaxaSucesso");
+const dashUltimoPremio = document.getElementById("dashUltimoPremio");
+const rankingJogos = document.getElementById("rankingJogos");
+const rankingNota = document.getElementById("rankingNota");
 
 let currentUser = null;
 let jogoAtual = "euromilhoes";
@@ -58,6 +65,83 @@ function atualizarContador() {
   atualizarEstatisticas();
 }
 
+function nomeJogoCurto(nome) {
+  const mapa = {
+    "Euromilhões": "Euromilhões",
+    "Totoloto": "Totoloto",
+    "EuroDreams": "EuroDreams",
+    "M1lhão": "M1lhão",
+    "Lotaria Clássica": "Clássica",
+    "Lotaria Popular": "Popular"
+  };
+  return mapa[nome] || nome || "—";
+}
+
+function dataCurta(texto) {
+  if (!texto) return "";
+  return String(texto).split(",")[0].trim();
+}
+
+function contagemPremiosPorJogo() {
+  const contagem = {};
+  historico.forEach(h => {
+    const jogo = h.jogo || "—";
+    contagem[jogo] = (contagem[jogo] || 0) + 1;
+  });
+  return contagem;
+}
+
+function atualizarDashboard() {
+  const totalApostas = totalApostasGuardadas();
+  const totalPremios = historico.length;
+  const taxa = totalApostas ? Math.round((totalPremios / totalApostas) * 100) : 0;
+  const ultimo = historico[0];
+
+  if (dashTotalApostas) dashTotalApostas.textContent = totalApostas;
+  if (dashTotalPremios) dashTotalPremios.textContent = totalPremios;
+  if (dashTaxaSucesso) dashTaxaSucesso.textContent = `${taxa}%`;
+  if (dashUltimoPremio) dashUltimoPremio.textContent = ultimo ? `${nomeJogoCurto(ultimo.jogo)}${ultimo.dataRegisto ? " · " + dataCurta(ultimo.dataRegisto) : ""}` : "—";
+
+  if (dashboardResumo) {
+    dashboardResumo.textContent = totalPremios
+      ? `🏆 ${totalPremios} prémio(s) encontrados`
+      : "Ainda sem prémios encontrados";
+  }
+
+  renderRankingJogos();
+}
+
+function renderRankingJogos() {
+  if (!rankingJogos) return;
+
+  const contagem = contagemPremiosPorJogo();
+  const entradas = Object.entries(contagem).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-PT"));
+  const max = entradas[0]?.[1] || 0;
+
+  if (!entradas.length) {
+    rankingJogos.innerHTML = `<div class="ranking-empty">Ainda não há prémios no histórico.</div>`;
+    if (rankingNota) rankingNota.textContent = "Sem dados";
+    return;
+  }
+
+  if (rankingNota) rankingNota.textContent = `${entradas.length} jogo(s) com prémios`;
+
+  rankingJogos.innerHTML = entradas.map(([jogo, total]) => {
+    const percentagem = max ? Math.max(8, Math.round((total / max) * 100)) : 0;
+    return `
+      <div class="ranking-row">
+        <div class="ranking-label">
+          <span>${nomeJogoCurto(jogo)}</span>
+          <strong>${total}</strong>
+        </div>
+        <div class="ranking-bar">
+          <div style="width:${percentagem}%"></div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
 function totalApostasGuardadas() {
   return Object.values(apostas).reduce((total, lista) => total + (lista?.length || 0), 0);
 }
@@ -69,23 +153,23 @@ function jogoMaisPremiado() {
     const jogo = h.jogo || "—";
     contagem[jogo] = (contagem[jogo] || 0) + 1;
   });
-  return Object.entries(contagem).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+  return Object.entries(contagem).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-PT"))[0]?.[0] || "—";
 }
 
 function atualizarEstatisticas() {
-  if (!statApostas || !statPremios || !statUltimoPremio || !statJogoMaisPremiado) return;
-
-  statApostas.textContent = totalApostasGuardadas();
-  statPremios.textContent = historico.length;
+  if (statApostas) statApostas.textContent = totalApostasGuardadas();
+  if (statPremios) statPremios.textContent = historico.length;
 
   if (historico.length) {
     const ultimo = historico[0];
-    statUltimoPremio.textContent = ultimo.jogo ? `${ultimo.jogo}` : "—";
-    statJogoMaisPremiado.textContent = jogoMaisPremiado();
+    if (statUltimoPremio) statUltimoPremio.textContent = ultimo.jogo ? `${ultimo.jogo}` : "—";
+    if (statJogoMaisPremiado) statJogoMaisPremiado.textContent = jogoMaisPremiado();
   } else {
-    statUltimoPremio.textContent = "—";
-    statJogoMaisPremiado.textContent = "—";
+    if (statUltimoPremio) statUltimoPremio.textContent = "—";
+    if (statJogoMaisPremiado) statJogoMaisPremiado.textContent = "—";
   }
+
+  atualizarDashboard();
 }
 
 function filtrarHistorico() {
@@ -259,6 +343,7 @@ async function arrancarApp() {
     .then(() => {
       renderLista();
       renderHistorico();
+    atualizarDashboard();
       verificar();
       syncInfo.textContent = `Última sincronização: ${new Date().toLocaleString("pt-PT")}`;
     })

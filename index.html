@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
   <meta name="theme-color" content="#ffffff">
 </head>
 <body>
@@ -51,6 +51,43 @@
     </section>
 
     <div id="appBox" style="display:none;">
+      <section class="dashboard card" id="dashboardBox">
+        <div class="dashboard-title">
+          <div>
+            <h2>Dashboard</h2>
+            <p>Resumo das tuas apostas e prémios guardados.</p>
+          </div>
+          <div id="dashboardResumo" class="dashboard-resumo">—</div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="dash-card">
+            <span>Total de apostas</span>
+            <strong id="dashTotalApostas">0</strong>
+          </div>
+          <div class="dash-card">
+            <span>Total de prémios</span>
+            <strong id="dashTotalPremios">0</strong>
+          </div>
+          <div class="dash-card">
+            <span>Taxa de sucesso</span>
+            <strong id="dashTaxaSucesso">0%</strong>
+          </div>
+          <div class="dash-card">
+            <span>Último prémio</span>
+            <strong id="dashUltimoPremio">—</strong>
+          </div>
+        </div>
+
+        <div class="ranking-card">
+          <div class="ranking-head">
+            <strong>Ranking por jogo</strong>
+            <span id="rankingNota">Com base no histórico cloud</span>
+          </div>
+          <div id="rankingJogos" class="ranking-list"></div>
+        </div>
+      </section>
+
       <nav class="tabs" id="tabs"></nav>
 
       <section class="card game-card">
@@ -126,6 +163,6 @@
   <footer id="estado">Pronto.</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
