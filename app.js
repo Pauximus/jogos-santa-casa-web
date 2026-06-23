@@ -1,4 +1,4 @@
-window.APP_VERSION = "v13-dashboard-data-sorteio";
+window.APP_VERSION = "v14-notificacoes-badges-datas";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const SUPABASE_URL = "https://whnokdkqobtgyywqmrju.supabase.co";
@@ -46,6 +46,10 @@ const dashTaxaSucesso = document.getElementById("dashTaxaSucesso");
 const dashUltimoPremio = document.getElementById("dashUltimoPremio");
 const rankingJogos = document.getElementById("rankingJogos");
 const rankingNota = document.getElementById("rankingNota");
+const notificacaoPremio = document.getElementById("notificacaoPremio");
+const notificacaoTitulo = document.getElementById("notificacaoTitulo");
+const notificacaoTexto = document.getElementById("notificacaoTexto");
+const fecharNotificacao = document.getElementById("fecharNotificacao");
 
 let currentUser = null;
 let jogoAtual = "euromilhoes";
@@ -75,6 +79,64 @@ function nomeJogoCurto(nome) {
     "Lotaria Popular": "Popular"
   };
   return mapa[nome] || nome || "—";
+}
+
+function normalizarDataSorteio(valor) {
+  if (!valor) return "";
+  const texto = String(valor).trim();
+
+  // Se vier no formato DD/MM/AAAA, mantém simples e legível.
+  const pt = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (pt) {
+    return `${pt[1].padStart(2, "0")}/${pt[2].padStart(2, "0")}/${pt[3]}`;
+  }
+
+  // Se vier em ISO ou Date parseável, converte para PT.
+  const d = new Date(texto);
+  if (!Number.isNaN(d.getTime())) {
+    return d.toLocaleDateString("pt-PT");
+  }
+
+  return texto;
+}
+
+function mostrarNotificacaoPremio(eventos) {
+  if (!notificacaoPremio || !eventos || !eventos.length) return;
+
+  const primeiro = eventos[0];
+  notificacaoTitulo.textContent = eventos.length === 1
+    ? "🏆 Novo prémio encontrado!"
+    : `🏆 ${eventos.length} novos prémios encontrados!`;
+
+  notificacaoTexto.textContent = `${primeiro.jogo} · ${primeiro.premio} · ${primeiro.aposta}`;
+  notificacaoPremio.style.display = "";
+
+  window.clearTimeout(mostrarNotificacaoPremio._timer);
+  mostrarNotificacaoPremio._timer = window.setTimeout(() => {
+    notificacaoPremio.style.display = "none";
+  }, 9000);
+}
+
+function premiosPorJogo() {
+  const contagem = {};
+  historico.forEach(h => {
+    if (!h.jogo) return;
+    contagem[h.jogo] = (contagem[h.jogo] || 0) + 1;
+  });
+  return contagem;
+}
+
+function atualizarBadgesTabs() {
+  const contagem = premiosPorJogo();
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    const key = tab.dataset.jogo;
+    const cfg = jogos[key];
+    if (!cfg) return;
+
+    const total = contagem[cfg.nome] || 0;
+    tab.innerHTML = `<span>${cfg.tab}</span>${total ? `<em>🏆${total}</em>` : ""}`;
+  });
 }
 
 function dataCurta(texto) {
@@ -463,7 +525,7 @@ function normalizarRegistoCloud(h) {
     idLocal: `cloud-${h.id}`,
     jogo: h.jogo || "",
     sorteio: h.sorteio || "último sorteio",
-    dataSorteio: h.data_sorteio || "",
+    dataSorteio: normalizarDataSorteio(h.data_sorteio || ""),
     aposta: h.aposta || "",
     resultado: h.acertos || "",
     premio: h.premio || "",
@@ -531,7 +593,7 @@ async function guardarPremioCloud(ev) {
         premio: ev.premio,
         sorteio: ev.sorteio,
         acertos: ev.resultado,
-        data_sorteio: ev.dataSorteio || null,
+        data_sorteio: normalizarDataSorteio(ev.dataSorteio) || null,
         user_id: currentUser.id
       });
 
@@ -554,7 +616,7 @@ function criarInterface() {
 
     const tab = document.createElement("button");
     tab.className = "tab " + key;
-    tab.textContent = cfg.tab;
+    tab.innerHTML = `<span>${cfg.tab}</span>`;
     tab.dataset.jogo = key;
     tab.onclick = () => mudarJogo(key);
     tabs.appendChild(tab);
@@ -892,34 +954,44 @@ async function guardarEventosHistorico(data, eventos) {
     return;
   }
 
+  const novosEventos = [];
+
   for (const ev of eventos) {
     const idLocal = `${ev.jogo}|${ev.sorteio}|${ev.aposta}|${ev.premio}|${ev.resultado}`;
     const existeLocal = historico.some(h => h.idLocal === idLocal);
 
     if (!existeLocal) {
-      historico.unshift({
+      const registo = {
         idLocal,
         jogo: ev.jogo,
         sorteio: ev.sorteio,
-        dataSorteio: ev.dataSorteio || "",
+        dataSorteio: normalizarDataSorteio(ev.dataSorteio) || "",
         aposta: ev.aposta,
         resultado: ev.resultado,
         premio: ev.premio,
         dataRegisto: new Date().toLocaleString("pt-PT")
-      });
+      };
 
+      historico.unshift(registo);
+      novosEventos.push(registo);
       await guardarPremioCloud(ev);
     }
   }
 
   historico = historico.slice(0, 200);
   guardarHistoricoLocal();
+
+  if (novosEventos.length) {
+    mostrarNotificacaoPremio(novosEventos);
+  }
+
   await carregarHistoricoCloud();
 }
 
 function renderHistorico() {
   atualizarEstatisticas();
   atualizarContador();
+  atualizarBadgesTabs();
 
   const lista = filtrarHistorico();
 
@@ -992,6 +1064,12 @@ if (filtrosHistorico) {
     filtroHistorico = btn.dataset.filter;
     filtrosHistorico.querySelectorAll(".filter").forEach(b => b.classList.toggle("active", b === btn));
     renderHistorico();
+  });
+}
+
+if (fecharNotificacao) {
+  fecharNotificacao.addEventListener("click", () => {
+    notificacaoPremio.style.display = "none";
   });
 }
 

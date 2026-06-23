@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
   <meta name="theme-color" content="#ffffff">
 </head>
 <body>
@@ -48,6 +48,14 @@
         <button id="syncNowBtn">Sincronizar agora</button>
         <button id="logoutBtn">Terminar sessão</button>
       </div>
+    </section>
+
+    <section id="notificacaoPremio" class="card prize-alert" style="display:none;">
+      <div>
+        <strong id="notificacaoTitulo">🏆 Novo prémio encontrado!</strong>
+        <div id="notificacaoTexto" class="small"></div>
+      </div>
+      <button id="fecharNotificacao" class="mini-btn">Fechar</button>
     </section>
 
     <div id="appBox" style="display:none;">
@@ -163,6 +171,6 @@
   <footer id="estado">Pronto.</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=13"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>

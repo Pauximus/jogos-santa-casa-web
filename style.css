@@ -792,3 +792,70 @@ footer{
     font-size:18px;
   }
 }
+
+
+/* V14 - notificações e badges */
+.prize-alert{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:13px 16px;
+  margin:0 0 14px;
+  border-color:#bde8ca;
+  background:linear-gradient(90deg,#e8f7ee,#ffffff);
+  box-shadow:0 12px 28px rgba(23,128,61,.12);
+}
+
+.prize-alert strong{
+  color:#17633a;
+  font-size:16px;
+}
+
+.mini-btn{
+  width:auto;
+  padding:7px 11px;
+  font-size:12px;
+  box-shadow:none;
+}
+
+.tab{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+}
+
+.tab span{
+  display:inline-block;
+}
+
+.tab em{
+  font-style:normal;
+  background:#fff6d6;
+  border:1px solid #ffe08a;
+  color:#8a5a00;
+  border-radius:999px;
+  padding:2px 7px;
+  font-size:12px;
+  font-weight:900;
+}
+
+.history-item div:nth-child(2){
+  color:#344054;
+}
+
+@media(max-width:760px){
+  .prize-alert{
+    display:block;
+  }
+
+  .prize-alert .mini-btn{
+    margin-top:10px;
+  }
+
+  .tab{
+    flex-direction:column;
+    gap:3px;
+  }
+}
