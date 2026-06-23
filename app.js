@@ -1,4 +1,4 @@
-window.APP_VERSION = "v9-arranque-corrigido";
+window.APP_VERSION = "v10-visual-responsivo";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const SUPABASE_URL = "https://whnokdkqobtgyywqmrju.supabase.co";
@@ -32,6 +32,7 @@ const listaApostas = document.getElementById("lista-apostas");
 const resultado = document.getElementById("resultado");
 const historicoDiv = document.getElementById("historico");
 const estado = document.getElementById("estado");
+const contadorApostas = document.getElementById("contadorApostas");
 
 let currentUser = null;
 let jogoAtual = "euromilhoes";
@@ -40,6 +41,12 @@ let historico = [];
 let interfaceCriada = false;
 
 for (const key of Object.keys(jogos)) apostas[key] = [];
+
+function atualizarContador() {
+  if (!contadorApostas) return;
+  const n = apostas[jogoAtual]?.length || 0;
+  contadorApostas.textContent = `${n} aposta(s)`;
+}
 
 function storageKey(nome) {
   return currentUser ? `${nome}_${currentUser.id}` : nome;
@@ -498,10 +505,19 @@ function parseAposta(aposta) {
 
 function renderLista() {
   listaApostas.innerHTML = "";
+  atualizarContador();
+
+  if (!apostas[jogoAtual] || !apostas[jogoAtual].length) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="small">Ainda não há apostas guardadas neste jogo.</span>`;
+    listaApostas.appendChild(li);
+    return;
+  }
 
   apostas[jogoAtual].forEach((aposta, index) => {
     const li = document.createElement("li");
-    li.textContent = `${index + 1}) ${aposta}`;
+    const span = document.createElement("span");
+    span.textContent = `${index + 1}) ${aposta}`;
 
     const btn = document.createElement("button");
     btn.className = "delete";
@@ -514,6 +530,7 @@ function renderLista() {
       verificar();
     };
 
+    li.appendChild(span);
     li.appendChild(btn);
     listaApostas.appendChild(li);
   });
