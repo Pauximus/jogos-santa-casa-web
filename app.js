@@ -1,4 +1,4 @@
-window.APP_VERSION = "v11-visual-moderno";
+window.APP_VERSION = "v12-estatisticas-historico";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const SUPABASE_URL = "https://whnokdkqobtgyywqmrju.supabase.co";
@@ -33,19 +33,81 @@ const resultado = document.getElementById("resultado");
 const historicoDiv = document.getElementById("historico");
 const estado = document.getElementById("estado");
 const contadorApostas = document.getElementById("contadorApostas");
+const statApostas = document.getElementById("statApostas");
+const statPremios = document.getElementById("statPremios");
+const statUltimoPremio = document.getElementById("statUltimoPremio");
+const statJogoMaisPremiado = document.getElementById("statJogoMaisPremiado");
+const pesquisaHistorico = document.getElementById("pesquisaHistorico");
+const filtrosHistorico = document.getElementById("filtrosHistorico");
 
 let currentUser = null;
 let jogoAtual = "euromilhoes";
 let apostas = {};
 let historico = [];
 let interfaceCriada = false;
+let filtroHistorico = "todos";
+let textoPesquisaHistorico = "";
 
 for (const key of Object.keys(jogos)) apostas[key] = [];
 
 function atualizarContador() {
   if (!contadorApostas) return;
   const n = apostas[jogoAtual]?.length || 0;
-  contadorApostas.textContent = `${n} aposta(s)`;
+  const premios = historico?.length || 0;
+  contadorApostas.textContent = `${n} aposta(s) · 🏆 ${premios} prémio(s)`;
+  atualizarEstatisticas();
+}
+
+function totalApostasGuardadas() {
+  return Object.values(apostas).reduce((total, lista) => total + (lista?.length || 0), 0);
+}
+
+function jogoMaisPremiado() {
+  if (!historico.length) return "—";
+  const contagem = {};
+  historico.forEach(h => {
+    const jogo = h.jogo || "—";
+    contagem[jogo] = (contagem[jogo] || 0) + 1;
+  });
+  return Object.entries(contagem).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+}
+
+function atualizarEstatisticas() {
+  if (!statApostas || !statPremios || !statUltimoPremio || !statJogoMaisPremiado) return;
+
+  statApostas.textContent = totalApostasGuardadas();
+  statPremios.textContent = historico.length;
+
+  if (historico.length) {
+    const ultimo = historico[0];
+    statUltimoPremio.textContent = ultimo.jogo ? `${ultimo.jogo}` : "—";
+    statJogoMaisPremiado.textContent = jogoMaisPremiado();
+  } else {
+    statUltimoPremio.textContent = "—";
+    statJogoMaisPremiado.textContent = "—";
+  }
+}
+
+function filtrarHistorico() {
+  let lista = [...historico];
+
+  if (filtroHistorico !== "todos") {
+    lista = lista.filter(h => (h.jogo || "").toLowerCase() === filtroHistorico.toLowerCase());
+  }
+
+  const q = textoPesquisaHistorico.trim().toLowerCase();
+  if (q) {
+    lista = lista.filter(h => [
+      h.jogo,
+      h.aposta,
+      h.premio,
+      h.sorteio,
+      h.resultado,
+      h.dataRegisto
+    ].join(" ").toLowerCase().includes(q));
+  }
+
+  return lista;
 }
 
 function storageKey(nome) {
@@ -384,6 +446,7 @@ async function guardarPremioCloud(ev) {
         premio: ev.premio,
         sorteio: ev.sorteio,
         acertos: ev.resultado,
+        data_sorteio: ev.dataSorteio || null,
         user_id: currentUser.id
       });
 
@@ -649,6 +712,7 @@ function renderResultadoNumerosExtra(data) {
         aposta,
         resultado: `${acertosNums} número(s) + ${acertosExtras} ${data.extra_nome || "extra"}(s)`,
         sorteio: data.sorteio || "último sorteio",
+        dataSorteio: data.data || "",
         premio: `${premio} — ${valor}`
       });
     }
@@ -683,6 +747,7 @@ function renderResultadoCodigo(data) {
         aposta,
         resultado: codigoResultado,
         sorteio: data.sorteio || "último sorteio",
+        dataSorteio: data.data || "",
         premio: "M1lhão — valor a consultar"
       });
     }
@@ -720,6 +785,7 @@ function renderResultadoLotaria(data) {
         aposta: numero,
         resultado: numero,
         sorteio: data.sorteio || "último sorteio",
+        dataSorteio: data.data || "",
         premio
       });
     }
@@ -750,6 +816,7 @@ async function guardarEventosHistorico(data, eventos) {
         idLocal,
         jogo: ev.jogo,
         sorteio: ev.sorteio,
+        dataSorteio: ev.dataSorteio || "",
         aposta: ev.aposta,
         resultado: ev.resultado,
         premio: ev.premio,
@@ -766,18 +833,30 @@ async function guardarEventosHistorico(data, eventos) {
 }
 
 function renderHistorico() {
+  atualizarEstatisticas();
+  atualizarContador();
+
+  const lista = filtrarHistorico();
+
   if (!historico.length) {
     historicoDiv.innerHTML = `<div class="result-card warn">Ainda não há prémios guardados no histórico.</div>`;
     return;
   }
 
-  historicoDiv.innerHTML = historico.map(h => `
+  if (!lista.length) {
+    historicoDiv.innerHTML = `<div class="result-card warn">Nenhum registo encontrado com os filtros atuais.</div>`;
+    return;
+  }
+
+  historicoDiv.innerHTML = lista.map(h => `
     <div class="history-item">
-      <strong>🏆 ${h.jogo} — ${h.premio}</strong><br>
-      Sorteio: ${h.sorteio}${h.dataSorteio ? " — " + h.dataSorteio : ""}<br>
-      Aposta: ${h.aposta}<br>
-      Acertos/resultado: ${h.resultado}<br>
-      <span class="small">Guardado em: ${h.dataRegisto || ""}</span>
+      <div class="history-item-head">
+        <strong>🏆 ${h.jogo} — ${h.premio}</strong>
+        <span class="history-badge">${h.dataRegisto || ""}</span>
+      </div>
+      <div>Sorteio: ${h.sorteio}${h.dataSorteio ? " — " + h.dataSorteio : ""}</div>
+      <div>Aposta: ${h.aposta}</div>
+      <div>Acertos/resultado: ${h.resultado}</div>
     </div>`).join("");
 }
 
@@ -812,6 +891,24 @@ jogoSelect.addEventListener("change", () => mudarJogo(jogoSelect.value));
 document.getElementById("adicionar").addEventListener("click", adicionarAposta);
 document.getElementById("exportarHistorico").addEventListener("click", exportarHistorico);
 document.getElementById("limparHistorico").addEventListener("click", limparHistorico);
+
+if (pesquisaHistorico) {
+  pesquisaHistorico.addEventListener("input", () => {
+    textoPesquisaHistorico = pesquisaHistorico.value;
+    renderHistorico();
+  });
+}
+
+if (filtrosHistorico) {
+  filtrosHistorico.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-filter]");
+    if (!btn) return;
+
+    filtroHistorico = btn.dataset.filter;
+    filtrosHistorico.querySelectorAll(".filter").forEach(b => b.classList.toggle("active", b === btn));
+    renderHistorico();
+  });
+}
 
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
   currentUser = session?.user || null;

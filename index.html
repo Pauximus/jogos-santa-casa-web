@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
   <meta name="theme-color" content="#ffffff">
 </head>
 <body>
@@ -77,6 +77,25 @@
         <div id="resultado" class="result-box card"></div>
       </section>
 
+      <section class="stats-grid" id="statsBox">
+        <div class="stat-card card">
+          <span>🎲 Apostas</span>
+          <strong id="statApostas">0</strong>
+        </div>
+        <div class="stat-card card">
+          <span>🏆 Prémios</span>
+          <strong id="statPremios">0</strong>
+        </div>
+        <div class="stat-card card">
+          <span>Último prémio</span>
+          <strong id="statUltimoPremio">—</strong>
+        </div>
+        <div class="stat-card card">
+          <span>Jogo mais premiado</span>
+          <strong id="statJogoMaisPremiado">—</strong>
+        </div>
+      </section>
+
       <section class="results">
         <div class="history-head">
           <h2>Histórico</h2>
@@ -85,6 +104,20 @@
             <button id="limparHistorico">Limpar histórico local</button>
           </div>
         </div>
+
+        <div class="history-tools card">
+          <input id="pesquisaHistorico" class="search-history" type="search" placeholder="Pesquisar no histórico...">
+          <div class="filter-buttons" id="filtrosHistorico">
+            <button data-filter="todos" class="filter active">Todos</button>
+            <button data-filter="Euromilhões" class="filter">Euromilhões</button>
+            <button data-filter="Totoloto" class="filter">Totoloto</button>
+            <button data-filter="EuroDreams" class="filter">EuroDreams</button>
+            <button data-filter="M1lhão" class="filter">M1lhão</button>
+            <button data-filter="Lotaria Clássica" class="filter">Clássica</button>
+            <button data-filter="Lotaria Popular" class="filter">Popular</button>
+          </div>
+        </div>
+
         <div id="historico" class="result-box historico-box card"></div>
       </section>
     </div>
@@ -93,6 +126,6 @@
   <footer id="estado">Pronto.</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>
