@@ -1,6 +1,7 @@
-window.APP_VERSION = "v14-notificacoes-badges-datas";
+window.APP_VERSION = "v16-backend-auto-update";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
+const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
 const SUPABASE_URL = "https://whnokdkqobtgyywqmrju.supabase.co";
 const SUPABASE_KEY = "sb_publishable_t1ONYEGH_h11uFDENsINJw_RqlNxcpc";
 const SUPABASE_HISTORICO = "historico_premios";
@@ -401,18 +402,24 @@ async function arrancarApp() {
   carregarLocal();
   mostrarAppAutenticada();
 
-  sincronizarTudo()
-    .then(() => {
-      renderLista();
-      renderHistorico();
+  try {
+    await sincronizarTudo();
+    await atualizarResultadosBackend();
+
+    renderLista();
+    renderHistorico();
     atualizarDashboard();
-      verificar();
-      syncInfo.textContent = `Última sincronização: ${new Date().toLocaleString("pt-PT")}`;
-    })
-    .catch(err => {
-      console.warn("Erro na sincronização inicial:", err);
-      estado.textContent = "Erro ao sincronizar. A usar dados locais.";
-    });
+    await verificar();
+
+    syncInfo.textContent = `Última sincronização: ${new Date().toLocaleString("pt-PT")}`;
+  } catch (err) {
+    console.warn("Erro na sincronização inicial:", err);
+    estado.textContent = "Erro ao sincronizar. A usar dados locais.";
+    renderLista();
+    renderHistorico();
+    atualizarDashboard();
+    await verificar();
+  }
 }
 
 async function sincronizarTudo() {
@@ -780,7 +787,23 @@ function categoriaTemPremio(jogo, n, e) {
 
 async function obterResultadoAtual() {
   const cfg = jogos[jogoAtual];
-  const res = await fetch(`${API}/${cfg.endpoint}`);
+
+  try {
+    const resultados = await obterResultadosOficiaisBackend();
+    const row = resultados.find(r => r.jogo === jogoAtual);
+
+    const temDados = row && (
+      row.numeros || row.extras || row.codigo || row.premios || row.data_sorteio
+    );
+
+    if (temDados) {
+      return linhaResultadoParaFormatoApp(row, cfg);
+    }
+  } catch (err) {
+    console.warn("Resultados oficiais via backend indisponíveis. A tentar API direta:", err);
+  }
+
+  const res = await fetch(`${API}/${cfg.endpoint}`, { cache: "no-store" });
   const data = await res.json();
   if (data.erro) throw new Error(data.erro);
   return data;
