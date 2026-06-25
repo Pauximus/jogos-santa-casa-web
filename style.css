@@ -859,3 +859,19 @@ footer{
     gap:3px;
   }
 }
+
+
+.install-btn{
+  border-color:#14532d;
+  background:#e8f7ee;
+  color:#14532d;
+  font-weight:900;
+}
+
+.install-btn:hover{
+  background:#d9f3e3;
+}
+
+@media (display-mode: standalone){
+  .install-btn{display:none!important;}
+}

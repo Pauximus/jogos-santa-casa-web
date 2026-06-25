@@ -1,4 +1,4 @@
-window.APP_VERSION = "v24-sync-background";
+window.APP_VERSION = "v25-pwa-instalavel";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1349,6 +1349,45 @@ if (fecharNotificacao) {
   });
 }
 
+// PWA install
+let deferredInstallPrompt = null;
+const installPwaBtn = document.getElementById("installPwaBtn");
+
+function isPwaInstalada() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function atualizarBotaoInstalar() {
+  if (!installPwaBtn) return;
+  installPwaBtn.style.display = deferredInstallPrompt && !isPwaInstalada() ? "" : "none";
+}
+
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  atualizarBotaoInstalar();
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  atualizarBotaoInstalar();
+  estado.textContent = "App instalada com sucesso.";
+});
+
+if (installPwaBtn) {
+  installPwaBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+      estado.textContent = "No telemóvel usa o menu do browser e escolhe Adicionar ao ecrã principal.";
+      return;
+    }
+
+    deferredInstallPrompt.prompt();
+    try { await deferredInstallPrompt.userChoice; } catch (e) {}
+    deferredInstallPrompt = null;
+    atualizarBotaoInstalar();
+  });
+}
+
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
   if (logoutEmCurso) return;
   currentUser = session?.user || null;
@@ -1366,7 +1405,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
   }
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js?v=22").catch(err => console.warn("Service worker indisponível:", err));
+    navigator.serviceWorker.register("service-worker.js?v=25").catch(err => console.warn("Service worker indisponível:", err));
   }
 
   const { data, error } = await supabaseClient.auth.getSession();
