@@ -1,12 +1,13 @@
 {
   "name": "Verificador de Resultados",
   "short_name": "Resultados",
-  "description": "Verifica resultados e prémios dos teus jogos em vários dispositivos.",
-  "id": "/jogos-santa-casa-web/",
-  "start_url": "./?source=pwa",
+  "description": "App instalável para verificar apostas, resultados e prémios com sincronização cloud.",
+  "id": "/jogos-santa-casa-web/?v=26",
+  "start_url": "./?source=pwa&v=26",
   "scope": "./",
   "display": "standalone",
   "display_override": [
+    "window-controls-overlay",
     "standalone",
     "minimal-ui"
   ],
@@ -36,6 +37,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
@@ -51,5 +58,12 @@
       "url": "./?source=pwa#apostas",
       "description": "Abrir apostas guardadas"
     }
-  ]
+  ],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 420
+  }
 }

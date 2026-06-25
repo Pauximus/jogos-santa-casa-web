@@ -1,10 +1,10 @@
-const CACHE_NAME = "jogos-santa-casa-v25-pwa";
-const STATIC_ASSETS = [
+const CACHE_NAME = "jogos-santa-casa-v26-pwa-completa";
+const APP_SHELL = [
   "./",
   "index.html",
-  "style.css?v=25",
-  "app.js?v=25",
-  "manifest.json",
+  "style.css?v=26",
+  "app.js?v=26",
+  "manifest.json?v=26",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/maskable-512.png",
@@ -14,7 +14,7 @@ const STATIC_ASSETS = [
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(cache => cache.addAll(APP_SHELL))
       .catch(() => null)
       .then(() => self.skipWaiting())
   );
@@ -26,6 +26,10 @@ self.addEventListener("activate", event => {
       .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener("message", event => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", event => {
@@ -48,20 +52,20 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if (isSameOrigin) {
-    event.respondWith(
-      caches.match(request).then(cached => {
-        const network = fetch(request)
-          .then(response => {
-            if (response && response.ok) {
-              const copy = response.clone();
-              caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => null);
-            }
-            return response;
-          })
-          .catch(() => cached);
-        return cached || network;
-      })
-    );
-  }
+  if (!isSameOrigin) return;
+
+  event.respondWith(
+    caches.match(request).then(cached => {
+      const network = fetch(request)
+        .then(response => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => null);
+          }
+          return response;
+        })
+        .catch(() => cached);
+      return cached || network;
+    })
+  );
 });

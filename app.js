@@ -1,4 +1,4 @@
-window.APP_VERSION = "v25-pwa-instalavel";
+window.APP_VERSION = "v26-pwa-completa";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1357,9 +1357,22 @@ function isPwaInstalada() {
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent || "");
+}
+
 function atualizarBotaoInstalar() {
   if (!installPwaBtn) return;
-  installPwaBtn.style.display = deferredInstallPrompt && !isPwaInstalada() ? "" : "none";
+  installPwaBtn.style.display = !isPwaInstalada() ? "" : "none";
+  installPwaBtn.textContent = "Instalar app";
+}
+
+function mostrarAjudaInstalacao() {
+  const msg = isIOS()
+    ? "No iPhone/iPad: toca em Partilhar e depois em Adicionar ao ecrã principal."
+    : "No Android/Chrome: abre o menu do browser e escolhe Instalar app ou Adicionar ao ecrã principal.";
+  estado.textContent = msg;
+  alert(msg);
 }
 
 window.addEventListener("beforeinstallprompt", event => {
@@ -1375,16 +1388,41 @@ window.addEventListener("appinstalled", () => {
 });
 
 if (installPwaBtn) {
+  atualizarBotaoInstalar();
   installPwaBtn.addEventListener("click", async () => {
     if (!deferredInstallPrompt) {
-      estado.textContent = "No telemóvel usa o menu do browser e escolhe Adicionar ao ecrã principal.";
+      mostrarAjudaInstalacao();
       return;
     }
 
     deferredInstallPrompt.prompt();
-    try { await deferredInstallPrompt.userChoice; } catch (e) {}
+    try {
+      const escolha = await deferredInstallPrompt.userChoice;
+      estado.textContent = escolha?.outcome === "accepted" ? "Instalação iniciada." : "Instalação cancelada.";
+    } catch (e) {
+      estado.textContent = "Não foi possível iniciar a instalação automaticamente.";
+    }
     deferredInstallPrompt = null;
     atualizarBotaoInstalar();
+  });
+}
+
+window.addEventListener("online", () => {
+  estado.textContent = "Ligação restabelecida. A sincronizar em background...";
+  sincronizarTudo({ silencioso: true });
+});
+
+window.addEventListener("offline", () => {
+  estado.textContent = "Modo offline: a usar dados guardados neste dispositivo.";
+});
+
+let novaVersaoDisponivel = false;
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (novaVersaoDisponivel) return;
+    novaVersaoDisponivel = true;
+    estado.textContent = "Nova versão instalada. A atualizar...";
+    setTimeout(() => location.reload(), 800);
   });
 }
 
@@ -1405,7 +1443,20 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
   }
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js?v=25").catch(err => console.warn("Service worker indisponível:", err));
+    navigator.serviceWorker.register("service-worker.js?v=26")
+      .then(reg => {
+        reg.addEventListener("updatefound", () => {
+          const novoWorker = reg.installing;
+          if (!novoWorker) return;
+          novoWorker.addEventListener("statechange", () => {
+            if (novoWorker.state === "installed" && navigator.serviceWorker.controller) {
+              estado.textContent = "Nova versão disponível. A aplicar atualização...";
+              novoWorker.postMessage({ type: "SKIP_WAITING" });
+            }
+          });
+        });
+      })
+      .catch(err => console.warn("Service worker indisponível:", err));
   }
 
   const { data, error } = await supabaseClient.auth.getSession();
