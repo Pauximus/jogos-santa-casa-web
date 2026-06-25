@@ -1,4 +1,4 @@
-window.APP_VERSION = "v23-sync-botao-final";
+window.APP_VERSION = "v24-sync-background";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -476,40 +476,39 @@ async function arrancarApp() {
   carregarLocal();
   mostrarAppAutenticada();
 
-  try {
-    estado.textContent = "A preparar sincronização...";
-    await atualizarResultadosBackend();
-    await sincronizarTudo({ verificarDepois: false });
+  // V24: a interface arranca imediatamente. Backend, apostas e histórico
+  // sincronizam em segundo plano para nunca prender o ecrã.
+  renderLista();
+  renderHistorico();
+  atualizarDashboard();
+  terminarEstadoPronto();
+  syncInfo.textContent = "Sincronização automática ativa.";
 
-    renderLista();
-    renderHistorico();
-    atualizarDashboard();
-    await verificar();
-
-    syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
-  } catch (err) {
-    console.warn("Erro na sincronização inicial:", err);
-    estado.textContent = "Erro ao sincronizar. A usar dados locais.";
-    renderLista();
-    renderHistorico();
-    atualizarDashboard();
-    await verificar();
-  } finally {
-    terminarEstadoPronto();
-  }
+  setTimeout(() => {
+    sincronizarTudo({ verificarDepois: true, background: true });
+  }, 100);
 }
 
 async function sincronizarTudo(opcoes = {}) {
   if (!currentUser) return false;
 
   const verificarDepois = opcoes.verificarDepois === true;
+  const background = opcoes.background === true;
+
+  if (!background) estado.textContent = "A sincronizar...";
+  syncInfo.textContent = "Sincronização em segundo plano...";
 
   try {
-    estado.textContent = "A sincronizar apostas...";
-    await carregarApostasCloud(false);
+    // V24: nada bloqueia a interface. Backend, apostas e histórico correm em paralelo.
+    const tarefas = await Promise.allSettled([
+      atualizarResultadosBackend(),
+      carregarApostasCloud(false),
+      carregarHistoricoCloud(false)
+    ]);
 
-    estado.textContent = "A sincronizar histórico...";
-    await carregarHistoricoCloud(false);
+    tarefas.forEach((r, i) => {
+      if (r.status === "rejected") console.warn("Sincronização parcial falhou:", i, r.reason);
+    });
 
     renderLista();
     renderHistorico();
@@ -518,11 +517,12 @@ async function sincronizarTudo(opcoes = {}) {
     atualizarBadgesTabs();
 
     if (verificarDepois) {
-      estado.textContent = "A verificar prémios...";
-      await verificar();
+      if (!background) estado.textContent = "A verificar prémios...";
+      await verificar().catch(err => console.warn("Verificação de prémios incompleta:", err));
     }
 
     syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
+    if (!background) estado.textContent = "Sincronização concluída.";
     return true;
 
   } catch (err) {
@@ -536,7 +536,7 @@ async function sincronizarTudo(opcoes = {}) {
     atualizarDashboard();
     atualizarContador();
     atualizarBadgesTabs();
-    terminarEstadoPronto();
+    if (background) terminarEstadoPronto();
   }
 }
 
@@ -553,7 +553,7 @@ async function carregarApostasCloud(chamarVerificar = true) {
       .order("data_registo", { ascending: true })
       .limit(1000);
 
-    const { data, error } = await comTimeout(query, 25000, "sincronização das apostas");
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -667,7 +667,7 @@ async function carregarHistoricoCloud(chamarRender = true) {
       .order("data_registo", { ascending: false })
       .limit(200);
 
-    const { data, error } = await comTimeout(query, 25000, "sincronização do histórico");
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -1279,7 +1279,7 @@ document.getElementById("resetPasswordBtn").addEventListener("click", recuperarP
 document.getElementById("logoutBtn").addEventListener("click", logout);
 document.getElementById("syncNowBtn").addEventListener("click", async () => {
   if (syncEmCurso) {
-    estado.textContent = "Sincronização já em curso.";
+    estado.textContent = "Sincronização já em curso em segundo plano.";
     return;
   }
 
@@ -1288,54 +1288,32 @@ document.getElementById("syncNowBtn").addEventListener("click", async () => {
   syncEmCurso = true;
   btn.disabled = true;
   btn.textContent = "A sincronizar...";
+  estado.textContent = "Sincronização iniciada em segundo plano...";
+  syncInfo.textContent = "Sincronização em segundo plano...";
 
-  let terminou = false;
+  // Liberta a interface rapidamente. A sincronização continua por trás.
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+    if (syncEmCurso) estado.textContent = "Sincronização em segundo plano...";
+  }, 1200);
 
-  const processo = (async () => {
-    try {
-      estado.textContent = "A atualizar resultados oficiais...";
-      await atualizarResultadosBackend().catch(err => {
-        console.warn("Atualização backend falhou:", err);
-      });
-
-      estado.textContent = "A sincronizar apostas e histórico...";
-      await sincronizarTudo({ verificarDepois: false });
-
-      estado.textContent = "A verificar prémios...";
-      await verificar();
-
-      renderLista();
-      renderHistorico();
-      atualizarDashboard();
-      syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
+  sincronizarTudo({ verificarDepois: true, background: true })
+    .then(() => {
       estado.textContent = "Sincronização concluída.";
-      await esperar(1800);
-      terminarEstadoPronto();
-
-    } catch (err) {
+      return esperar(1800);
+    })
+    .catch(err => {
       console.warn("Erro ao sincronizar agora:", err);
       estado.textContent = "Sincronização incompleta. A usar dados disponíveis.";
-      await esperar(2500);
-      terminarEstadoPronto();
-
-    } finally {
-      terminou = true;
+      return esperar(2500);
+    })
+    .finally(() => {
       syncEmCurso = false;
       btn.disabled = false;
       btn.textContent = textoOriginal;
-    }
-  })();
-
-  const resultado = await Promise.race([
-    processo.then(() => "ok"),
-    esperar(15000).then(() => "lento")
-  ]);
-
-  if (resultado === "lento" && !terminou) {
-    estado.textContent = "Sincronização lenta. Vai terminar em segundo plano.";
-    btn.disabled = false;
-    btn.textContent = textoOriginal;
-  }
+      terminarEstadoPronto();
+    });
 });
 
 authPassword.addEventListener("keydown", e => {
