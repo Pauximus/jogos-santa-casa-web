@@ -1,4 +1,4 @@
-window.APP_VERSION = "v26-pwa-completa";
+window.APP_VERSION = "v26.1-pwa-windows-edge";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1370,7 +1370,7 @@ function atualizarBotaoInstalar() {
 function mostrarAjudaInstalacao() {
   const msg = isIOS()
     ? "No iPhone/iPad: toca em Partilhar e depois em Adicionar ao ecrã principal."
-    : "No Android/Chrome: abre o menu do browser e escolhe Instalar app ou Adicionar ao ecrã principal.";
+    : "No Windows/Edge: usa um perfil normal (não Convidado/InPrivate) e abre ... > Aplicações > Instalar este site como aplicação. No Android/Chrome: menu do browser > Instalar app.";
   estado.textContent = msg;
   alert(msg);
 }

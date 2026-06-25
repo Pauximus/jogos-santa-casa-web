@@ -1,10 +1,10 @@
-const CACHE_NAME = "jogos-santa-casa-v26-pwa-completa";
+const CACHE_NAME = "jogos-santa-casa-v26-1-pwa-windows-edge";
 const APP_SHELL = [
   "./",
   "index.html",
-  "style.css?v=26",
-  "app.js?v=26",
-  "manifest.json?v=26",
+  "style.css?v=26.1",
+  "app.js?v=26.1",
+  "manifest.webmanifest?v=26.1",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/maskable-512.png",
