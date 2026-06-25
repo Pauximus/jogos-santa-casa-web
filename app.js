@@ -1,4 +1,4 @@
-window.APP_VERSION = "v16-backend-auto-update";
+window.APP_VERSION = "v17-sync-estavel";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -452,10 +452,9 @@ async function carregarApostasCloud(chamarVerificar = true) {
       }
     });
 
-    for (const key of Object.keys(jogos)) {
-      const local = apostas[key] || [];
-      apostas[key] = [...new Set([...novasApostas[key], ...local])];
-    }
+    // V17: a cloud passa a ser a fonte principal.
+    // O localStorage fica apenas como cache, para todos os dispositivos ficarem iguais.
+    apostas = novasApostas;
 
     guardar();
     renderLista();
@@ -770,6 +769,49 @@ async function adicionarAposta() {
   verificar();
 }
 
+async function atualizarResultadosBackend() {
+  try {
+    estado.textContent = "A atualizar resultados oficiais...";
+    const res = await fetch(`${BACKEND_API}/atualizar`, { cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    console.log("Atualização backend:", data);
+    return data;
+  } catch (err) {
+    console.warn("Atualização automática do backend falhou:", err);
+    return null;
+  }
+}
+
+function parseJsonPossivel(valor, fallback = null) {
+  if (valor == null || valor === "") return fallback;
+  if (typeof valor === "object") return valor;
+  try { return JSON.parse(valor); } catch { return fallback; }
+}
+
+async function obterResultadosOficiaisBackend() {
+  const res = await fetch(`${BACKEND_API}/resultados`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Backend /resultados HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.erro) throw new Error(data.erro);
+  return data.resultados || data || [];
+}
+
+function linhaResultadoParaFormatoApp(row, cfg) {
+  const premios = parseJsonPossivel(row.premios, cfg.lotaria ? [] : {});
+  const dataSorteio = normalizarDataSorteio(row.data_sorteio || row.data || "");
+
+  return {
+    jogo: cfg.nome,
+    sorteio: row.sorteio || "último sorteio",
+    data: dataSorteio,
+    numeros: converterParaArray(row.numeros),
+    extras: converterParaArray(row.extras),
+    codigo: row.codigo || "",
+    premios: premios || (cfg.lotaria ? [] : {}),
+    extra_nome: cfg.extraLabel === "⭐" ? "estrela" : cfg.extraLabel || "extra"
+  };
+}
+
 function converterParaArray(valor) {
   if (Array.isArray(valor)) return valor.map(Number);
   if (typeof valor === "string") return valor.trim().split(/\s+/).map(Number);
@@ -1061,7 +1103,14 @@ document.getElementById("loginBtn").addEventListener("click", login);
 document.getElementById("signupBtn").addEventListener("click", criarConta);
 document.getElementById("resetPasswordBtn").addEventListener("click", recuperarPassword);
 document.getElementById("logoutBtn").addEventListener("click", logout);
-document.getElementById("syncNowBtn").addEventListener("click", sincronizarTudo);
+document.getElementById("syncNowBtn").addEventListener("click", async () => {
+  await atualizarResultadosBackend();
+  await sincronizarTudo();
+  renderLista();
+  renderHistorico();
+  atualizarDashboard();
+  await verificar();
+});
 
 authPassword.addEventListener("keydown", e => {
   if (e.key === "Enter") login();
@@ -1105,6 +1154,10 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 
 (async function boot() {
   console.log("APP_VERSION", window.APP_VERSION);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js?v=17").catch(err => console.warn("Service worker indisponível:", err));
+  }
 
   const { data, error } = await supabaseClient.auth.getSession();
   if (error) console.warn(error);
