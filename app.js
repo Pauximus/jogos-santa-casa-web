@@ -1,4 +1,4 @@
-window.APP_VERSION = "v21-estavel-sync-historico";
+window.APP_VERSION = "v22-logout-final";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -8,6 +8,7 @@ const SUPABASE_HISTORICO = "historico_premios";
 const SUPABASE_APOSTAS = "apostas_guardadas";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let logoutEmCurso = false;
 
 const jogos = {
   euromilhoes: { nome: "Euromilhões", endpoint: "euromilhoes", numeros: 5, extras: 2, maxNum: 50, maxExtra: 12, extraLabel: "⭐", tab: "EUROMILHÕES", tipo: "numeros_extra" },
@@ -395,18 +396,30 @@ async function recuperarPassword() {
 }
 
 async function logout() {
-  try {
-    estado.textContent = "A terminar sessão...";
+  logoutEmCurso = true;
+  estado.textContent = "A terminar sessão...";
 
-    // O signOut pode ficar preso quando o browser/Supabase está lento.
-    // Por isso usamos timeout e fazemos limpeza local no finally.
-    await comTimeout(
-      supabaseClient.auth.signOut({ scope: "local" }),
-      12000,
-      "terminar sessão"
-    );
+  const limparSessaoLocal = () => {
+    try {
+      // Limpa todos os dados locais da app e todos os tokens do Supabase.
+      // As apostas/histórico continuam seguros na cloud, por utilizador.
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn("Não foi possível limpar storage local:", e);
+    }
+  };
+
+  try {
+    limparSessaoLocal();
+
+    // Tenta terminar a sessão também no Supabase, mas não deixa a interface presa.
+    await Promise.race([
+      supabaseClient.auth.signOut({ scope: "global" }),
+      new Promise(resolve => setTimeout(resolve, 3000))
+    ]);
   } catch (err) {
-    console.warn("Sign out remoto demorou/falhou; a limpar sessão local na mesma:", err);
+    console.warn("Sign out remoto falhou/demorou; sessão local limpa na mesma:", err);
   } finally {
     currentUser = null;
     apostas = {};
@@ -414,32 +427,22 @@ async function logout() {
     for (const key of Object.keys(jogos)) apostas[key] = [];
     interfaceCriada = false;
 
-    // Remove tokens Supabase que possam manter a sessão após F5/Ctrl+F5.
-    try {
-      Object.keys(localStorage).forEach(k => {
-        if (k.startsWith("sb-") || k.toLowerCase().includes("supabase")) {
-          localStorage.removeItem(k);
-        }
-      });
-      Object.keys(sessionStorage).forEach(k => {
-        if (k.startsWith("sb-") || k.toLowerCase().includes("supabase")) {
-          sessionStorage.removeItem(k);
-        }
-      });
-    } catch (e) {
-      console.warn("Não foi possível limpar storage Supabase:", e);
-    }
+    limparSessaoLocal();
 
     authBox.style.display = "";
     userBox.style.display = "none";
     appBox.style.display = "none";
+    authEmail.value = "";
     authPassword.value = "";
     userInfo.textContent = "";
     syncInfo.textContent = "";
     estado.textContent = "Sessão terminada.";
 
-    // Garante que o estado visual e a sessão em memória ficam limpos.
-    setTimeout(() => window.location.reload(), 300);
+    // Recarrega com cache-buster para impedir que o service worker/browser mantenha a sessão antiga.
+    setTimeout(() => {
+      const base = window.location.origin + window.location.pathname;
+      window.location.replace(`${base}?logout=${Date.now()}`);
+    }, 300);
   }
 }
 
@@ -1324,6 +1327,7 @@ if (fecharNotificacao) {
 }
 
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  if (logoutEmCurso) return;
   currentUser = session?.user || null;
   if (currentUser && event !== "INITIAL_SESSION") {
     await arrancarApp();
@@ -1333,8 +1337,13 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 (async function boot() {
   console.log("APP_VERSION", window.APP_VERSION);
 
+  if (new URLSearchParams(window.location.search).has("logout")) {
+    try { localStorage.clear(); sessionStorage.clear(); } catch(e) {}
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js?v=20").catch(err => console.warn("Service worker indisponível:", err));
+    navigator.serviceWorker.register("service-worker.js?v=22").catch(err => console.warn("Service worker indisponível:", err));
   }
 
   const { data, error } = await supabaseClient.auth.getSession();
