@@ -1,4 +1,4 @@
-window.APP_VERSION = "v27-pdf-share";
+window.APP_VERSION = "v27.1-pdf-share-fix";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -340,7 +340,7 @@ async function login() {
   }
 
   currentUser = data.user;
-  await arrancarApp();
+await arrancarApp();
 }
 
 async function criarConta() {
@@ -375,7 +375,7 @@ async function criarConta() {
   }
 
   currentUser = data.user;
-  await arrancarApp();
+await arrancarApp();
 }
 
 async function recuperarPassword() {
@@ -418,7 +418,7 @@ async function logout() {
     limparSessaoLocal();
 
     // Tenta terminar a sessão também no Supabase, mas não deixa a interface presa.
-    await Promise.race([
+await Promise.race([
       supabaseClient.auth.signOut({ scope: "global" }),
       new Promise(resolve => setTimeout(resolve, 3000))
     ]);
@@ -518,7 +518,7 @@ async function sincronizarTudo(opcoes = {}) {
 
     if (verificarDepois) {
       if (!background) estado.textContent = "A verificar prémios...";
-      await verificar().catch(err => console.warn("Verificação de prémios incompleta:", err));
+await verificar().catch(err => console.warn("Verificação de prémios incompleta:", err));
     }
 
     syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
@@ -863,7 +863,7 @@ function renderLista() {
     btn.onclick = async () => {
       apostas[jogoAtual].splice(index, 1);
       guardar();
-      await apagarApostaCloud(jogoAtual, aposta);
+await apagarApostaCloud(jogoAtual, aposta);
       renderLista();
       verificar();
     };
@@ -885,7 +885,7 @@ async function adicionarAposta() {
 
   apostas[jogoAtual].push(aposta);
   guardar();
-  await guardarApostaCloud(jogoAtual, aposta);
+await guardarApostaCloud(jogoAtual, aposta);
   renderCampos();
   renderLista();
   verificar();
@@ -991,7 +991,7 @@ async function verificar() {
     else if (cfg.tipo === "codigo") eventos = renderResultadoCodigo(data);
     else if (cfg.tipo === "lotaria") eventos = renderResultadoLotaria(data);
 
-    await guardarEventosHistorico(data, eventos);
+await guardarEventosHistorico(data, eventos);
     estado.textContent = `${cfg.nome}: ${apostas[jogoAtual].length} aposta(s)`;
 
   } catch (err) {
@@ -1165,7 +1165,7 @@ async function guardarEventosHistorico(data, eventos) {
 
       historico.unshift(registo);
       novosEventos.push(registo);
-      await guardarPremioCloud(ev);
+await guardarPremioCloud(ev);
     }
   }
 
@@ -1176,7 +1176,7 @@ async function guardarEventosHistorico(data, eventos) {
     mostrarNotificacaoPremio(novosEventos);
   }
 
-  await carregarHistoricoCloud();
+await carregarHistoricoCloud();
 }
 
 function renderHistorico() {
@@ -1436,7 +1436,7 @@ async function partilharHistorico() {
       const ficheiro = new File([blob], pdf.nome, { type: "application/pdf" });
 
       if (navigator.canShare({ files: [ficheiro] })) {
-        await navigator.share({
+      await navigator.share({
           title: "Histórico de prémios",
           text: "Segue o meu histórico de prémios.",
           files: [ficheiro]
@@ -1466,7 +1466,7 @@ async function partilharHistorico() {
 }
 
 
-function limparHistorico() {
+async function limparHistorico() {
   const mensagem = currentUser
     ? "Queres mesmo apagar TODO o teu histórico de prémios?\n\nIsto vai apagar o histórico local e também o histórico guardado na cloud desta conta. As apostas guardadas não serão apagadas."
     : "Queres mesmo limpar o histórico local?";
@@ -1575,11 +1575,11 @@ const btnExportarPdfHistorico = document.getElementById("exportarPdfHistorico");
 const btnPartilharHistorico = document.getElementById("partilharHistorico");
 
 if (btnExportarPdfHistorico) {
-  btnExportarPdfHistorico.addEventListener("click", exportarPdfHistorico);
+  btnExportarPdfHistorico.addEventListener("click", () => exportarPdfHistorico());
 }
 
 if (btnPartilharHistorico) {
-  btnPartilharHistorico.addEventListener("click", partilharHistorico);
+  btnPartilharHistorico.addEventListener("click", () => partilharHistorico());
 }
 
 document.getElementById("limparHistorico").addEventListener("click", limparHistorico);
@@ -1689,7 +1689,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
   if (logoutEmCurso) return;
   currentUser = session?.user || null;
   if (currentUser && event !== "INITIAL_SESSION") {
-    await arrancarApp();
+await arrancarApp();
   }
 });
 
@@ -1724,7 +1724,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
   currentUser = data?.session?.user || null;
 
   if (currentUser) {
-    await arrancarApp();
+await arrancarApp();
   } else {
     authBox.style.display = "";
     userBox.style.display = "none";
