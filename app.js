@@ -1,4 +1,4 @@
-window.APP_VERSION = "v20-logout-sync-cloud";
+window.APP_VERSION = "v21-estavel-sync-historico";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -299,12 +299,12 @@ function terminarEstadoPronto() {
 }
 
 function comTimeout(promise, ms, descricao = "operação") {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      setTimeout(() => reject(new Error(`${descricao} demorou demasiado tempo`)), ms);
-    })
-  ]);
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${descricao} demorou demasiado tempo`)), ms);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 async function fetchComTimeout(url, opcoes = {}, ms = 60000) {
@@ -532,7 +532,7 @@ async function carregarApostasCloud(chamarVerificar = true) {
       .order("data_registo", { ascending: true })
       .limit(1000);
 
-    const { data, error } = await comTimeout(query, 90000, "sincronização das apostas");
+    const { data, error } = await comTimeout(query, 180000, "sincronização das apostas");
 
     if (error) throw error;
 
@@ -556,9 +556,9 @@ async function carregarApostasCloud(chamarVerificar = true) {
 
   } catch (err) {
     console.warn("Apostas cloud indisponíveis:", err);
-    estado.textContent = "Não foi possível sincronizar apostas.";
+    estado.textContent = "Sincronização de apostas lenta. A usar dados locais.";
     renderLista();
-    throw err;
+    return false;
   }
 }
 
@@ -645,7 +645,7 @@ async function carregarHistoricoCloud(chamarRender = true) {
       .order("data_registo", { ascending: false })
       .limit(200);
 
-    const { data, error } = await comTimeout(query, 90000, "sincronização do histórico");
+    const { data, error } = await comTimeout(query, 180000, "sincronização do histórico");
 
     if (error) throw error;
 
@@ -656,9 +656,9 @@ async function carregarHistoricoCloud(chamarRender = true) {
 
   } catch (err) {
     console.warn("Histórico cloud indisponível:", err);
-    estado.textContent = "Não foi possível sincronizar histórico.";
+    estado.textContent = "Sincronização de histórico lenta. A usar dados locais.";
     if (chamarRender) renderHistorico();
-    throw err;
+    return false;
   }
 }
 
@@ -873,7 +873,11 @@ async function atualizarResultadosBackend() {
     estado.textContent = "A atualizar resultados oficiais...";
     const res = await fetchComTimeout(`${BACKEND_API}/atualizar`, { cache: "no-store" }, 70000);
     const data = await res.json().catch(() => ({}));
-    console.log("Atualização backend:", data);
+    if (data && data.ok === false) {
+      console.info("Atualização backend incompleta; a usar últimos resultados guardados.", data.atualizado_em || "");
+    } else {
+      console.info("Atualização backend concluída.", data?.atualizado_em || "");
+    }
     return data;
   } catch (err) {
     console.warn("Atualização automática do backend falhou:", err);
@@ -1217,7 +1221,7 @@ async function limparHistorico() {
         .delete()
         .eq("user_id", currentUser.id);
 
-      const { error } = await comTimeout(query, 90000, "limpeza do histórico cloud");
+      const { error } = await comTimeout(query, 180000, "limpeza do histórico cloud");
       if (error) throw error;
     }
 
@@ -1231,7 +1235,7 @@ async function limparHistorico() {
       ? "Histórico local e cloud limpo."
       : "Histórico local limpo.";
 
-    atualizarSyncInfo();
+    syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
 
   } catch (err) {
     console.warn("Não foi possível limpar o histórico na cloud:", err);
