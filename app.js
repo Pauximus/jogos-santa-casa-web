@@ -1,4 +1,4 @@
-window.APP_VERSION = "v27.1-pdf-share-fix";
+window.APP_VERSION = "v27.2-pdf-share-fix";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1210,7 +1210,6 @@ function renderHistorico() {
 
 
 
-async 
 function historicoOrdenadoParaRelatorio() {
   return [...historico].sort((a, b) => {
     const da = a.dataRegisto ? new Date(a.dataRegisto).getTime() : 0;
