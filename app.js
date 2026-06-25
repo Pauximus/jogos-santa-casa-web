@@ -1,4 +1,4 @@
-window.APP_VERSION = "v27.2-pdf-share-fix";
+window.APP_VERSION = "v27.4-pdf-header-fix";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -340,7 +340,7 @@ async function login() {
   }
 
   currentUser = data.user;
-await arrancarApp();
+  await arrancarApp();
 }
 
 async function criarConta() {
@@ -375,7 +375,7 @@ async function criarConta() {
   }
 
   currentUser = data.user;
-await arrancarApp();
+  await arrancarApp();
 }
 
 async function recuperarPassword() {
@@ -418,7 +418,7 @@ async function logout() {
     limparSessaoLocal();
 
     // Tenta terminar a sessão também no Supabase, mas não deixa a interface presa.
-await Promise.race([
+    await Promise.race([
       supabaseClient.auth.signOut({ scope: "global" }),
       new Promise(resolve => setTimeout(resolve, 3000))
     ]);
@@ -518,7 +518,7 @@ async function sincronizarTudo(opcoes = {}) {
 
     if (verificarDepois) {
       if (!background) estado.textContent = "A verificar prémios...";
-await verificar().catch(err => console.warn("Verificação de prémios incompleta:", err));
+      await verificar().catch(err => console.warn("Verificação de prémios incompleta:", err));
     }
 
     syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
@@ -863,7 +863,7 @@ function renderLista() {
     btn.onclick = async () => {
       apostas[jogoAtual].splice(index, 1);
       guardar();
-await apagarApostaCloud(jogoAtual, aposta);
+      await apagarApostaCloud(jogoAtual, aposta);
       renderLista();
       verificar();
     };
@@ -885,7 +885,7 @@ async function adicionarAposta() {
 
   apostas[jogoAtual].push(aposta);
   guardar();
-await guardarApostaCloud(jogoAtual, aposta);
+  await guardarApostaCloud(jogoAtual, aposta);
   renderCampos();
   renderLista();
   verificar();
@@ -991,7 +991,7 @@ async function verificar() {
     else if (cfg.tipo === "codigo") eventos = renderResultadoCodigo(data);
     else if (cfg.tipo === "lotaria") eventos = renderResultadoLotaria(data);
 
-await guardarEventosHistorico(data, eventos);
+    await guardarEventosHistorico(data, eventos);
     estado.textContent = `${cfg.nome}: ${apostas[jogoAtual].length} aposta(s)`;
 
   } catch (err) {
@@ -1165,7 +1165,7 @@ async function guardarEventosHistorico(data, eventos) {
 
       historico.unshift(registo);
       novosEventos.push(registo);
-await guardarPremioCloud(ev);
+      await guardarPremioCloud(ev);
     }
   }
 
@@ -1176,7 +1176,7 @@ await guardarPremioCloud(ev);
     mostrarNotificacaoPremio(novosEventos);
   }
 
-await carregarHistoricoCloud();
+  await carregarHistoricoCloud();
 }
 
 function renderHistorico() {
@@ -1210,7 +1210,8 @@ function renderHistorico() {
 
 
 
-function historicoOrdenadoParaRelatorio() {
+
+function historicoParaRelatorioOrdenado() {
   return [...historico].sort((a, b) => {
     const da = a.dataRegisto ? new Date(a.dataRegisto).getTime() : 0;
     const db = b.dataRegisto ? new Date(b.dataRegisto).getTime() : 0;
@@ -1218,11 +1219,15 @@ function historicoOrdenadoParaRelatorio() {
   });
 }
 
-function linhasResumoPartilha() {
+function nomeFicheiroPdfHistorico() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  return `historico_premios_jogos_santa_casa_${hoje}.pdf`;
+}
+
+function gerarTextoPartilhaHistorico() {
   const totalApostas = totalApostasGuardadas();
   const totalPremios = historico.length;
   const taxa = totalApostas ? Math.round((totalPremios / totalApostas) * 100) : 0;
-  const ultimo = historico[0];
 
   const linhas = [
     "🍀 Verificador Jogos Santa Casa",
@@ -1233,7 +1238,6 @@ function linhasResumoPartilha() {
     `Apostas guardadas: ${totalApostas}`,
     `Prémios encontrados: ${totalPremios}`,
     `Taxa de sucesso: ${taxa}%`,
-    `Último prémio: ${ultimo?.jogo || "—"}`,
     "",
     "Histórico de prémios:"
   ];
@@ -1241,7 +1245,7 @@ function linhasResumoPartilha() {
   if (!historico.length) {
     linhas.push("Sem prémios registados.");
   } else {
-    historicoOrdenadoParaRelatorio().slice(0, 20).forEach((h, i) => {
+    historicoParaRelatorioOrdenado().slice(0, 20).forEach((h, i) => {
       linhas.push("");
       linhas.push(`${i + 1}. ${h.jogo || "—"} — ${h.premio || "—"}`);
       linhas.push(`Sorteio: ${h.sorteio || "—"}${h.dataSorteio ? " — " + h.dataSorteio : ""}`);
@@ -1255,30 +1259,16 @@ function linhasResumoPartilha() {
   return linhas.join("\n");
 }
 
-function prepararNomePdf() {
-  const hoje = new Date().toISOString().slice(0, 10);
-  return `historico_premios_jogos_santa_casa_${hoje}.pdf`;
-}
-
-function obterJsPdf() {
-  if (window.jspdf?.jsPDF) return window.jspdf.jsPDF;
+function obterClasseJsPdf() {
+  if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
   if (window.jsPDF) return window.jsPDF;
   return null;
 }
 
-function desenharLinhaPdf(doc, texto, x, y, larguraMax, tamanho = 10, estilo = "normal") {
-  doc.setFont("helvetica", estilo);
-  doc.setFontSize(tamanho);
-  const linhas = doc.splitTextToSize(String(texto || ""), larguraMax);
-  doc.text(linhas, x, y);
-  return y + (linhas.length * (tamanho * 0.42)) + 3;
-}
-
-async function gerarPdfHistorico() {
-  const JsPDF = obterJsPdf();
-
+function gerarPdfHistoricoBlobOuDoc() {
+  const JsPDF = obterClasseJsPdf();
   if (!JsPDF) {
-    alert("Não foi possível carregar o gerador de PDF. Tenta novamente dentro de alguns segundos.");
+    alert("O gerador de PDF ainda não carregou. Tenta novamente dentro de alguns segundos.");
     return null;
   }
 
@@ -1291,49 +1281,47 @@ async function gerarPdfHistorico() {
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 14;
-  const contentW = pageW - (margin * 2);
+  const contentW = pageW - margin * 2;
   let y = 16;
 
-  function novaPaginaSePreciso(altura = 20) {
-    if (y + altura > pageH - 16) {
-      doc.addPage();
-      y = 16;
-      rodape();
-    }
-  }
-
-  function rodape() {
+  function footer() {
     doc.setFontSize(8);
     doc.setTextColor(120);
-    doc.text("Gerado por Verificador Jogos Santa Casa — pauximus.github.io/jogos-santa-casa-web", margin, pageH - 8);
+    doc.text("Gerado por Verificador Jogos Santa Casa", margin, pageH - 8);
     doc.setTextColor(0);
   }
 
-  // Header
-  doc.setFillColor(232, 247, 238);
-  doc.roundedRect(margin, y, contentW, 31, 4, 4, "F");
-  doc.setTextColor(23, 99, 58);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.text("🍀 Relatório de Prémios", margin + 5, y + 11);
-  doc.setFontSize(10);
-  doc.setTextColor(60);
-  doc.text("Verificador Jogos Santa Casa", margin + 5, y + 20);
-  doc.text(`Utilizador: ${currentUser?.email || "—"}`, margin + 5, y + 26);
-  y += 41;
+  function pageBreakIfNeeded(extra) {
+    if (y + extra > pageH - 16) {
+      doc.addPage();
+      y = 16;
+      footer();
+    }
+  }
 
   const totalApostas = totalApostasGuardadas();
   const totalPremios = historico.length;
   const taxa = totalApostas ? Math.round((totalPremios / totalApostas) * 100) : 0;
   const ultimo = historico[0];
 
+  doc.setFillColor(232, 247, 238);
+  doc.roundedRect(margin, y, contentW, 32, 4, 4, "F");
+  doc.setTextColor(23, 99, 58);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text("Relatório de Prémios", margin + 5, y + 11);
+  doc.setFontSize(10);
+  doc.setTextColor(60);
+  doc.text(`Utilizador: ${currentUser?.email || "—"}`, margin + 5, y + 20);
+  doc.text(`Data: ${new Date().toLocaleString("pt-PT")}`, margin + 5, y + 26);
+  y += 42;
+
+  doc.setTextColor(0);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.setTextColor(0);
   doc.text("Resumo", margin, y);
   y += 8;
 
-  const cardW = (contentW - 9) / 4;
   const cards = [
     ["Apostas", totalApostas],
     ["Prémios", totalPremios],
@@ -1341,6 +1329,7 @@ async function gerarPdfHistorico() {
     ["Último", ultimo?.jogo || "—"]
   ];
 
+  const cardW = (contentW - 9) / 4;
   cards.forEach((c, i) => {
     const x = margin + i * (cardW + 3);
     doc.setFillColor(248, 250, 252);
@@ -1356,42 +1345,20 @@ async function gerarPdfHistorico() {
   });
   y += 32;
 
-  // Ranking
-  const contagem = contagemPremiosPorJogo();
-  const ranking = Object.entries(contagem).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-PT"));
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("Totais por jogo", margin, y);
-  y += 7;
-
-  if (!ranking.length) {
-    y = desenharLinhaPdf(doc, "Sem prémios registados.", margin, y, contentW);
-  } else {
-    ranking.forEach(([jogo, total]) => {
-      novaPaginaSePreciso(8);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text(`${jogo}: ${total} prémio(s)`, margin, y);
-      y += 6;
-    });
-  }
-
-  y += 5;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   doc.text("Histórico de prémios", margin, y);
   y += 8;
 
-  historicoOrdenadoParaRelatorio().forEach((h, i) => {
-    novaPaginaSePreciso(42);
+  historicoParaRelatorioOrdenado().forEach((h, i) => {
+    pageBreakIfNeeded(44);
 
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(223, 229, 236);
     doc.roundedRect(margin, y, contentW, 39, 3, 3, "FD");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setTextColor(23, 99, 58);
     doc.text(`${i + 1}. ${h.jogo || "—"} — ${h.premio || "—"}`, margin + 4, y + 8);
 
@@ -1406,16 +1373,13 @@ async function gerarPdfHistorico() {
     y += 45;
   });
 
-  rodape();
-
-  const nome = prepararNomePdf();
-  return { doc, nome };
+  footer();
+  return { doc, nome: nomeFicheiroPdfHistorico() };
 }
 
-async function exportarPdfHistorico() {
-  const pdf = await gerarPdfHistorico();
+function exportarPdfHistorico() {
+  const pdf = gerarPdfHistoricoBlobOuDoc();
   if (!pdf) return;
-
   pdf.doc.save(pdf.nome);
   estado.textContent = "PDF exportado.";
 }
@@ -1426,19 +1390,20 @@ async function partilharHistorico() {
     return;
   }
 
-  const texto = linhasResumoPartilha();
+  const texto = gerarTextoPartilhaHistorico();
 
   try {
-    const pdf = await gerarPdfHistorico();
+    const pdf = gerarPdfHistoricoBlobOuDoc();
+
     if (pdf && navigator.canShare) {
       const blob = pdf.doc.output("blob");
-      const ficheiro = new File([blob], pdf.nome, { type: "application/pdf" });
+      const file = new File([blob], pdf.nome, { type: "application/pdf" });
 
-      if (navigator.canShare({ files: [ficheiro] })) {
-      await navigator.share({
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
           title: "Histórico de prémios",
           text: "Segue o meu histórico de prémios.",
-          files: [ficheiro]
+          files: [file]
         });
         estado.textContent = "Histórico partilhado.";
         return;
@@ -1455,11 +1420,12 @@ async function partilharHistorico() {
     }
   } catch (err) {
     console.warn("Partilha cancelada ou indisponível:", err);
+    return;
   }
 
-  const pdf = await gerarPdfHistorico();
-  if (pdf) {
-    pdf.doc.save(pdf.nome);
+  const pdfFallback = gerarPdfHistoricoBlobOuDoc();
+  if (pdfFallback) {
+    pdfFallback.doc.save(pdfFallback.nome);
     alert("A partilha direta não está disponível neste dispositivo. O PDF foi transferido para poderes enviar por WhatsApp, email ou outra app.");
   }
 }
@@ -1569,14 +1535,12 @@ authPassword.addEventListener("keydown", e => {
 
 jogoSelect.addEventListener("change", () => mudarJogo(jogoSelect.value));
 document.getElementById("adicionar").addEventListener("click", adicionarAposta);
-
 const btnExportarPdfHistorico = document.getElementById("exportarPdfHistorico");
-const btnPartilharHistorico = document.getElementById("partilharHistorico");
-
 if (btnExportarPdfHistorico) {
-  btnExportarPdfHistorico.addEventListener("click", () => exportarPdfHistorico());
+  btnExportarPdfHistorico.addEventListener("click", exportarPdfHistorico);
 }
 
+const btnPartilharHistorico = document.getElementById("partilharHistorico");
 if (btnPartilharHistorico) {
   btnPartilharHistorico.addEventListener("click", () => partilharHistorico());
 }
@@ -1688,7 +1652,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
   if (logoutEmCurso) return;
   currentUser = session?.user || null;
   if (currentUser && event !== "INITIAL_SESSION") {
-await arrancarApp();
+    await arrancarApp();
   }
 });
 
@@ -1723,7 +1687,7 @@ await arrancarApp();
   currentUser = data?.session?.user || null;
 
   if (currentUser) {
-await arrancarApp();
+    await arrancarApp();
   } else {
     authBox.style.display = "";
     userBox.style.display = "none";
