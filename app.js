@@ -1,4 +1,4 @@
-window.APP_VERSION = "v18-sync-feedback-final";
+window.APP_VERSION = "v19-limpar-historico-cloud";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1156,11 +1156,59 @@ function exportarHistorico() {
   URL.revokeObjectURL(url);
 }
 
-function limparHistorico() {
-  if (!confirm("Queres mesmo limpar o histórico local? A cloud não será apagada.")) return;
-  historico = [];
-  guardarHistoricoLocal();
-  renderHistorico();
+async function limparHistorico() {
+  const mensagem = currentUser
+    ? "Queres mesmo apagar TODO o teu histórico de prémios?\n\nIsto vai apagar o histórico local e também o histórico guardado na cloud desta conta. As apostas guardadas não serão apagadas."
+    : "Queres mesmo limpar o histórico local?";
+
+  if (!confirm(mensagem)) return;
+
+  const btn = document.getElementById("limparHistorico");
+  const textoOriginal = btn ? btn.textContent : "";
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "A limpar...";
+    }
+
+    estado.textContent = currentUser
+      ? "A limpar histórico local e cloud..."
+      : "A limpar histórico local...";
+
+    if (currentUser) {
+      const query = supabaseClient
+        .from(SUPABASE_HISTORICO)
+        .delete()
+        .eq("user_id", currentUser.id);
+
+      const { error } = await comTimeout(query, 30000, "limpeza do histórico cloud");
+      if (error) throw error;
+    }
+
+    historico = [];
+    guardarHistoricoLocal();
+    renderHistorico();
+    atualizarDashboard();
+    atualizarContador();
+
+    estado.textContent = currentUser
+      ? "Histórico local e cloud limpo."
+      : "Histórico local limpo.";
+
+    atualizarSyncInfo();
+
+  } catch (err) {
+    console.warn("Não foi possível limpar o histórico na cloud:", err);
+    estado.textContent = "Erro ao limpar histórico.";
+    alert("Não foi possível limpar o histórico na cloud: " + (err.message || err));
+
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = textoOriginal || "Limpar histórico cloud";
+    }
+  }
 }
 
 document.getElementById("loginBtn").addEventListener("click", login);
