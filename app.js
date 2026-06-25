@@ -1,4 +1,4 @@
-window.APP_VERSION = "v22-logout-final";
+window.APP_VERSION = "v23-sync-botao-final";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -294,6 +294,10 @@ function agoraPt() {
   return new Date().toLocaleString("pt-PT");
 }
 
+function esperar(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function terminarEstadoPronto() {
   const cfg = jogos[jogoAtual];
   estado.textContent = `${cfg.nome}: ${apostas[jogoAtual]?.length || 0} aposta(s)`;
@@ -500,26 +504,40 @@ async function sincronizarTudo(opcoes = {}) {
 
   const verificarDepois = opcoes.verificarDepois === true;
 
-  estado.textContent = "A sincronizar apostas...";
-  await carregarApostasCloud(false);
+  try {
+    estado.textContent = "A sincronizar apostas...";
+    await carregarApostasCloud(false);
 
-  estado.textContent = "A sincronizar histórico...";
-  await carregarHistoricoCloud(false);
+    estado.textContent = "A sincronizar histórico...";
+    await carregarHistoricoCloud(false);
 
-  renderLista();
-  renderHistorico();
-  atualizarDashboard();
-  atualizarContador();
-  atualizarBadgesTabs();
+    renderLista();
+    renderHistorico();
+    atualizarDashboard();
+    atualizarContador();
+    atualizarBadgesTabs();
 
-  if (verificarDepois) {
-    estado.textContent = "A verificar prémios...";
-    await verificar();
+    if (verificarDepois) {
+      estado.textContent = "A verificar prémios...";
+      await verificar();
+    }
+
+    syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
+    return true;
+
+  } catch (err) {
+    console.warn("Sincronização incompleta:", err);
+    syncInfo.textContent = `Última sincronização parcial: ${agoraPt()}`;
+    return false;
+
+  } finally {
+    renderLista();
+    renderHistorico();
+    atualizarDashboard();
+    atualizarContador();
+    atualizarBadgesTabs();
+    terminarEstadoPronto();
   }
-
-  syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
-  terminarEstadoPronto();
-  return true;
 }
 
 async function carregarApostasCloud(chamarVerificar = true) {
@@ -535,7 +553,7 @@ async function carregarApostasCloud(chamarVerificar = true) {
       .order("data_registo", { ascending: true })
       .limit(1000);
 
-    const { data, error } = await comTimeout(query, 180000, "sincronização das apostas");
+    const { data, error } = await comTimeout(query, 25000, "sincronização das apostas");
 
     if (error) throw error;
 
@@ -556,6 +574,7 @@ async function carregarApostasCloud(chamarVerificar = true) {
     atualizarDashboard();
 
     if (chamarVerificar) await verificar();
+    return true;
 
   } catch (err) {
     console.warn("Apostas cloud indisponíveis:", err);
@@ -648,7 +667,7 @@ async function carregarHistoricoCloud(chamarRender = true) {
       .order("data_registo", { ascending: false })
       .limit(200);
 
-    const { data, error } = await comTimeout(query, 180000, "sincronização do histórico");
+    const { data, error } = await comTimeout(query, 25000, "sincronização do histórico");
 
     if (error) throw error;
 
@@ -656,6 +675,7 @@ async function carregarHistoricoCloud(chamarRender = true) {
     guardarHistoricoLocal();
 
     if (chamarRender) renderHistorico();
+    return true;
 
   } catch (err) {
     console.warn("Histórico cloud indisponível:", err);
@@ -1224,7 +1244,7 @@ async function limparHistorico() {
         .delete()
         .eq("user_id", currentUser.id);
 
-      const { error } = await comTimeout(query, 180000, "limpeza do histórico cloud");
+      const { error } = await comTimeout(query, 25000, "limpeza do histórico cloud");
       if (error) throw error;
     }
 
@@ -1258,38 +1278,63 @@ document.getElementById("signupBtn").addEventListener("click", criarConta);
 document.getElementById("resetPasswordBtn").addEventListener("click", recuperarPassword);
 document.getElementById("logoutBtn").addEventListener("click", logout);
 document.getElementById("syncNowBtn").addEventListener("click", async () => {
-  if (syncEmCurso) return;
+  if (syncEmCurso) {
+    estado.textContent = "Sincronização já em curso.";
+    return;
+  }
 
   const btn = document.getElementById("syncNowBtn");
-  const textoOriginal = btn.textContent;
+  const textoOriginal = btn.textContent || "Sincronizar agora";
   syncEmCurso = true;
   btn.disabled = true;
   btn.textContent = "A sincronizar...";
 
-  try {
-    estado.textContent = "A atualizar resultados oficiais...";
-    await atualizarResultadosBackend();
+  let terminou = false;
 
-    estado.textContent = "A sincronizar apostas e histórico...";
-    await sincronizarTudo({ verificarDepois: false });
+  const processo = (async () => {
+    try {
+      estado.textContent = "A atualizar resultados oficiais...";
+      await atualizarResultadosBackend().catch(err => {
+        console.warn("Atualização backend falhou:", err);
+      });
 
-    estado.textContent = "A verificar prémios...";
-    await verificar();
+      estado.textContent = "A sincronizar apostas e histórico...";
+      await sincronizarTudo({ verificarDepois: false });
 
-    renderLista();
-    renderHistorico();
-    atualizarDashboard();
-    syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
-    terminarEstadoPronto();
+      estado.textContent = "A verificar prémios...";
+      await verificar();
 
-  } catch (err) {
-    console.warn("Erro ao sincronizar agora:", err);
-    estado.textContent = "Erro ao sincronizar. Tenta novamente.";
-  } finally {
-    syncEmCurso = false;
+      renderLista();
+      renderHistorico();
+      atualizarDashboard();
+      syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
+      estado.textContent = "Sincronização concluída.";
+      await esperar(1800);
+      terminarEstadoPronto();
+
+    } catch (err) {
+      console.warn("Erro ao sincronizar agora:", err);
+      estado.textContent = "Sincronização incompleta. A usar dados disponíveis.";
+      await esperar(2500);
+      terminarEstadoPronto();
+
+    } finally {
+      terminou = true;
+      syncEmCurso = false;
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  })();
+
+  const resultado = await Promise.race([
+    processo.then(() => "ok"),
+    esperar(15000).then(() => "lento")
+  ]);
+
+  if (resultado === "lento" && !terminou) {
+    estado.textContent = "Sincronização lenta. Vai terminar em segundo plano.";
     btn.disabled = false;
     btn.textContent = textoOriginal;
-    if (estado.textContent.startsWith("A ")) terminarEstadoPronto();
   }
 });
 
