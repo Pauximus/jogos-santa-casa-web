@@ -1,4 +1,4 @@
-window.APP_VERSION = "v19-limpar-historico-cloud";
+window.APP_VERSION = "v20-logout-sync-cloud";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -395,17 +395,52 @@ async function recuperarPassword() {
 }
 
 async function logout() {
-  await supabaseClient.auth.signOut();
-  currentUser = null;
-  apostas = {};
-  historico = [];
-  interfaceCriada = false;
+  try {
+    estado.textContent = "A terminar sessão...";
 
-  authBox.style.display = "";
-  userBox.style.display = "none";
-  appBox.style.display = "none";
-  authPassword.value = "";
-  estado.textContent = "Sessão terminada.";
+    // O signOut pode ficar preso quando o browser/Supabase está lento.
+    // Por isso usamos timeout e fazemos limpeza local no finally.
+    await comTimeout(
+      supabaseClient.auth.signOut({ scope: "local" }),
+      12000,
+      "terminar sessão"
+    );
+  } catch (err) {
+    console.warn("Sign out remoto demorou/falhou; a limpar sessão local na mesma:", err);
+  } finally {
+    currentUser = null;
+    apostas = {};
+    historico = [];
+    for (const key of Object.keys(jogos)) apostas[key] = [];
+    interfaceCriada = false;
+
+    // Remove tokens Supabase que possam manter a sessão após F5/Ctrl+F5.
+    try {
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith("sb-") || k.toLowerCase().includes("supabase")) {
+          localStorage.removeItem(k);
+        }
+      });
+      Object.keys(sessionStorage).forEach(k => {
+        if (k.startsWith("sb-") || k.toLowerCase().includes("supabase")) {
+          sessionStorage.removeItem(k);
+        }
+      });
+    } catch (e) {
+      console.warn("Não foi possível limpar storage Supabase:", e);
+    }
+
+    authBox.style.display = "";
+    userBox.style.display = "none";
+    appBox.style.display = "none";
+    authPassword.value = "";
+    userInfo.textContent = "";
+    syncInfo.textContent = "";
+    estado.textContent = "Sessão terminada.";
+
+    // Garante que o estado visual e a sessão em memória ficam limpos.
+    setTimeout(() => window.location.reload(), 300);
+  }
 }
 
 function mostrarAppAutenticada() {
@@ -497,7 +532,7 @@ async function carregarApostasCloud(chamarVerificar = true) {
       .order("data_registo", { ascending: true })
       .limit(1000);
 
-    const { data, error } = await comTimeout(query, 30000, "sincronização das apostas");
+    const { data, error } = await comTimeout(query, 90000, "sincronização das apostas");
 
     if (error) throw error;
 
@@ -610,7 +645,7 @@ async function carregarHistoricoCloud(chamarRender = true) {
       .order("data_registo", { ascending: false })
       .limit(200);
 
-    const { data, error } = await comTimeout(query, 30000, "sincronização do histórico");
+    const { data, error } = await comTimeout(query, 90000, "sincronização do histórico");
 
     if (error) throw error;
 
@@ -1182,7 +1217,7 @@ async function limparHistorico() {
         .delete()
         .eq("user_id", currentUser.id);
 
-      const { error } = await comTimeout(query, 30000, "limpeza do histórico cloud");
+      const { error } = await comTimeout(query, 90000, "limpeza do histórico cloud");
       if (error) throw error;
     }
 
@@ -1295,7 +1330,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
   console.log("APP_VERSION", window.APP_VERSION);
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js?v=17").catch(err => console.warn("Service worker indisponível:", err));
+    navigator.serviceWorker.register("service-worker.js?v=20").catch(err => console.warn("Service worker indisponível:", err));
   }
 
   const { data, error } = await supabaseClient.auth.getSession();

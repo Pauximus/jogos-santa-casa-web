@@ -1,4 +1,4 @@
-const CACHE_NAME = "jogos-santa-casa-v19";
+const CACHE_NAME = "jogos-santa-casa-v20";
 
 self.addEventListener("install", event => {
   self.skipWaiting();
