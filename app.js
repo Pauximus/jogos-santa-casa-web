@@ -1,4 +1,4 @@
-window.APP_VERSION = "v17-sync-estavel";
+window.APP_VERSION = "v18-sync-feedback-final";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -59,6 +59,7 @@ let historico = [];
 let interfaceCriada = false;
 let filtroHistorico = "todos";
 let textoPesquisaHistorico = "";
+let syncEmCurso = false;
 
 for (const key of Object.keys(jogos)) apostas[key] = [];
 
@@ -287,6 +288,36 @@ function guardarHistoricoLocal() {
   localStorage.setItem(storageKey("historicoJSC"), JSON.stringify(historico));
 }
 
+
+function agoraPt() {
+  return new Date().toLocaleString("pt-PT");
+}
+
+function terminarEstadoPronto() {
+  const cfg = jogos[jogoAtual];
+  estado.textContent = `${cfg.nome}: ${apostas[jogoAtual]?.length || 0} aposta(s)`;
+}
+
+function comTimeout(promise, ms, descricao = "operação") {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`${descricao} demorou demasiado tempo`)), ms);
+    })
+  ]);
+}
+
+async function fetchComTimeout(url, opcoes = {}, ms = 60000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+
+  try {
+    return await fetch(url, { ...opcoes, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function login() {
   esconderAuthMensagem();
   const email = authEmail.value.trim();
@@ -393,7 +424,8 @@ function mostrarAppAutenticada() {
   renderCampos();
   renderLista();
   renderHistorico();
-  verificar();
+  atualizarDashboard();
+  terminarEstadoPronto();
 }
 
 async function arrancarApp() {
@@ -403,15 +435,16 @@ async function arrancarApp() {
   mostrarAppAutenticada();
 
   try {
-    await sincronizarTudo();
+    estado.textContent = "A preparar sincronização...";
     await atualizarResultadosBackend();
+    await sincronizarTudo({ verificarDepois: false });
 
     renderLista();
     renderHistorico();
     atualizarDashboard();
     await verificar();
 
-    syncInfo.textContent = `Última sincronização: ${new Date().toLocaleString("pt-PT")}`;
+    syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
   } catch (err) {
     console.warn("Erro na sincronização inicial:", err);
     estado.textContent = "Erro ao sincronizar. A usar dados locais.";
@@ -419,13 +452,36 @@ async function arrancarApp() {
     renderHistorico();
     atualizarDashboard();
     await verificar();
+  } finally {
+    terminarEstadoPronto();
   }
 }
 
-async function sincronizarTudo() {
+async function sincronizarTudo(opcoes = {}) {
+  if (!currentUser) return false;
+
+  const verificarDepois = opcoes.verificarDepois === true;
+
+  estado.textContent = "A sincronizar apostas...";
   await carregarApostasCloud(false);
+
+  estado.textContent = "A sincronizar histórico...";
   await carregarHistoricoCloud(false);
-  syncInfo.textContent = `Última sincronização: ${new Date().toLocaleString("pt-PT")}`;
+
+  renderLista();
+  renderHistorico();
+  atualizarDashboard();
+  atualizarContador();
+  atualizarBadgesTabs();
+
+  if (verificarDepois) {
+    estado.textContent = "A verificar prémios...";
+    await verificar();
+  }
+
+  syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
+  terminarEstadoPronto();
+  return true;
 }
 
 async function carregarApostasCloud(chamarVerificar = true) {
@@ -434,12 +490,14 @@ async function carregarApostasCloud(chamarVerificar = true) {
   try {
     estado.textContent = "A sincronizar apostas...";
 
-    const { data, error } = await supabaseClient
+    const query = supabaseClient
       .from(SUPABASE_APOSTAS)
       .select("*")
       .eq("user_id", currentUser.id)
       .order("data_registo", { ascending: true })
       .limit(1000);
+
+    const { data, error } = await comTimeout(query, 30000, "sincronização das apostas");
 
     if (error) throw error;
 
@@ -452,18 +510,20 @@ async function carregarApostasCloud(chamarVerificar = true) {
       }
     });
 
-    // V17: a cloud passa a ser a fonte principal.
-    // O localStorage fica apenas como cache, para todos os dispositivos ficarem iguais.
+    // Cloud é a fonte principal. LocalStorage fica só como cache.
     apostas = novasApostas;
 
     guardar();
     renderLista();
-    if (chamarVerificar) verificar();
+    atualizarDashboard();
+
+    if (chamarVerificar) await verificar();
 
   } catch (err) {
     console.warn("Apostas cloud indisponíveis:", err);
     estado.textContent = "Não foi possível sincronizar apostas.";
     renderLista();
+    throw err;
   }
 }
 
@@ -539,27 +599,31 @@ function normalizarRegistoCloud(h) {
   };
 }
 
-async function carregarHistoricoCloud() {
+async function carregarHistoricoCloud(chamarRender = true) {
   if (!currentUser) return;
 
   try {
-    const { data, error } = await supabaseClient
+    const query = supabaseClient
       .from(SUPABASE_HISTORICO)
       .select("*")
       .eq("user_id", currentUser.id)
       .order("data_registo", { ascending: false })
       .limit(200);
 
+    const { data, error } = await comTimeout(query, 30000, "sincronização do histórico");
+
     if (error) throw error;
 
     historico = (data || []).map(normalizarRegistoCloud);
     guardarHistoricoLocal();
-    renderHistorico();
+
+    if (chamarRender) renderHistorico();
 
   } catch (err) {
     console.warn("Histórico cloud indisponível:", err);
     estado.textContent = "Não foi possível sincronizar histórico.";
-    renderHistorico();
+    if (chamarRender) renderHistorico();
+    throw err;
   }
 }
 
@@ -772,7 +836,7 @@ async function adicionarAposta() {
 async function atualizarResultadosBackend() {
   try {
     estado.textContent = "A atualizar resultados oficiais...";
-    const res = await fetch(`${BACKEND_API}/atualizar`, { cache: "no-store" });
+    const res = await fetchComTimeout(`${BACKEND_API}/atualizar`, { cache: "no-store" }, 70000);
     const data = await res.json().catch(() => ({}));
     console.log("Atualização backend:", data);
     return data;
@@ -1104,12 +1168,39 @@ document.getElementById("signupBtn").addEventListener("click", criarConta);
 document.getElementById("resetPasswordBtn").addEventListener("click", recuperarPassword);
 document.getElementById("logoutBtn").addEventListener("click", logout);
 document.getElementById("syncNowBtn").addEventListener("click", async () => {
-  await atualizarResultadosBackend();
-  await sincronizarTudo();
-  renderLista();
-  renderHistorico();
-  atualizarDashboard();
-  await verificar();
+  if (syncEmCurso) return;
+
+  const btn = document.getElementById("syncNowBtn");
+  const textoOriginal = btn.textContent;
+  syncEmCurso = true;
+  btn.disabled = true;
+  btn.textContent = "A sincronizar...";
+
+  try {
+    estado.textContent = "A atualizar resultados oficiais...";
+    await atualizarResultadosBackend();
+
+    estado.textContent = "A sincronizar apostas e histórico...";
+    await sincronizarTudo({ verificarDepois: false });
+
+    estado.textContent = "A verificar prémios...";
+    await verificar();
+
+    renderLista();
+    renderHistorico();
+    atualizarDashboard();
+    syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
+    terminarEstadoPronto();
+
+  } catch (err) {
+    console.warn("Erro ao sincronizar agora:", err);
+    estado.textContent = "Erro ao sincronizar. Tenta novamente.";
+  } finally {
+    syncEmCurso = false;
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+    if (estado.textContent.startsWith("A ")) terminarEstadoPronto();
+  }
 });
 
 authPassword.addEventListener("keydown", e => {
