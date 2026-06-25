@@ -1,4 +1,4 @@
-window.APP_VERSION = "v26.1-pwa-windows-edge";
+window.APP_VERSION = "v27-pdf-share";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1208,17 +1208,265 @@ function renderHistorico() {
     </div>`).join("");
 }
 
-function exportarHistorico() {
-  const blob = new Blob([JSON.stringify(historico, null, 2)], {type: "application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "historico_premios_jogos_santa_casa.json";
-  a.click();
-  URL.revokeObjectURL(url);
+
+
+async 
+function historicoOrdenadoParaRelatorio() {
+  return [...historico].sort((a, b) => {
+    const da = a.dataRegisto ? new Date(a.dataRegisto).getTime() : 0;
+    const db = b.dataRegisto ? new Date(b.dataRegisto).getTime() : 0;
+    return db - da;
+  });
 }
 
-async function limparHistorico() {
+function linhasResumoPartilha() {
+  const totalApostas = totalApostasGuardadas();
+  const totalPremios = historico.length;
+  const taxa = totalApostas ? Math.round((totalPremios / totalApostas) * 100) : 0;
+  const ultimo = historico[0];
+
+  const linhas = [
+    "🍀 Verificador Jogos Santa Casa",
+    "",
+    `Utilizador: ${currentUser?.email || "—"}`,
+    `Data: ${new Date().toLocaleString("pt-PT")}`,
+    "",
+    `Apostas guardadas: ${totalApostas}`,
+    `Prémios encontrados: ${totalPremios}`,
+    `Taxa de sucesso: ${taxa}%`,
+    `Último prémio: ${ultimo?.jogo || "—"}`,
+    "",
+    "Histórico de prémios:"
+  ];
+
+  if (!historico.length) {
+    linhas.push("Sem prémios registados.");
+  } else {
+    historicoOrdenadoParaRelatorio().slice(0, 20).forEach((h, i) => {
+      linhas.push("");
+      linhas.push(`${i + 1}. ${h.jogo || "—"} — ${h.premio || "—"}`);
+      linhas.push(`Sorteio: ${h.sorteio || "—"}${h.dataSorteio ? " — " + h.dataSorteio : ""}`);
+      linhas.push(`Aposta: ${h.aposta || "—"}`);
+      linhas.push(`Resultado: ${h.resultado || "—"}`);
+    });
+  }
+
+  linhas.push("");
+  linhas.push("https://pauximus.github.io/jogos-santa-casa-web/");
+  return linhas.join("\n");
+}
+
+function prepararNomePdf() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  return `historico_premios_jogos_santa_casa_${hoje}.pdf`;
+}
+
+function obterJsPdf() {
+  if (window.jspdf?.jsPDF) return window.jspdf.jsPDF;
+  if (window.jsPDF) return window.jsPDF;
+  return null;
+}
+
+function desenharLinhaPdf(doc, texto, x, y, larguraMax, tamanho = 10, estilo = "normal") {
+  doc.setFont("helvetica", estilo);
+  doc.setFontSize(tamanho);
+  const linhas = doc.splitTextToSize(String(texto || ""), larguraMax);
+  doc.text(linhas, x, y);
+  return y + (linhas.length * (tamanho * 0.42)) + 3;
+}
+
+async function gerarPdfHistorico() {
+  const JsPDF = obterJsPdf();
+
+  if (!JsPDF) {
+    alert("Não foi possível carregar o gerador de PDF. Tenta novamente dentro de alguns segundos.");
+    return null;
+  }
+
+  if (!historico.length) {
+    alert("Não existem prémios no histórico para exportar.");
+    return null;
+  }
+
+  const doc = new JsPDF({ unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const contentW = pageW - (margin * 2);
+  let y = 16;
+
+  function novaPaginaSePreciso(altura = 20) {
+    if (y + altura > pageH - 16) {
+      doc.addPage();
+      y = 16;
+      rodape();
+    }
+  }
+
+  function rodape() {
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text("Gerado por Verificador Jogos Santa Casa — pauximus.github.io/jogos-santa-casa-web", margin, pageH - 8);
+    doc.setTextColor(0);
+  }
+
+  // Header
+  doc.setFillColor(232, 247, 238);
+  doc.roundedRect(margin, y, contentW, 31, 4, 4, "F");
+  doc.setTextColor(23, 99, 58);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text("🍀 Relatório de Prémios", margin + 5, y + 11);
+  doc.setFontSize(10);
+  doc.setTextColor(60);
+  doc.text("Verificador Jogos Santa Casa", margin + 5, y + 20);
+  doc.text(`Utilizador: ${currentUser?.email || "—"}`, margin + 5, y + 26);
+  y += 41;
+
+  const totalApostas = totalApostasGuardadas();
+  const totalPremios = historico.length;
+  const taxa = totalApostas ? Math.round((totalPremios / totalApostas) * 100) : 0;
+  const ultimo = historico[0];
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(0);
+  doc.text("Resumo", margin, y);
+  y += 8;
+
+  const cardW = (contentW - 9) / 4;
+  const cards = [
+    ["Apostas", totalApostas],
+    ["Prémios", totalPremios],
+    ["Taxa", `${taxa}%`],
+    ["Último", ultimo?.jogo || "—"]
+  ];
+
+  cards.forEach((c, i) => {
+    const x = margin + i * (cardW + 3);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(x, y, cardW, 22, 3, 3, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(c[0], x + 3, y + 7);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text(String(c[1]).slice(0, 18), x + 3, y + 16);
+  });
+  y += 32;
+
+  // Ranking
+  const contagem = contagemPremiosPorJogo();
+  const ranking = Object.entries(contagem).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-PT"));
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Totais por jogo", margin, y);
+  y += 7;
+
+  if (!ranking.length) {
+    y = desenharLinhaPdf(doc, "Sem prémios registados.", margin, y, contentW);
+  } else {
+    ranking.forEach(([jogo, total]) => {
+      novaPaginaSePreciso(8);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`${jogo}: ${total} prémio(s)`, margin, y);
+      y += 6;
+    });
+  }
+
+  y += 5;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Histórico de prémios", margin, y);
+  y += 8;
+
+  historicoOrdenadoParaRelatorio().forEach((h, i) => {
+    novaPaginaSePreciso(42);
+
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(223, 229, 236);
+    doc.roundedRect(margin, y, contentW, 39, 3, 3, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(23, 99, 58);
+    doc.text(`${i + 1}. ${h.jogo || "—"} — ${h.premio || "—"}`, margin + 4, y + 8);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(45);
+    doc.text(`Sorteio: ${h.sorteio || "—"}${h.dataSorteio ? " — " + h.dataSorteio : ""}`, margin + 4, y + 15);
+    doc.text(`Aposta: ${h.aposta || "—"}`, margin + 4, y + 22);
+    doc.text(`Acertos/resultado: ${h.resultado || "—"}`, margin + 4, y + 29);
+    doc.text(`Guardado em: ${h.dataRegisto || "—"}`, margin + 4, y + 36);
+
+    y += 45;
+  });
+
+  rodape();
+
+  const nome = prepararNomePdf();
+  return { doc, nome };
+}
+
+async function exportarPdfHistorico() {
+  const pdf = await gerarPdfHistorico();
+  if (!pdf) return;
+
+  pdf.doc.save(pdf.nome);
+  estado.textContent = "PDF exportado.";
+}
+
+async function partilharHistorico() {
+  if (!historico.length) {
+    alert("Não existem prémios no histórico para partilhar.");
+    return;
+  }
+
+  const texto = linhasResumoPartilha();
+
+  try {
+    const pdf = await gerarPdfHistorico();
+    if (pdf && navigator.canShare) {
+      const blob = pdf.doc.output("blob");
+      const ficheiro = new File([blob], pdf.nome, { type: "application/pdf" });
+
+      if (navigator.canShare({ files: [ficheiro] })) {
+        await navigator.share({
+          title: "Histórico de prémios",
+          text: "Segue o meu histórico de prémios.",
+          files: [ficheiro]
+        });
+        estado.textContent = "Histórico partilhado.";
+        return;
+      }
+    }
+
+    if (navigator.share) {
+      await navigator.share({
+        title: "Histórico de prémios",
+        text: texto
+      });
+      estado.textContent = "Histórico partilhado.";
+      return;
+    }
+  } catch (err) {
+    console.warn("Partilha cancelada ou indisponível:", err);
+  }
+
+  const pdf = await gerarPdfHistorico();
+  if (pdf) {
+    pdf.doc.save(pdf.nome);
+    alert("A partilha direta não está disponível neste dispositivo. O PDF foi transferido para poderes enviar por WhatsApp, email ou outra app.");
+  }
+}
+
+
+function limparHistorico() {
   const mensagem = currentUser
     ? "Queres mesmo apagar TODO o teu histórico de prémios?\n\nIsto vai apagar o histórico local e também o histórico guardado na cloud desta conta. As apostas guardadas não serão apagadas."
     : "Queres mesmo limpar o histórico local?";
@@ -1322,7 +1570,18 @@ authPassword.addEventListener("keydown", e => {
 
 jogoSelect.addEventListener("change", () => mudarJogo(jogoSelect.value));
 document.getElementById("adicionar").addEventListener("click", adicionarAposta);
-document.getElementById("exportarHistorico").addEventListener("click", exportarHistorico);
+
+const btnExportarPdfHistorico = document.getElementById("exportarPdfHistorico");
+const btnPartilharHistorico = document.getElementById("partilharHistorico");
+
+if (btnExportarPdfHistorico) {
+  btnExportarPdfHistorico.addEventListener("click", exportarPdfHistorico);
+}
+
+if (btnPartilharHistorico) {
+  btnPartilharHistorico.addEventListener("click", partilharHistorico);
+}
+
 document.getElementById("limparHistorico").addEventListener("click", limparHistorico);
 
 if (pesquisaHistorico) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "jogos-santa-casa-v26-1-pwa-windows-edge";
+const CACHE_NAME = "jogos-santa-casa-v27";
 const APP_SHELL = [
   "./",
   "index.html",

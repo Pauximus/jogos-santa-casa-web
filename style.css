@@ -875,3 +875,26 @@ footer{
 @media (display-mode: standalone){
   .install-btn{display:none!important;}
 }
+
+
+/* V27 - PDF e Partilha */
+.history-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+button.danger{
+  background:#fff4f4;
+  border-color:#ffd0d0;
+  color:#a91515;
+}
+
+@media(max-width:760px){
+  .history-actions{
+    display:grid !important;
+    grid-template-columns:1fr;
+    width:100%;
+  }
+}
