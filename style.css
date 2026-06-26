@@ -934,3 +934,25 @@ button.danger{
     grid-template-columns:1fr;
   }
 }
+
+/* V29 - Estatísticas e feedback */
+.alias-feedback{min-height:16px;margin-top:4px;font-size:12px;font-weight:700;color:#17633a;opacity:0;transition:opacity .2s ease}
+.alias-feedback.visivel{opacity:1}
+.stats-pro-card{margin-top:14px}
+.section-title-row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+.section-title-row h2{margin:0}
+.section-title-row p{margin:2px 0 0;color:#607085;font-size:13px}
+.stats-pro-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.stat-pro-box{border:1px solid #dbe5ef;border-radius:14px;padding:12px;background:#f9fbfd}
+.stat-pro-box span{display:block;color:#607085;font-size:12px;font-weight:700;margin-bottom:6px}
+.stat-pro-box strong{display:block;color:#0f172a;font-size:18px;line-height:1.2}
+.mini-ranking{border:1px solid #dbe5ef;border-radius:14px;padding:12px;background:#fff}
+.mini-ranking-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:13px}
+.mini-ranking-head span{color:#607085}
+.mini-ranking-list{display:grid;gap:8px}
+.mini-ranking-label{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;margin-bottom:4px}
+.mini-ranking-bar{height:8px;background:#edf2f7;border-radius:999px;overflow:hidden}
+.mini-ranking-bar i{display:block;height:100%;background:#22a65a;border-radius:999px}
+.mini-ranking-empty{color:#607085;font-size:13px}
+@media(max-width:900px){.stats-pro-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.stats-pro-grid{grid-template-columns:1fr}}

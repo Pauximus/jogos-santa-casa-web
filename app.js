@@ -1,4 +1,4 @@
-window.APP_VERSION = "v28-perfis-utilizador";
+window.APP_VERSION = "v29-estatisticas-feedback";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1247,6 +1247,91 @@ async function carregarAliasCloud() {
   }
 }
 
+
+function mostrarFeedbackAlias(msg) {
+  const el = document.getElementById("aliasFeedback");
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add("visivel");
+  clearTimeout(window.__aliasFeedbackTimer);
+  window.__aliasFeedbackTimer = setTimeout(() => {
+    el.textContent = "";
+    el.classList.remove("visivel");
+  }, 2500);
+}
+
+function formatarJogoV29(nome) {
+  const map = {
+    euromilhoes: "Euromilhões",
+    totoloto: "Totoloto",
+    eurodreams: "EuroDreams",
+    milhao: "M1lhão",
+    lotaria_classica: "Lotaria Clássica",
+    lotaria_popular: "Lotaria Popular"
+  };
+  return map[nome] || nome || "—";
+}
+
+function contarApostasPorJogoV29() {
+  const contagem = {};
+  (apostas || []).forEach((aposta) => {
+    const jogo = normalizarJogo ? normalizarJogo(aposta.jogo || jogoAtual || "") : (aposta.jogo || jogoAtual || "");
+    if (!jogo) return;
+    contagem[jogo] = (contagem[jogo] || 0) + 1;
+  });
+  return contagem;
+}
+
+function maiorEntradaV29(obj) {
+  const entradas = Object.entries(obj || {});
+  if (!entradas.length) return null;
+  return entradas.sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), "pt-PT"))[0];
+}
+
+function atualizarEstatisticasAvancadas() {
+  const porApostas = contarApostasPorJogoV29();
+  const maisApostado = maiorEntradaV29(porApostas);
+  const porPremios = typeof contagemPremiosPorJogo === "function" ? contagemPremiosPorJogo() : {};
+  const maisPremiado = maiorEntradaV29(porPremios);
+  const melhor = (historico || [])[0];
+
+  const setTxt = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+
+  setTxt("statJogoMaisApostado", maisApostado ? `${formatarJogoV29(maisApostado[0])} (${maisApostado[1]})` : "—");
+  setTxt("statJogoMaisPremiado", maisPremiado ? `${formatarJogoV29(maisPremiado[0])} (${maisPremiado[1]})` : "—");
+  setTxt("statMelhorPremio", melhor ? `${formatarJogoV29(melhor.jogo)} — ${melhor.premio || "Prémio"}` : "—");
+
+  const ultima = localStorage.getItem("jsc_ultima_sincronizacao") || localStorage.getItem("ultima_sincronizacao") || "";
+  setTxt("statUltimaSync", ultima ? new Date(ultima).toLocaleString("pt-PT") : "—");
+
+  const ranking = document.getElementById("statRankingJogos");
+  const resumo = document.getElementById("statResumoRanking");
+  const entradas = Object.entries(porPremios).sort((a, b) => b[1] - a[1]);
+
+  if (resumo) {
+    const total = entradas.reduce((s, [, n]) => s + n, 0);
+    resumo.textContent = total ? `${total} prémio(s) em ${entradas.length} jogo(s)` : "Sem dados";
+  }
+
+  if (ranking) {
+    if (!entradas.length) {
+      ranking.innerHTML = '<div class="mini-ranking-empty">Ainda não há prémios suficientes para estatísticas.</div>';
+    } else {
+      const max = Math.max(...entradas.map(([, total]) => total), 1);
+      ranking.innerHTML = entradas.map(([jogo, total]) => {
+        const pct = Math.max(6, Math.round((total / max) * 100));
+        return `<div class="mini-ranking-row">
+          <div class="mini-ranking-label"><span>${formatarJogoV29(jogo)}</span><strong>${total}</strong></div>
+          <div class="mini-ranking-bar"><i style="width:${pct}%"></i></div>
+        </div>`;
+      }).join("");
+    }
+  }
+}
+
 async function guardarAliasUtilizador() {
   const input = document.getElementById("aliasUtilizador");
   const novoNome = (input?.value || "").trim().slice(0, 40);
@@ -1272,6 +1357,7 @@ async function guardarAliasUtilizador() {
 
       if (!error) {
         estado.textContent = "Nome do relatório guardado.";
+        mostrarFeedbackAlias("Nome guardado na cloud.");
         return;
       }
     } catch (err) {
@@ -1280,6 +1366,7 @@ async function guardarAliasUtilizador() {
   }
 
   estado.textContent = "Nome guardado neste dispositivo.";
+  mostrarFeedbackAlias("Nome guardado neste dispositivo.");
 }
 
 function historicoParaRelatorioOrdenado() {
@@ -1777,3 +1864,8 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
     estado.textContent = "Inicia sessão para continuar.";
   }
 })();
+
+setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 1200);
+window.__statsV29Interval = setInterval(() => {
+  try { atualizarEstatisticasAvancadas(); } catch(e) {}
+}, 5000);
