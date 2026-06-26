@@ -1,4 +1,4 @@
-window.APP_VERSION = "v27.4-pdf-header-fix";
+window.APP_VERSION = "v27.6-alias-pdf-fix";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1225,13 +1225,12 @@ function atualizarCampoAlias() {
 }
 
 async function carregarAliasCloud() {
-  if (!supabase || !currentUser) {
-    atualizarCampoAlias();
-    return;
-  }
+  atualizarCampoAlias();
+
+  if (!supabaseClient || !currentUser) return;
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from("perfis_utilizador")
       .select("nome_relatorio")
       .eq("user_id", currentUser.id)
@@ -1240,12 +1239,12 @@ async function carregarAliasCloud() {
     if (!error && data?.nome_relatorio) {
       aliasUtilizador = data.nome_relatorio;
       localStorage.setItem("jsc_alias_utilizador", aliasUtilizador);
+      atualizarCampoAlias();
     }
   } catch (err) {
-    console.warn("Alias cloud indisponível:", err);
+    // A app continua a funcionar: o nome fica guardado localmente.
+    console.info("Nome/alcunha guardado localmente. Cloud de perfil indisponível.");
   }
-
-  atualizarCampoAlias();
 }
 
 async function guardarAliasUtilizador() {
@@ -1261,9 +1260,9 @@ async function guardarAliasUtilizador() {
 
   atualizarCampoAlias();
 
-  if (supabase && currentUser) {
+  if (supabaseClient && currentUser) {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from("perfis_utilizador")
         .upsert({
           user_id: currentUser.id,
@@ -1271,19 +1270,17 @@ async function guardarAliasUtilizador() {
           atualizado_em: new Date().toISOString()
         }, { onConflict: "user_id" });
 
-      if (error) throw error;
-      estado.textContent = "Nome do relatório guardado.";
-      return;
+      if (!error) {
+        estado.textContent = "Nome do relatório guardado.";
+        return;
+      }
     } catch (err) {
-      console.warn("Não foi possível guardar o nome na cloud:", err);
-      estado.textContent = "Nome guardado neste dispositivo.";
-      return;
+      // Sem problema: fica local.
     }
   }
 
   estado.textContent = "Nome guardado neste dispositivo.";
 }
-
 
 function historicoParaRelatorioOrdenado() {
   return [...historico].sort((a, b) => {
