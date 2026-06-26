@@ -1,4 +1,4 @@
-window.APP_VERSION = "v27.6-alias-pdf-fix";
+window.APP_VERSION = "v28-perfis-utilizador";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1243,7 +1243,7 @@ async function carregarAliasCloud() {
     }
   } catch (err) {
     // A app continua a funcionar: o nome fica guardado localmente.
-    console.info("Nome/alcunha guardado localmente. Cloud de perfil indisponível.");
+    console.info("Nome/alcunha: a usar valor local.");
   }
 }
 
