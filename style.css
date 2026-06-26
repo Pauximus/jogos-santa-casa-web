@@ -896,3 +896,41 @@ button.danger{
     width:100%;
   }
 }
+
+
+/* V27.5 - nome/alcunha para PDF */
+.alias-row{
+  margin-top:8px;
+  display:grid;
+  gap:4px;
+  max-width:360px;
+}
+.alias-row label{
+  font-size:12px;
+  color:#526071;
+  font-weight:700;
+}
+.alias-controls{
+  display:flex;
+  gap:6px;
+}
+.alias-controls input{
+  flex:1;
+  min-width:0;
+  border:1px solid #d7e0ea;
+  border-radius:8px;
+  padding:8px 10px;
+  font:inherit;
+}
+.alias-controls button{
+  white-space:nowrap;
+}
+@media(max-width:760px){
+  .alias-row{
+    max-width:none;
+  }
+  .alias-controls{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+}

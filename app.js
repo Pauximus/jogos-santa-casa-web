@@ -54,6 +54,7 @@ const notificacaoTexto = document.getElementById("notificacaoTexto");
 const fecharNotificacao = document.getElementById("fecharNotificacao");
 
 let currentUser = null;
+let aliasUtilizador = localStorage.getItem('jsc_alias_utilizador') || '';
 let jogoAtual = "euromilhoes";
 let apostas = {};
 let historico = [];
@@ -450,12 +451,13 @@ async function logout() {
   }
 }
 
-function mostrarAppAutenticada() {
+async function mostrarAppAutenticada() {
   authBox.style.display = "none";
   userBox.style.display = "";
   appBox.style.display = "";
 
   userInfo.textContent = `Olá, ${currentUser.email}`;
+  carregarAliasCloud();
   syncInfo.textContent = "Sincronização automática ativa.";
 
   if (!interfaceCriada) {
@@ -1211,6 +1213,78 @@ function renderHistorico() {
 
 
 
+
+function obterNomeRelatorio() {
+  const nome = (aliasUtilizador || localStorage.getItem("jsc_alias_utilizador") || "").trim();
+  return nome || "Utilizador";
+}
+
+function atualizarCampoAlias() {
+  const input = document.getElementById("aliasUtilizador");
+  if (input) input.value = aliasUtilizador || "";
+}
+
+async function carregarAliasCloud() {
+  if (!supabase || !currentUser) {
+    atualizarCampoAlias();
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("perfis_utilizador")
+      .select("nome_relatorio")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    if (!error && data?.nome_relatorio) {
+      aliasUtilizador = data.nome_relatorio;
+      localStorage.setItem("jsc_alias_utilizador", aliasUtilizador);
+    }
+  } catch (err) {
+    console.warn("Alias cloud indisponível:", err);
+  }
+
+  atualizarCampoAlias();
+}
+
+async function guardarAliasUtilizador() {
+  const input = document.getElementById("aliasUtilizador");
+  const novoNome = (input?.value || "").trim().slice(0, 40);
+
+  aliasUtilizador = novoNome;
+  if (novoNome) {
+    localStorage.setItem("jsc_alias_utilizador", novoNome);
+  } else {
+    localStorage.removeItem("jsc_alias_utilizador");
+  }
+
+  atualizarCampoAlias();
+
+  if (supabase && currentUser) {
+    try {
+      const { error } = await supabase
+        .from("perfis_utilizador")
+        .upsert({
+          user_id: currentUser.id,
+          nome_relatorio: novoNome || null,
+          atualizado_em: new Date().toISOString()
+        }, { onConflict: "user_id" });
+
+      if (error) throw error;
+      estado.textContent = "Nome do relatório guardado.";
+      return;
+    } catch (err) {
+      console.warn("Não foi possível guardar o nome na cloud:", err);
+      estado.textContent = "Nome guardado neste dispositivo.";
+      return;
+    }
+  }
+
+  estado.textContent = "Nome guardado neste dispositivo.";
+}
+
+
 function historicoParaRelatorioOrdenado() {
   return [...historico].sort((a, b) => {
     const da = a.dataRegisto ? new Date(a.dataRegisto).getTime() : 0;
@@ -1232,7 +1306,7 @@ function gerarTextoPartilhaHistorico() {
   const linhas = [
     "🍀 Verificador Jogos Santa Casa",
     "",
-    `Utilizador: ${currentUser?.email || "—"}`,
+    `Utilizador: ${obterNomeRelatorio()}`,
     `Data: ${new Date().toLocaleString("pt-PT")}`,
     "",
     `Apostas guardadas: ${totalApostas}`,
@@ -1312,7 +1386,7 @@ function gerarPdfHistoricoBlobOuDoc() {
   doc.text("Relatório de Prémios", margin + 5, y + 11);
   doc.setFontSize(10);
   doc.setTextColor(60);
-  doc.text(`Utilizador: ${currentUser?.email || "—"}`, margin + 5, y + 20);
+  doc.text(`Utilizador: ${obterNomeRelatorio()}`, margin + 5, y + 20);
   doc.text(`Data: ${new Date().toLocaleString("pt-PT")}`, margin + 5, y + 26);
   y += 42;
 
@@ -1535,6 +1609,17 @@ authPassword.addEventListener("keydown", e => {
 
 jogoSelect.addEventListener("change", () => mudarJogo(jogoSelect.value));
 document.getElementById("adicionar").addEventListener("click", adicionarAposta);
+const btnGuardarAlias = document.getElementById("guardarAliasBtn");
+if (btnGuardarAlias) {
+  btnGuardarAlias.addEventListener("click", () => guardarAliasUtilizador());
+}
+const inputAliasUtilizador = document.getElementById("aliasUtilizador");
+if (inputAliasUtilizador) {
+  inputAliasUtilizador.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") guardarAliasUtilizador();
+  });
+}
+
 const btnExportarPdfHistorico = document.getElementById("exportarPdfHistorico");
 if (btnExportarPdfHistorico) {
   btnExportarPdfHistorico.addEventListener("click", exportarPdfHistorico);
