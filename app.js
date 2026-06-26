@@ -1,4 +1,4 @@
-window.APP_VERSION = "v32-sequencia-pro";
+window.APP_VERSION = "v33-premium-notificacoes";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1251,6 +1251,7 @@ async function carregarAliasCloud() {
 
 
 
+
 function mostrarFeedbackAlias(msg) {
   const el = document.getElementById("aliasFeedback");
   if (!el) return;
@@ -1263,7 +1264,7 @@ function mostrarFeedbackAlias(msg) {
   }, 2500);
 }
 
-function normalizarJogoV32(nome) {
+function normalizarJogoV33(nome) {
   const raw = String(nome || "").toLowerCase().trim()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9_ -]/g, "");
@@ -1277,167 +1278,52 @@ function normalizarJogoV32(nome) {
   return raw.replace(/\s+/g, "_");
 }
 
-function formatarJogoV32(nome) {
-  const key = normalizarJogoV32(nome);
-  const map = {
-    euromilhoes: "Euromilhões",
-    totoloto: "Totoloto",
-    eurodreams: "EuroDreams",
-    milhao: "M1lhão",
-    lotaria_classica: "Lotaria Clássica",
-    lotaria_popular: "Lotaria Popular"
-  };
+function formatarJogoV33(nome) {
+  const key = normalizarJogoV33(nome);
+  const map = { euromilhoes: "Euromilhões", totoloto: "Totoloto", eurodreams: "EuroDreams", milhao: "M1lhão", lotaria_classica: "Lotaria Clássica", lotaria_popular: "Lotaria Popular" };
   return map[key] || nome || "—";
 }
 
-function parseJsonV32(valor, fallback) {
-  try { return valor ? JSON.parse(valor) : fallback; } catch { return fallback; }
-}
+function parseJsonV33(valor, fallback) { try { return valor ? JSON.parse(valor) : fallback; } catch { return fallback; } }
 
-function recolherApostasV32() {
-  const out = [];
-  const seen = new Set();
-  function add(lista) {
-    if (!Array.isArray(lista)) return;
-    lista.forEach((item) => {
-      if (!item) return;
-      const key = JSON.stringify(item);
-      if (seen.has(key)) return;
-      seen.add(key);
-      out.push(item);
-    });
-  }
+function recolherApostasV33() {
+  const out=[]; const seen=new Set();
+  function add(lista){ if(!Array.isArray(lista)) return; lista.forEach(item=>{ if(!item) return; const key=JSON.stringify(item); if(seen.has(key)) return; seen.add(key); out.push(item); }); }
   try { if (Array.isArray(apostas)) add(apostas); } catch {}
   if (Array.isArray(window.apostas)) add(window.apostas);
   if (Array.isArray(window.apostasGuardadas)) add(window.apostasGuardadas);
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (!k || !k.toLowerCase().includes("aposta")) continue;
-    const p = parseJsonV32(localStorage.getItem(k), null);
-    if (Array.isArray(p)) add(p);
-    else if (p && typeof p === "object") Object.values(p).forEach(v => Array.isArray(v) && add(v));
+  for (let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i); if(!k || !k.toLowerCase().includes("aposta")) continue;
+    const p=parseJsonV33(localStorage.getItem(k), null);
+    if(Array.isArray(p)) add(p); else if(p && typeof p==="object") Object.values(p).forEach(v=>Array.isArray(v)&&add(v));
   }
   return out;
 }
 
-function recolherHistoricoV32() {
-  try { if (Array.isArray(historico)) return historico; } catch {}
-  if (Array.isArray(window.historico)) return window.historico;
-  const all = [];
-  const keys = ["historico", "jsc_historico", "historico_premios", "premios_historico", "historicoPremios"];
-  keys.forEach(k => {
-    const p = parseJsonV32(localStorage.getItem(k), null);
-    if (Array.isArray(p)) all.push(...p);
-  });
+function recolherHistoricoV33() {
+  const all=[]; const seen=new Set();
+  function add(lista){ if(!Array.isArray(lista)) return; lista.forEach(item=>{ if(!item) return; const key=JSON.stringify(item); if(seen.has(key)) return; seen.add(key); all.push(item); }); }
+  try { if (Array.isArray(historico)) add(historico); } catch {}
+  if (Array.isArray(window.historico)) add(window.historico);
+  ["historico","jsc_historico","historico_premios","premios_historico","historicoPremios"].forEach(k=>{ const p=parseJsonV33(localStorage.getItem(k), null); if(Array.isArray(p)) add(p); });
   return all;
 }
 
-function obterCampoJogoPremioV32(item) {
-  return item?.jogo || item?.tipo || item?.game || item?.nomeJogo || item?.lottery || item?.endpoint || item?.titulo || item?.descricao || "";
-}
-
-function jogoDaApostaV32(aposta) {
-  const direto = aposta?.jogo || aposta?.tipo || aposta?.game || aposta?.nomeJogo || aposta?.lottery || aposta?.endpoint;
-  if (direto) return normalizarJogoV32(direto);
-  try { return normalizarJogoV32(jogoAtual || document.querySelector("select")?.value || ""); } catch { return ""; }
-}
-
-function contarApostasPorJogoV32() {
-  const c = {};
-  recolherApostasV32().forEach(a => {
-    const jogo = jogoDaApostaV32(a);
-    if (!jogo) return;
-    c[jogo] = (c[jogo] || 0) + 1;
-  });
-  return c;
-}
-
-function contarPremiosPorJogoV32() {
-  const c = {};
-  recolherHistoricoV32().forEach(h => {
-    const jogo = normalizarJogoV32(obterCampoJogoPremioV32(h));
-    if (!jogo) return;
-    c[jogo] = (c[jogo] || 0) + 1;
-  });
-  if (!Object.keys(c).length && typeof contagemPremiosPorJogo === "function") {
-    try { return contagemPremiosPorJogo() || {}; } catch {}
-  }
-  return c;
-}
-
-function maiorEntradaV32(obj) {
-  const e = Object.entries(obj || {});
-  if (!e.length) return null;
-  return e.sort((a,b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), "pt-PT"))[0];
-}
-
-function valorPremioV32(item) {
-  const t = String(item?.valor || item?.premio || item?.descricao || item?.titulo || "");
-  const m = t.match(/(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)/g);
-  if (!m) return 0;
-  return Math.max(...m.map(x => Number(x.replace(/\s/g,"").replace(/\./g,"").replace(",", ".")) || 0));
-}
-
-function maiorPremioV32() {
-  const h = recolherHistoricoV32();
-  if (!h.length) return null;
-  return [...h].sort((a,b) => valorPremioV32(b) - valorPremioV32(a))[0];
-}
-
-function gerarSequenciaV32(totalApostas, historicoLista) {
-  const totalPremios = historicoLista.length;
-  const tamanho = Math.min(Math.max(totalApostas, totalPremios), 10);
-  if (!tamanho) return [];
-  return Array.from({ length: tamanho }, (_, i) => i >= tamanho - totalPremios);
-}
-
-function maiorSequenciaPremiosV32(seq) {
-  let melhor = 0, atual = 0;
-  seq.forEach(v => { if (v) { atual++; melhor = Math.max(melhor, atual); } else { atual = 0; } });
-  return melhor;
-}
-
-function atualizarSequenciaVisualV32(totalApostas, historicoLista) {
-  const el = document.getElementById("statSequenciaVisual");
-  const resumo = document.getElementById("statMaiorSequencia");
-  if (!el) return;
-  const seq = gerarSequenciaV32(totalApostas, historicoLista);
-  const maiorSeq = maiorSequenciaPremiosV32(seq);
-  if (resumo) resumo.textContent = maiorSeq ? `${maiorSeq} prémio(s) seguidos` : "Sem sequência";
-  if (!seq.length) { el.innerHTML = '<span class="sequencia-vazia">Sem dados suficientes</span>'; return; }
-  el.innerHTML = seq.map((ganhou, idx) => `<i class="${ganhou ? "win" : "lose"}" title="${idx + 1}: ${ganhou ? "Prémio" : "Sem prémio"}"></i>`).join("");
-}
-
-function atualizarEstatisticasAvancadas() {
-  const historicoLista = recolherHistoricoV32();
-  const porApostas = contarApostasPorJogoV32();
-  const porPremios = contarPremiosPorJogoV32();
-  const totalApostas = Object.values(porApostas).reduce((s,n)=>s+n,0);
-  const totalPremios = Object.values(porPremios).reduce((s,n)=>s+n,0);
-  const maisApostado = maiorEntradaV32(porApostas);
-  const maisPremiado = maiorEntradaV32(porPremios);
-  const maior = maiorPremioV32();
-  const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
-  setTxt("statJogoMaisApostado", maisApostado ? `${formatarJogoV32(maisApostado[0])} (${maisApostado[1]})` : "—");
-  setTxt("statJogoMaisPremiado", maisPremiado ? `${formatarJogoV32(maisPremiado[0])} (${maisPremiado[1]})` : "—");
-  if (maior) {
-    const valor = valorPremioV32(maior);
-    setTxt("statMelhorPremio", `${formatarJogoV32(obterCampoJogoPremioV32(maior))}${valor ? " — " + valor.toLocaleString("pt-PT", {style:"currency", currency:"EUR"}) : ""}`);
-  } else setTxt("statMelhorPremio", "—");
-  setTxt("statUltimaSync", `${Math.max(0, totalApostas - totalPremios)} aposta(s)`);
-  atualizarSequenciaVisualV32(totalApostas, historicoLista);
-  const ranking = document.getElementById("statRankingJogos");
-  const resumo = document.getElementById("statResumoRanking");
-  const entradas = Object.entries(porPremios).sort((a,b)=>b[1]-a[1]);
-  if (resumo) resumo.textContent = totalPremios ? `${totalPremios} prémio(s) em ${entradas.length} jogo(s)` : "Sem dados";
-  if (!ranking) return;
-  if (!entradas.length) { ranking.innerHTML = '<div class="mini-ranking-empty">Ainda não há prémios suficientes para estatísticas.</div>'; return; }
-  const max = Math.max(...entradas.map(([,n])=>n), 1);
-  ranking.innerHTML = entradas.map(([jogo,total], idx) => {
-    const pct = Math.max(8, Math.round((total / max) * 100));
-    return `<div class="mini-ranking-row"><div class="mini-ranking-label"><span>${idx + 1}.º ${formatarJogoV32(jogo)}</span><strong>${total}</strong></div><div class="mini-ranking-bar"><i style="width:${pct}%"></i></div></div>`;
-  }).join("");
-}
+function obterCampoJogoPremioV33(item) { return item?.jogo || item?.tipo || item?.game || item?.nomeJogo || item?.lottery || item?.endpoint || item?.titulo || item?.descricao || ""; }
+function jogoDaApostaV33(aposta) { const direto=aposta?.jogo||aposta?.tipo||aposta?.game||aposta?.nomeJogo||aposta?.lottery||aposta?.endpoint; if(direto) return normalizarJogoV33(direto); try { return normalizarJogoV33(jogoAtual || document.querySelector("select")?.value || ""); } catch { return ""; } }
+function contarApostasPorJogoV33(){ const c={}; recolherApostasV33().forEach(a=>{ const jogo=jogoDaApostaV33(a); if(!jogo) return; c[jogo]=(c[jogo]||0)+1; }); return c; }
+function contarPremiosPorJogoV33(){ const c={}; recolherHistoricoV33().forEach(h=>{ const jogo=normalizarJogoV33(obterCampoJogoPremioV33(h)); if(!jogo) return; c[jogo]=(c[jogo]||0)+1; }); if(!Object.keys(c).length && typeof contagemPremiosPorJogo==="function"){ try{return contagemPremiosPorJogo()||{};}catch{} } return c; }
+function maiorEntradaV33(obj){ const e=Object.entries(obj||{}); if(!e.length) return null; return e.sort((a,b)=>b[1]-a[1] || String(a[0]).localeCompare(String(b[0]),"pt-PT"))[0]; }
+function valorPremioV33(item){ const t=String(item?.valor||item?.premio||item?.descricao||item?.titulo||""); const m=t.match(/(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)/g); if(!m) return 0; return Math.max(...m.map(x=>Number(x.replace(/\s/g,"").replace(/\./g,"").replace(",","."))||0)); }
+function maiorPremioV33(){ const h=recolherHistoricoV33(); if(!h.length) return null; return [...h].sort((a,b)=>valorPremioV33(b)-valorPremioV33(a))[0]; }
+function gerarSequenciaV33(totalApostas,historicoLista){ const totalPremios=historicoLista.length; const tamanho=Math.min(Math.max(totalApostas,totalPremios),10); if(!tamanho) return []; return Array.from({length:tamanho},(_,i)=>i>=tamanho-totalPremios); }
+function maiorSeqV33(seq,valor){ let melhor=0, atual=0; seq.forEach(v=>{ if(v===valor){ atual++; melhor=Math.max(melhor,atual); } else atual=0; }); return melhor; }
+function atualizarSequenciaVisualV33(totalApostas,historicoLista){ const el=document.getElementById("statSequenciaVisual"); const resumo=document.getElementById("statMaiorSequencia"); if(!el) return; const seq=gerarSequenciaV33(totalApostas,historicoLista); const maiorPremios=maiorSeqV33(seq,true); const maiorSem=maiorSeqV33(seq,false); if(resumo) resumo.textContent = maiorPremios ? `${maiorPremios} prémio(s) seguidos` : `${maiorSem} sem prémio`; if(!seq.length){ el.innerHTML='<span class="sequencia-vazia">Sem dados suficientes</span>'; return; } el.innerHTML=seq.map((ganhou,idx)=>`<span class="seq-chip ${ganhou?"win":"lose"}" title="${idx+1}: ${ganhou?"Prémio":"Sem prémio"}">${ganhou?"🏆":"❌"}</span>`).join(""); }
+function atualizarConquistasV33(totalApostas,totalPremios,maiorPremios){ const grid=document.getElementById("conquistasGrid"); const resumo=document.getElementById("statConquistasResumo"); if(!grid) return; const conquistas=[{ok:totalPremios>=1,icon:"🥇",title:"Primeiro prémio",desc:"Encontraste o primeiro prémio."},{ok:totalApostas>=10,icon:"🎯",title:"10 apostas",desc:"Registaste 10 apostas."},{ok:totalApostas>=50,icon:"📈",title:"50 apostas",desc:"Utilização consistente."},{ok:totalPremios>=5,icon:"💰",title:"5 prémios",desc:"Cinco prémios registados."},{ok:maiorPremios>=2,icon:"🔥",title:"Sequência",desc:"Dois prémios seguidos."},{ok:totalPremios>=10,icon:"🏆",title:"10 prémios",desc:"Histórico forte."}]; const desbloqueadas=conquistas.filter(c=>c.ok).length; if(resumo) resumo.textContent=`${desbloqueadas}/${conquistas.length}`; grid.innerHTML=conquistas.map(c=>`<div class="conquista ${c.ok?"ok":"locked"}"><b>${c.icon}</b><div><strong>${c.title}</strong><span>${c.ok?"Desbloqueada":c.desc}</span></div></div>`).join(""); }
+function atualizarEstatisticasAvancadas(){ const historicoLista=recolherHistoricoV33(); const porApostas=contarApostasPorJogoV33(); const porPremios=contarPremiosPorJogoV33(); const totalApostas=Object.values(porApostas).reduce((s,n)=>s+n,0); const totalPremios=Object.values(porPremios).reduce((s,n)=>s+n,0); const maisApostado=maiorEntradaV33(porApostas); const maisPremiado=maiorEntradaV33(porPremios); const maior=maiorPremioV33(); const seq=gerarSequenciaV33(totalApostas,historicoLista); const maiorPremios=maiorSeqV33(seq,true); const setTxt=(id,txt)=>{ const el=document.getElementById(id); if(el) el.textContent=txt; }; setTxt("statJogoMaisApostado", maisApostado?`${formatarJogoV33(maisApostado[0])} (${maisApostado[1]})`:"—"); setTxt("statJogoMaisPremiado", maisPremiado?`${formatarJogoV33(maisPremiado[0])} (${maisPremiado[1]})`:"—"); if(maior){ const valor=valorPremioV33(maior); setTxt("statMelhorPremio", `${formatarJogoV33(obterCampoJogoPremioV33(maior))}${valor?" — "+valor.toLocaleString("pt-PT",{style:"currency",currency:"EUR"}):""}`); } else setTxt("statMelhorPremio","—"); setTxt("statUltimaSync", `${Math.max(0,totalApostas-totalPremios)} aposta(s)`); atualizarSequenciaVisualV33(totalApostas,historicoLista); atualizarConquistasV33(totalApostas,totalPremios,maiorPremios); const ranking=document.getElementById("statRankingJogos"); const resumo=document.getElementById("statResumoRanking"); const entradas=Object.entries(porPremios).sort((a,b)=>b[1]-a[1]); if(resumo) resumo.textContent=totalPremios?`${totalPremios} prémio(s) em ${entradas.length} jogo(s)`:"Sem dados"; if(!ranking) return; if(!entradas.length){ ranking.innerHTML='<div class="mini-ranking-empty">Ainda não há prémios suficientes para estatísticas.</div>'; return; } const max=Math.max(...entradas.map(([,n])=>n),1); ranking.innerHTML=entradas.map(([jogo,total],idx)=>{ const pct=Math.max(8,Math.round((total/max)*100)); return `<div class="mini-ranking-row"><div class="mini-ranking-label"><span>${idx+1}.º ${formatarJogoV33(jogo)}</span><strong>${total}</strong></div><div class="mini-ranking-bar"><i style="width:${pct}%"></i></div></div>`; }).join(""); }
+async function pedirPermissaoNotificacoes(){ if(!("Notification" in window)){ alert("Este browser não suporta notificações."); return; } const perm=await Notification.requestPermission(); localStorage.setItem("jsc_notificacoes", perm==="granted"?"1":"0"); const btn=document.getElementById("ativarNotificacoesBtn"); if(btn) btn.textContent=perm==="granted"?"🔔 Ativas":"🔔 Notificações"; if(perm==="granted") new Notification("Notificações ativas",{body:"Vais poder receber alertas quando a app encontrar prémios.",icon:"icon-192.png"}); }
+function notificarPremiosSeNecessarioV33(){ if(!("Notification" in window)||Notification.permission!=="granted") return; if(localStorage.getItem("jsc_notificacoes")!=="1") return; const historicoLista=recolherHistoricoV33(); const totalPremios=historicoLista.length; const ultimoAvisado=Number(localStorage.getItem("jsc_premios_notificados")||"0"); if(totalPremios>ultimoAvisado){ const ultimo=historicoLista[0]||historicoLista[historicoLista.length-1]||{}; new Notification("Prémio encontrado!",{body:`${formatarJogoV33(obterCampoJogoPremioV33(ultimo))}: ${ultimo.premio||"prémio registado"}`,icon:"icon-192.png"}); localStorage.setItem("jsc_premios_notificados",String(totalPremios)); } }
+function iniciarNotificacoesV33(){ const btn=document.getElementById("ativarNotificacoesBtn"); if(!btn) return; if("Notification" in window && Notification.permission==="granted" && localStorage.getItem("jsc_notificacoes")==="1") btn.textContent="🔔 Ativas"; btn.addEventListener("click",()=>pedirPermissaoNotificacoes()); }
 
 async function guardarAliasUtilizador() {
   const input = document.getElementById("aliasUtilizador");
@@ -1978,10 +1864,8 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 
 
 
-setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 500);
-window.__statsV32Interval = setInterval(() => {
-  try { atualizarEstatisticasAvancadas(); } catch(e) {}
-}, 1500);
-document.addEventListener("click", () => {
-  setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 150);
-});
+
+
+setTimeout(() => { try { iniciarNotificacoesV33(); atualizarEstatisticasAvancadas(); notificarPremiosSeNecessarioV33(); } catch(e) {} }, 500);
+window.__statsV33Interval = setInterval(() => { try { atualizarEstatisticasAvancadas(); notificarPremiosSeNecessarioV33(); } catch(e) {} }, 2000);
+document.addEventListener("click", () => { setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 150); });

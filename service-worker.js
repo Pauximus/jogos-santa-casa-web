@@ -1,4 +1,4 @@
-const CACHE_NAME = "jogos-santa-casa-v32";
+const CACHE_NAME = "jogos-santa-casa-v33";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -69,3 +69,5 @@ self.addEventListener("fetch", event => {
     })
   );
 });
+
+self.addEventListener("notificationclick", (event) => { event.notification.close(); event.waitUntil(clients.openWindow("./")); });

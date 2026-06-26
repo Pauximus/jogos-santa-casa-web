@@ -986,3 +986,10 @@ button.danger{
 .sequencia-dots i.win{background:#22a65a}
 .sequencia-dots i.lose{background:#ef4444}
 .sequencia-vazia{color:#607085;font-size:13px}
+
+/* V33 - premium notificacoes */
+.notify-btn{border-color:#fde68a !important;background:#fffbeb !important;color:#92400e !important}
+.seq-chip{min-width:24px;height:24px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 1px 4px rgba(15,23,42,.15)}
+.seq-chip.win{background:#dcfce7}.seq-chip.lose{background:#fee2e2}
+.conquistas-pro{margin-top:12px;border:1px solid #dbe5ef;border-radius:14px;padding:12px;background:#fff}
+.conquistas-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.conquista{display:flex;gap:8px;align-items:flex-start;border:1px solid #e2e8f0;border-radius:12px;padding:10px;background:#f8fafc}.conquista b{font-size:20px}.conquista strong{display:block;font-size:12px}.conquista span{display:block;margin-top:2px;color:#607085;font-size:11px}.conquista.ok{border-color:#bbf7d0;background:#f0fdf4}.conquista.locked{opacity:.65}@media(max-width:760px){.conquistas-grid{grid-template-columns:1fr}}
