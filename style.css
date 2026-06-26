@@ -1015,3 +1015,82 @@ button.danger{
 .notif-mensagem{min-height:16px;margin:8px 0 0;font-size:12px;font-weight:800;color:#166534;opacity:0;transition:opacity .2s ease}
 .notif-mensagem.visivel{opacity:1}
 @media(max-width:560px){.notificacoes-card-grid{grid-template-columns:1fr}}
+
+/* V36 - banner notificações */
+.notif-banner[hidden]{
+  display:none !important;
+}
+.notif-banner{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:14px auto;
+  padding:14px 16px;
+  max-width:980px;
+  border:1px solid #fde68a;
+  border-radius:18px;
+  background:linear-gradient(135deg,#fffbeb,#fff7cc);
+  box-shadow:0 12px 30px rgba(146,64,14,.12);
+}
+.notif-banner-icon{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#fff;
+  border:1px solid #fde68a;
+  font-size:23px;
+  flex:0 0 auto;
+}
+.notif-banner-text{
+  flex:1 1 auto;
+  min-width:0;
+}
+.notif-banner-text strong{
+  display:block;
+  color:#111827;
+  font-size:15px;
+  line-height:1.2;
+}
+.notif-banner-text span{
+  display:block;
+  margin-top:3px;
+  color:#7c5f18;
+  font-size:13px;
+}
+.notif-banner-actions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.notif-banner-actions button{
+  border:1px solid #d6a900;
+  border-radius:12px;
+  padding:9px 12px;
+  font-weight:900;
+  cursor:pointer;
+}
+#notifBannerAtivarBtn{
+  background:#111827;
+  color:#fff;
+}
+#notifBannerMaisTardeBtn{
+  background:#fff;
+  color:#111827;
+}
+@media(max-width:700px){
+  .notif-banner{
+    align-items:flex-start;
+    flex-direction:column;
+    margin:10px;
+  }
+  .notif-banner-actions{
+    width:100%;
+  }
+  .notif-banner-actions button{
+    flex:1 1 auto;
+  }
+}

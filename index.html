@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=35">
+  <link rel="stylesheet" href="style.css?v=36">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -29,6 +29,19 @@
   </header>
 
   <main class="app">
+
+      <section id="notifBanner" class="notif-banner" hidden>
+        <div class="notif-banner-icon">🔔</div>
+        <div class="notif-banner-text">
+          <strong>Recebe notificações automáticas dos sorteios</strong>
+          <span>Podemos avisar-te quando forem encontrados prémios ou quando existirem novos resultados.</span>
+        </div>
+        <div class="notif-banner-actions">
+          <button id="notifBannerAtivarBtn" type="button">Ativar notificações</button>
+          <button id="notifBannerMaisTardeBtn" type="button">Mais tarde</button>
+        </div>
+      </section>
+
     <section id="authBox" class="card auth-panel">
       <h2>Entrar</h2>
       <p>Usa a tua conta para sincronizar apostas e histórico entre dispositivos.</p>
@@ -256,6 +269,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=35"></script>
+  <script src="app.js?v=36"></script>
 </body>
 </html>

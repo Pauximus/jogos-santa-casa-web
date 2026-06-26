@@ -1,4 +1,4 @@
-window.APP_VERSION = "v35-notificacoes-card";
+window.APP_VERSION = "v36-banner-notificacoes";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -2167,3 +2167,75 @@ function iniciarCartaoNotificacoesV35() {
 setTimeout(() => {
   try { iniciarCartaoNotificacoesV35(); } catch(e) {}
 }, 700);
+
+
+// V36 - Banner inteligente de notificações
+function deveMostrarBannerNotificacoesV36() {
+  const suporta = "Notification" in window && "serviceWorker" in navigator;
+  if (!suporta) return false;
+  if (Notification.permission === "granted") return false;
+  if (Notification.permission === "denied") return false;
+
+  const adiadoAte = Number(localStorage.getItem("jsc_notif_banner_adiado_ate") || "0");
+  if (adiadoAte && Date.now() < adiadoAte) return false;
+
+  return true;
+}
+
+function atualizarBannerNotificacoesV36() {
+  const banner = document.getElementById("notifBanner");
+  if (!banner) return;
+
+  const mostrar = deveMostrarBannerNotificacoesV36();
+  banner.hidden = !mostrar;
+  banner.classList.toggle("visivel", mostrar);
+}
+
+function adiarBannerNotificacoesV36() {
+  // Esconde durante 7 dias.
+  localStorage.setItem("jsc_notif_banner_adiado_ate", String(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  atualizarBannerNotificacoesV36();
+}
+
+async function ativarNotificacoesPeloBannerV36() {
+  if (typeof ativarNotificacoesV35 === "function") {
+    await ativarNotificacoesV35();
+  } else if (typeof pedirPermissaoNotificacoes === "function") {
+    await pedirPermissaoNotificacoes();
+  }
+
+  if ("Notification" in window && Notification.permission === "granted") {
+    localStorage.removeItem("jsc_notif_banner_adiado_ate");
+  }
+
+  atualizarBannerNotificacoesV36();
+
+  if (typeof atualizarCartaoNotificacoesV35 === "function") {
+    atualizarCartaoNotificacoesV35();
+  }
+}
+
+function iniciarBannerNotificacoesV36() {
+  const ativar = document.getElementById("notifBannerAtivarBtn");
+  const maisTarde = document.getElementById("notifBannerMaisTardeBtn");
+
+  if (ativar && !ativar.__v36) {
+    ativar.__v36 = true;
+    ativar.addEventListener("click", ativarNotificacoesPeloBannerV36);
+  }
+
+  if (maisTarde && !maisTarde.__v36) {
+    maisTarde.__v36 = true;
+    maisTarde.addEventListener("click", adiarBannerNotificacoesV36);
+  }
+
+  atualizarBannerNotificacoesV36();
+}
+
+
+setTimeout(() => {
+  try { iniciarBannerNotificacoesV36(); } catch(e) {}
+}, 900);
+document.addEventListener("visibilitychange", () => {
+  try { atualizarBannerNotificacoesV36(); } catch(e) {}
+});
