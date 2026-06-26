@@ -1,4 +1,4 @@
-window.APP_VERSION = "v34-notificacoes-pwa";
+window.APP_VERSION = "v35-notificacoes-card";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -2027,3 +2027,143 @@ function iniciarNotificacoesV34() {
   }
 }
 
+
+
+// V35 - Cartão de notificações com clique real
+function atualizarCartaoNotificacoesV35(msg = "") {
+  const suporta = "Notification" in window && "serviceWorker" in navigator;
+  const permissao = suporta ? Notification.permission : "unsupported";
+  const ativo = localStorage.getItem("jsc_notificacoes") === "1" && permissao === "granted";
+  const ultima = localStorage.getItem("jsc_ultima_notificacao") || "";
+
+  const badge = document.getElementById("notifEstadoBadge");
+  const permEl = document.getElementById("notifPermissao");
+  const ultimaEl = document.getElementById("notifUltima");
+  const msgEl = document.getElementById("notifMensagem");
+  const btnHeader = document.getElementById("ativarNotificacoesBtn");
+
+  if (permEl) permEl.textContent = permissao;
+  if (ultimaEl) ultimaEl.textContent = ultima ? new Date(ultima).toLocaleString("pt-PT") : "—";
+
+  if (badge) {
+    if (!suporta) badge.textContent = "🔕 Sem suporte";
+    else if (ativo) badge.textContent = "🟢 Ativas";
+    else if (permissao === "denied") badge.textContent = "🔴 Bloqueadas";
+    else badge.textContent = "🟡 Não autorizadas";
+  }
+
+  if (btnHeader) {
+    btnHeader.textContent = ativo ? "🔔 Ativas" : "🔔 Notificações";
+    btnHeader.classList.toggle("ativo", ativo);
+  }
+
+  if (msgEl && msg) {
+    msgEl.textContent = msg;
+    msgEl.classList.add("visivel");
+    clearTimeout(window.__notifMsgTimer);
+    window.__notifMsgTimer = setTimeout(() => {
+      msgEl.textContent = "";
+      msgEl.classList.remove("visivel");
+    }, 5000);
+  }
+}
+
+async function obterServiceWorkerV35() {
+  if (!("serviceWorker" in navigator)) return null;
+  try {
+    return await navigator.serviceWorker.ready;
+  } catch {
+    try {
+      return await navigator.serviceWorker.register("./service-worker.js");
+    } catch {
+      return null;
+    }
+  }
+}
+
+async function enviarNotificacaoTesteV35() {
+  if (!("Notification" in window)) {
+    alert("Este browser não suporta notificações.");
+    return;
+  }
+
+  if (Notification.permission !== "granted") {
+    atualizarCartaoNotificacoesV35("Primeiro carrega em Ativar notificações.");
+    return;
+  }
+
+  const reg = await obterServiceWorkerV35();
+  const options = {
+    body: "As notificações estão configuradas com sucesso.",
+    icon: "./icon-192.png",
+    badge: "./icon-192.png",
+    tag: "jsc-teste",
+    data: { url: "./" }
+  };
+
+  try {
+    if (reg && reg.showNotification) await reg.showNotification("🍀 Jogos Santa Casa", options);
+    else new Notification("🍀 Jogos Santa Casa", options);
+
+    localStorage.setItem("jsc_ultima_notificacao", new Date().toISOString());
+    atualizarCartaoNotificacoesV35("Notificação de teste enviada.");
+  } catch {
+    atualizarCartaoNotificacoesV35("Não foi possível enviar a notificação.");
+  }
+}
+
+async function ativarNotificacoesV35() {
+  if (!("Notification" in window)) {
+    alert("Este browser não suporta notificações.");
+    return;
+  }
+
+  if (!window.isSecureContext) {
+    alert("As notificações precisam de HTTPS.");
+    return;
+  }
+
+  const permissao = await Notification.requestPermission();
+
+  if (permissao === "granted") {
+    localStorage.setItem("jsc_notificacoes", "1");
+    await obterServiceWorkerV35();
+    atualizarCartaoNotificacoesV35("Notificações ativadas neste dispositivo.");
+    await enviarNotificacaoTesteV35();
+  } else {
+    localStorage.setItem("jsc_notificacoes", "0");
+    atualizarCartaoNotificacoesV35(
+      permissao === "denied"
+        ? "Notificações bloqueadas. Ativa-as nas definições do browser."
+        : "Notificações não ativadas."
+    );
+  }
+}
+
+function iniciarCartaoNotificacoesV35() {
+  const ativar = document.getElementById("notifAtivarBtn");
+  const teste = document.getElementById("notifTesteBtn");
+  const header = document.getElementById("ativarNotificacoesBtn");
+
+  if (ativar && !ativar.__v35) {
+    ativar.__v35 = true;
+    ativar.addEventListener("click", ativarNotificacoesV35);
+  }
+
+  if (teste && !teste.__v35) {
+    teste.__v35 = true;
+    teste.addEventListener("click", enviarNotificacaoTesteV35);
+  }
+
+  if (header && !header.__v35) {
+    header.__v35 = true;
+    header.addEventListener("click", ativarNotificacoesV35);
+  }
+
+  atualizarCartaoNotificacoesV35();
+}
+
+
+setTimeout(() => {
+  try { iniciarCartaoNotificacoesV35(); } catch(e) {}
+}, 700);

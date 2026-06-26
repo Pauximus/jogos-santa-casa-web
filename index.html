@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=34">
+  <link rel="stylesheet" href="style.css?v=35">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -230,12 +230,32 @@
         </div>
 </section>
 
+
+      <section class="card notificacoes-card" id="notificacoesCard">
+        <div class="notificacoes-card-head">
+          <div>
+            <h2>🔔 Notificações</h2>
+            <p>Ativa e testa as notificações neste dispositivo.</p>
+          </div>
+          <strong id="notifEstadoBadge">🟡 Não autorizadas</strong>
+        </div>
+        <div class="notificacoes-card-grid">
+          <div><span>Permissão</span><b id="notifPermissao">—</b></div>
+          <div><span>Última notificação</span><b id="notifUltima">—</b></div>
+        </div>
+        <div class="notificacoes-card-actions">
+          <button id="notifAtivarBtn" type="button">Ativar notificações</button>
+          <button id="notifTesteBtn" type="button">Enviar teste</button>
+        </div>
+        <p id="notifMensagem" class="notif-mensagem" aria-live="polite"></p>
+      </section>
+
 </main>
 
   <footer id="estado">Pronto.</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=34"></script>
+  <script src="app.js?v=35"></script>
 </body>
 </html>
