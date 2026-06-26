@@ -1,4 +1,4 @@
-window.APP_VERSION = "v36-banner-notificacoes";
+window.APP_VERSION = "v37-notificacoes-clean";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -2199,9 +2199,9 @@ function adiarBannerNotificacoesV36() {
 
 async function ativarNotificacoesPeloBannerV36() {
   if (typeof ativarNotificacoesV35 === "function") {
-    await ativarNotificacoesV35();
+    await ativarNotificacoesV37();
   } else if (typeof pedirPermissaoNotificacoes === "function") {
-    await pedirPermissaoNotificacoes();
+    await ativarNotificacoesV37();
   }
 
   if ("Notification" in window && Notification.permission === "granted") {
@@ -2239,3 +2239,273 @@ setTimeout(() => {
 document.addEventListener("visibilitychange", () => {
   try { atualizarBannerNotificacoesV36(); } catch(e) {}
 });
+
+
+// V37 - Notificações limpas + tipos: prémios, novos resultados e sorteios
+const JSC_NOTIF_TYPES_V37 = {
+  premios: true,
+  resultados: true,
+  sorteios: true
+};
+
+function notifSuportadasV37() {
+  return "Notification" in window && "serviceWorker" in navigator && window.isSecureContext;
+}
+
+function estadoNotificacoesV37() {
+  if (!notifSuportadasV37()) return "unsupported";
+  if (Notification.permission === "granted" && localStorage.getItem("jsc_notificacoes") === "1") return "granted";
+  return Notification.permission;
+}
+
+function textoEstadoNotificacoesV37() {
+  const estado = estadoNotificacoesV37();
+  if (estado === "granted") return "🟢 Notificações ativas";
+  if (estado === "denied") return "🔴 Notificações bloqueadas";
+  if (estado === "unsupported") return "🔕 Sem suporte";
+  return "🟡 Notificações desativadas";
+}
+
+function atualizarMiniNotificacoesV37(msg = "") {
+  const mini = document.getElementById("notifStatusMini");
+  const headerBtn = document.getElementById("ativarNotificacoesBtn");
+  const estado = estadoNotificacoesV37();
+
+  const texto = estado === "granted" ? "🟢 Notificações ativas" :
+    estado === "denied" ? "🔴 Notificações bloqueadas" :
+    estado === "unsupported" ? "🔕 Sem notificações" :
+    "🟡 Notificações desativadas";
+
+  if (mini) {
+    mini.textContent = texto;
+    mini.classList.toggle("ativo", estado === "granted");
+    mini.classList.toggle("bloqueado", estado === "denied" || estado === "unsupported");
+  }
+
+  if (headerBtn) {
+    headerBtn.textContent = estado === "granted" ? "🔔 Ativas" : "🔔 Notificações";
+    headerBtn.classList.toggle("ativo", estado === "granted");
+  }
+
+  atualizarModalNotificacoesV37(msg);
+}
+
+function atualizarModalNotificacoesV37(msg = "") {
+  const estadoEl = document.getElementById("notifModalEstado");
+  const permEl = document.getElementById("notifModalPermissao");
+  const ultimaEl = document.getElementById("notifModalUltima");
+  const msgEl = document.getElementById("notifModalMsg");
+  const ultima = localStorage.getItem("jsc_ultima_notificacao") || "";
+
+  if (estadoEl) estadoEl.textContent = textoEstadoNotificacoesV37();
+  if (permEl) permEl.textContent = notifSuportadasV37() ? Notification.permission : "unsupported";
+  if (ultimaEl) ultimaEl.textContent = ultima ? new Date(ultima).toLocaleString("pt-PT") : "—";
+
+  if (msgEl && msg) {
+    msgEl.textContent = msg;
+    msgEl.classList.add("visivel");
+    clearTimeout(window.__notifModalMsgTimer);
+    window.__notifModalMsgTimer = setTimeout(() => {
+      msgEl.textContent = "";
+      msgEl.classList.remove("visivel");
+    }, 4500);
+  }
+}
+
+function abrirModalNotificacoesV37() {
+  const modal = document.getElementById("notifModal");
+  if (!modal) return;
+  modal.hidden = false;
+  atualizarModalNotificacoesV37();
+}
+
+function fecharModalNotificacoesV37() {
+  const modal = document.getElementById("notifModal");
+  if (modal) modal.hidden = true;
+}
+
+async function obterServiceWorkerV37() {
+  if (!("serviceWorker" in navigator)) return null;
+  try {
+    return await navigator.serviceWorker.ready;
+  } catch {
+    try { return await navigator.serviceWorker.register("./service-worker.js"); }
+    catch { return null; }
+  }
+}
+
+async function enviarNotificacaoV37(titulo, body, tag = "jsc-notificacao") {
+  if (!notifSuportadasV37() || Notification.permission !== "granted") return false;
+
+  const reg = await obterServiceWorkerV37();
+  const options = {
+    body,
+    icon: "./icon-192.png",
+    badge: "./icon-192.png",
+    tag,
+    renotify: true,
+    data: { url: "./" }
+  };
+
+  try {
+    if (reg && reg.showNotification) await reg.showNotification(titulo, options);
+    else new Notification(titulo, options);
+    localStorage.setItem("jsc_ultima_notificacao", new Date().toISOString());
+    atualizarMiniNotificacoesV37();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function enviarNotificacaoTesteV37() {
+  if (estadoNotificacoesV37() !== "granted") {
+    atualizarMiniNotificacoesV37("Primeiro ativa as notificações.");
+    return;
+  }
+  const ok = await enviarNotificacaoV37("🍀 Jogos Santa Casa", "Teste enviado com sucesso. As notificações estão prontas.", "jsc-teste");
+  atualizarMiniNotificacoesV37(ok ? "Notificação de teste enviada." : "Não foi possível enviar a notificação.");
+}
+
+async function ativarNotificacoesV37() {
+  if (!notifSuportadasV37()) {
+    atualizarMiniNotificacoesV37("As notificações precisam de HTTPS e de browser compatível.");
+    return;
+  }
+
+  const permissao = await Notification.requestPermission();
+
+  if (permissao === "granted") {
+    localStorage.setItem("jsc_notificacoes", "1");
+    localStorage.removeItem("jsc_notif_banner_adiado_ate");
+    await obterServiceWorkerV37();
+    atualizarBannerNotificacoesV36?.();
+    atualizarMiniNotificacoesV37("Notificações ativadas neste dispositivo.");
+    await enviarNotificacaoV37("Notificações ativas 🍀", "Vais receber alertas de prémios, novos resultados e sorteios.", "jsc-ativas");
+  } else {
+    localStorage.setItem("jsc_notificacoes", "0");
+    atualizarMiniNotificacoesV37(permissao === "denied"
+      ? "Notificações bloqueadas. Ativa-as nas definições do browser."
+      : "Notificações não ativadas.");
+  }
+}
+
+// Compatibilidade com versões anteriores / banner
+async function ativarNotificacoesV35(){ return ativarNotificacoesV37(); }
+async function pedirPermissaoNotificacoes(){ return ativarNotificacoesV37(); }
+async function enviarNotificacaoTesteV35(){ return enviarNotificacaoTesteV37(); }
+
+function obterHistoricoParaNotifV37() {
+  try { if (typeof recolherHistoricoV33 === "function") return recolherHistoricoV33() || []; } catch {}
+  try { if (typeof recolherHistoricoV32 === "function") return recolherHistoricoV32() || []; } catch {}
+  try { if (Array.isArray(historico)) return historico; } catch {}
+  try {
+    const p = JSON.parse(localStorage.getItem("historico") || localStorage.getItem("jsc_historico") || "[]");
+    return Array.isArray(p) ? p : [];
+  } catch { return []; }
+}
+
+function jogoPremioNotifV37(item) {
+  try {
+    const campo = typeof obterCampoJogoPremioV33 === "function" ? obterCampoJogoPremioV33(item) : (item?.jogo || item?.titulo || item?.descricao || "");
+    return typeof formatarJogoV33 === "function" ? formatarJogoV33(campo) : (campo || "Jogo");
+  } catch {
+    return item?.jogo || "Jogo";
+  }
+}
+
+function assinaturaResultadosV37() {
+  const partes = [];
+  try {
+    const jogos = ["euromilhoes", "totoloto", "eurodreams", "milhao", "lotaria_classica", "lotaria_popular"];
+    jogos.forEach(j => {
+      const r = (typeof resultadosOficiais !== "undefined" && resultadosOficiais) ? resultadosOficiais[j] : null;
+      if (r) partes.push(`${j}:${r.sorteio || ""}:${r.data || r.data_sorteio || ""}:${r.numeros || ""}:${r.extras || ""}:${r.codigo || ""}`);
+    });
+  } catch {}
+  return partes.join("|");
+}
+
+async function verificarNotificacoesPremiosV37() {
+  if (estadoNotificacoesV37() !== "granted" || !JSC_NOTIF_TYPES_V37.premios) return;
+  const hist = obterHistoricoParaNotifV37();
+  const total = hist.length;
+  const avisado = Number(localStorage.getItem("jsc_premios_notificados") || "0");
+  if (total > avisado) {
+    const ultimo = hist[0] || hist[hist.length - 1] || {};
+    await enviarNotificacaoV37("🎉 Prémio encontrado!", `${jogoPremioNotifV37(ultimo)}: ${ultimo.premio || "prémio registado"}`, `jsc-premio-${total}`);
+    localStorage.setItem("jsc_premios_notificados", String(total));
+  }
+}
+
+async function verificarNotificacoesResultadosV37() {
+  if (estadoNotificacoesV37() !== "granted" || !JSC_NOTIF_TYPES_V37.resultados) return;
+  const assinatura = assinaturaResultadosV37();
+  if (!assinatura) return;
+
+  const anterior = localStorage.getItem("jsc_assinatura_resultados") || "";
+  if (anterior && anterior !== assinatura) {
+    await enviarNotificacaoV37("📢 Novos resultados disponíveis", "Já existem resultados atualizados para verificar as tuas apostas.", "jsc-novos-resultados");
+  }
+  localStorage.setItem("jsc_assinatura_resultados", assinatura);
+}
+
+function jogosComSorteioHojeV37() {
+  const d = new Date();
+  const dia = d.getDay(); // 0 dom, 1 seg, 2 ter, 3 qua, 4 qui, 5 sex, 6 sab
+  const jogos = [];
+  if (dia === 2 || dia === 5) jogos.push("Euromilhões");
+  if (dia === 3 || dia === 6) jogos.push("Totoloto");
+  if ([1,2,3,4,5,6].includes(dia)) jogos.push("M1lhão");
+  return jogos;
+}
+
+async function verificarNotificacoesSorteiosV37() {
+  if (estadoNotificacoesV37() !== "granted" || !JSC_NOTIF_TYPES_V37.sorteios) return;
+
+  const hoje = new Date().toISOString().slice(0,10);
+  const key = `jsc_sorteio_avisado_${hoje}`;
+  if (localStorage.getItem(key) === "1") return;
+
+  const jogos = jogosComSorteioHojeV37();
+  if (!jogos.length) return;
+
+  // Só avisa a partir das 10h para não chatear de madrugada.
+  if (new Date().getHours() < 10) return;
+
+  await enviarNotificacaoV37("🎲 Hoje há sorteio", `${jogos.join(", ")}. Boa sorte! 🍀`, "jsc-sorteio-hoje");
+  localStorage.setItem(key, "1");
+}
+
+async function executarNotificacoesAutomaticasV37() {
+  await verificarNotificacoesPremiosV37();
+  await verificarNotificacoesResultadosV37();
+  await verificarNotificacoesSorteiosV37();
+}
+
+function iniciarNotificacoesCleanV37() {
+  const mini = document.getElementById("notifStatusMini");
+  const fechar = document.getElementById("notifModalFechar");
+  const fecharBg = document.getElementById("notifModalFecharBg");
+  const ativar = document.getElementById("notifModalAtivar");
+  const teste = document.getElementById("notifModalTeste");
+  const header = document.getElementById("ativarNotificacoesBtn");
+
+  if (mini && !mini.__v37) { mini.__v37 = true; mini.addEventListener("click", abrirModalNotificacoesV37); }
+  if (fechar && !fechar.__v37) { fechar.__v37 = true; fechar.addEventListener("click", fecharModalNotificacoesV37); }
+  if (fecharBg && !fecharBg.__v37) { fecharBg.__v37 = true; fecharBg.addEventListener("click", fecharModalNotificacoesV37); }
+  if (ativar && !ativar.__v37) { ativar.__v37 = true; ativar.addEventListener("click", ativarNotificacoesV37); }
+  if (teste && !teste.__v37) { teste.__v37 = true; teste.addEventListener("click", enviarNotificacaoTesteV37); }
+  if (header && !header.__v37) { header.__v37 = true; header.addEventListener("click", ativarNotificacoesV37); }
+
+  atualizarMiniNotificacoesV37();
+  executarNotificacoesAutomaticasV37();
+}
+
+
+setTimeout(() => {
+  try { iniciarNotificacoesCleanV37(); } catch(e) {}
+}, 900);
+setInterval(() => {
+  try { executarNotificacoesAutomaticasV37(); } catch(e) {}
+}, 60000);

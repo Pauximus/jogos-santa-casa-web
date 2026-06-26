@@ -1094,3 +1094,129 @@ button.danger{
     flex:1 1 auto;
   }
 }
+
+/* V37 - notificações limpas */
+.notificacoes-card{display:none !important}
+.notif-status-mini{
+  margin-top:6px;
+  border:1px solid #dbe5ef;
+  background:#f8fafc;
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+  font-weight:800;
+  color:#334155;
+  cursor:pointer;
+}
+.notif-status-mini.ativo{
+  background:#dcfce7;
+  border-color:#86efac;
+  color:#166534;
+}
+.notif-status-mini.bloqueado{
+  background:#fee2e2;
+  border-color:#fecaca;
+  color:#991b1b;
+}
+.notif-modal[hidden]{display:none !important}
+.notif-modal{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.notif-modal-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(15,23,42,.42);
+}
+.notif-modal-card{
+  position:relative;
+  width:min(560px,100%);
+  background:#fff;
+  border-radius:20px;
+  border:1px solid #e2e8f0;
+  box-shadow:0 24px 70px rgba(15,23,42,.28);
+  padding:18px;
+}
+.notif-modal-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+.notif-modal-head h2{
+  margin:0;
+}
+.notif-modal-head p{
+  margin:2px 0 0;
+  color:#64748b;
+}
+#notifModalFechar{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  border:1px solid #e2e8f0;
+  background:#fff;
+  font-size:22px;
+  line-height:1;
+  cursor:pointer;
+}
+.notif-modal-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+.notif-modal-grid div{
+  border:1px solid #e2e8f0;
+  border-radius:14px;
+  padding:10px;
+  background:#f8fafc;
+}
+.notif-modal-grid span{
+  display:block;
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+}
+.notif-modal-grid b{
+  display:block;
+  margin-top:4px;
+  color:#0f172a;
+}
+.notif-modal-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.notif-modal-actions button{
+  border:1px solid #0f172a;
+  border-radius:12px;
+  padding:10px 13px;
+  font-weight:900;
+  cursor:pointer;
+}
+#notifModalAtivar{
+  background:#0f172a;
+  color:#fff;
+}
+#notifModalTeste{
+  background:#fff;
+  color:#0f172a;
+}
+.notif-modal-msg{
+  min-height:16px;
+  margin:10px 0 0;
+  font-size:12px;
+  color:#166534;
+  font-weight:800;
+  opacity:0;
+}
+.notif-modal-msg.visivel{opacity:1}
+@media(max-width:560px){
+  .notif-modal-grid{grid-template-columns:1fr}
+}

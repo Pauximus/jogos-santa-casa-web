@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=36">
+  <link rel="stylesheet" href="style.css?v=37">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -74,6 +74,7 @@
             <button id="guardarAliasBtn" type="button">Guardar</button>
           </div>
           <div id="aliasFeedback" class="alias-feedback" aria-live="polite"></div>
+          <button id="notifStatusMini" class="notif-status-mini" type="button">🔔 Notificações</button>
           <div id="notificacoesEstado" class="notificacoes-estado" aria-live="polite"></div>
         </div>
       </div>
@@ -242,33 +243,37 @@
           <div id="conquistasGrid" class="conquistas-grid"></div>
         </div>
 </section>
-
-
-      <section class="card notificacoes-card" id="notificacoesCard">
-        <div class="notificacoes-card-head">
-          <div>
-            <h2>🔔 Notificações</h2>
-            <p>Ativa e testa as notificações neste dispositivo.</p>
-          </div>
-          <strong id="notifEstadoBadge">🟡 Não autorizadas</strong>
-        </div>
-        <div class="notificacoes-card-grid">
-          <div><span>Permissão</span><b id="notifPermissao">—</b></div>
-          <div><span>Última notificação</span><b id="notifUltima">—</b></div>
-        </div>
-        <div class="notificacoes-card-actions">
-          <button id="notifAtivarBtn" type="button">Ativar notificações</button>
-          <button id="notifTesteBtn" type="button">Enviar teste</button>
-        </div>
-        <p id="notifMensagem" class="notif-mensagem" aria-live="polite"></p>
-      </section>
-
 </main>
 
   <footer id="estado">Pronto.</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=36"></script>
+  <script src="app.js?v=37"></script>
+
+      <div id="notifModal" class="notif-modal" hidden>
+        <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>
+        <div class="notif-modal-card" role="dialog" aria-modal="true" aria-labelledby="notifModalTitulo">
+          <div class="notif-modal-head">
+            <div>
+              <h2 id="notifModalTitulo">🔔 Notificações</h2>
+              <p>Configuração deste dispositivo.</p>
+            </div>
+            <button id="notifModalFechar" type="button" aria-label="Fechar">×</button>
+          </div>
+          <div class="notif-modal-grid">
+            <div><span>Estado</span><b id="notifModalEstado">—</b></div>
+            <div><span>Permissão</span><b id="notifModalPermissao">—</b></div>
+            <div><span>Última notificação</span><b id="notifModalUltima">—</b></div>
+            <div><span>Tipos ativos</span><b id="notifModalTipos">Prémios, resultados e sorteios</b></div>
+          </div>
+          <div class="notif-modal-actions">
+            <button id="notifModalAtivar" type="button">Ativar notificações</button>
+            <button id="notifModalTeste" type="button">Enviar teste</button>
+          </div>
+          <p id="notifModalMsg" class="notif-modal-msg"></p>
+        </div>
+      </div>
+
 </body>
 </html>
