@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=39">
+  <link rel="stylesheet" href="style.css?v=40">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -30,7 +30,48 @@
 
   <main class="app">
 
-      <section id="notifBanner" class="notif-banner" hidden>
+      
+      <section class="card dashboard-premium" id="dashboardPremium">
+        <div class="dashboard-premium-head">
+          <div>
+            <h2>📊 Centro de Sorte</h2>
+            <p>Resumo premium do teu desempenho e tendência atual.</p>
+          </div>
+          <strong id="premiumNivel">A calcular...</strong>
+        </div>
+
+        <div class="premium-score-wrap">
+          <div class="premium-score">
+            <div class="premium-ring" id="premiumRing" style="--score:0">
+              <span id="premiumScoreValor">0</span>
+            </div>
+            <div>
+              <strong>Índice de sorte</strong>
+              <p id="premiumScoreTexto">Ainda sem dados suficientes.</p>
+            </div>
+          </div>
+
+          <div class="premium-kpis">
+            <div><span>Apostas</span><b id="premiumApostas">—</b></div>
+            <div><span>Prémios</span><b id="premiumPremios">—</b></div>
+            <div><span>Sucesso</span><b id="premiumTaxa">—</b></div>
+            <div><span>Fase atual</span><b id="premiumFase">—</b></div>
+          </div>
+        </div>
+
+        <div class="premium-mini">
+          <div>
+            <strong>Últimas 10 apostas</strong>
+            <div id="premiumSequencia" class="premium-seq"></div>
+          </div>
+          <div>
+            <strong>Top jogos</strong>
+            <div id="premiumTopJogos" class="premium-top"></div>
+          </div>
+        </div>
+      </section>
+
+<section id="notifBanner" class="notif-banner" hidden>
         <div class="notif-banner-icon">🔔</div>
         <div class="notif-banner-text">
           <strong>Recebe notificações automáticas dos sorteios</strong>
@@ -289,7 +330,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=39"></script>
+  <script src="app.js?v=40"></script>
 
       <div id="notifModal" class="notif-modal" hidden>
         <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>

@@ -1,4 +1,4 @@
-window.APP_VERSION = "v39-estatisticas-inteligentes";
+window.APP_VERSION = "v40-dashboard-premium";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -2773,4 +2773,196 @@ setInterval(() => {
 }, 3000);
 document.addEventListener("click", () => {
   setTimeout(() => { try { atualizarEstatisticasInteligentesV39(); } catch(e) {} }, 200);
+});
+
+
+// V40 - Dashboard Premium / Centro de Sorte
+function normalizarJogoV40(nome) {
+  const raw = String(nome || "").toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9_ -]/g, "");
+  if (!raw) return "";
+  if (raw.includes("eurom")) return "euromilhoes";
+  if (raw.includes("toto")) return "totoloto";
+  if (raw.includes("dream")) return "eurodreams";
+  if (raw.includes("milhao") || raw.includes("m1lhao")) return "milhao";
+  if (raw.includes("class")) return "lotaria_classica";
+  if (raw.includes("popular")) return "lotaria_popular";
+  return raw.replace(/\s+/g, "_");
+}
+
+function formatarJogoV40(nome) {
+  const key = normalizarJogoV40(nome);
+  const map = {
+    euromilhoes: "Euromilhões",
+    totoloto: "Totoloto",
+    eurodreams: "EuroDreams",
+    milhao: "M1lhão",
+    lotaria_classica: "Lotaria Clássica",
+    lotaria_popular: "Lotaria Popular"
+  };
+  return map[key] || nome || "—";
+}
+
+function parseJsonV40(valor, fallback) {
+  try { return valor ? JSON.parse(valor) : fallback; } catch { return fallback; }
+}
+
+function recolherApostasV40() {
+  if (typeof recolherApostasV39 === "function") {
+    try { return recolherApostasV39(); } catch {}
+  }
+  const out = [];
+  const seen = new Set();
+  function add(lista) {
+    if (!Array.isArray(lista)) return;
+    lista.forEach(item => {
+      if (!item) return;
+      const key = JSON.stringify(item);
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    });
+  }
+  try { if (Array.isArray(apostas)) add(apostas); } catch {}
+  if (Array.isArray(window.apostas)) add(window.apostas);
+  if (Array.isArray(window.apostasGuardadas)) add(window.apostasGuardadas);
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.toLowerCase().includes("aposta")) continue;
+    const p = parseJsonV40(localStorage.getItem(k), null);
+    if (Array.isArray(p)) add(p);
+    else if (p && typeof p === "object") Object.values(p).forEach(v => Array.isArray(v) && add(v));
+  }
+  return out;
+}
+
+function recolherHistoricoV40() {
+  if (typeof recolherHistoricoV39 === "function") {
+    try { return recolherHistoricoV39(); } catch {}
+  }
+  const out = [];
+  const seen = new Set();
+  function add(lista) {
+    if (!Array.isArray(lista)) return;
+    lista.forEach(item => {
+      if (!item) return;
+      const key = JSON.stringify(item);
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    });
+  }
+  try { if (Array.isArray(historico)) add(historico); } catch {}
+  if (Array.isArray(window.historico)) add(window.historico);
+  ["historico", "jsc_historico", "historico_premios", "premios_historico", "historicoPremios"].forEach(k => {
+    const p = parseJsonV40(localStorage.getItem(k), null);
+    if (Array.isArray(p)) add(p);
+  });
+  return out;
+}
+
+function jogoDaApostaV40(aposta) {
+  if (typeof jogoDaApostaV39 === "function") {
+    try { return jogoDaApostaV39(aposta); } catch {}
+  }
+  const direto = aposta?.jogo || aposta?.tipo || aposta?.game || aposta?.nomeJogo || aposta?.lottery || aposta?.endpoint;
+  if (direto) return normalizarJogoV40(direto);
+  try { return normalizarJogoV40(jogoAtual || document.querySelector("select")?.value || ""); }
+  catch { return ""; }
+}
+
+function contarPorJogoV40(lista, getter) {
+  const c = {};
+  lista.forEach(item => {
+    const jogo = getter(item);
+    if (!jogo) return;
+    c[jogo] = (c[jogo] || 0) + 1;
+  });
+  return c;
+}
+
+function sequenciaPremiumV40(totalApostas, totalPremios) {
+  const tamanho = Math.min(Math.max(totalApostas, totalPremios), 10);
+  return Array.from({ length: tamanho }, (_, i) => i >= tamanho - totalPremios);
+}
+
+function maiorSeqV40(seq, valor) {
+  let best = 0, atual = 0;
+  seq.forEach(v => {
+    if (v === valor) { atual++; best = Math.max(best, atual); }
+    else atual = 0;
+  });
+  return best;
+}
+
+function atualizarDashboardPremiumV40() {
+  const apostas = recolherApostasV40();
+  const historico = recolherHistoricoV40();
+  const porJogo = contarPorJogoV40(apostas, jogoDaApostaV40);
+
+  const totalApostas = Object.values(porJogo).reduce((s,n)=>s+n,0);
+  const totalPremios = historico.length || Number(document.querySelector('[data-total-premios]')?.textContent || 0);
+  const taxa = totalApostas ? Math.round((totalPremios / totalApostas) * 100) : 0;
+  const seq = sequenciaPremiumV40(totalApostas, totalPremios);
+  const seqPremios = maiorSeqV40(seq, true);
+  const seqSem = maiorSeqV40(seq, false);
+
+  const score = Math.max(0, Math.min(100, Math.round((taxa * 3) + (seqPremios * 8) - Math.min(seqSem * 2, 20) + Math.min(totalApostas, 20))));
+  const nivel = score >= 80 ? "💎 Diamante" : score >= 55 ? "🥇 Ouro" : score >= 30 ? "🥈 Prata" : score >= 10 ? "🥉 Bronze" : "🍀 Iniciante";
+  const fase = seqPremios >= 2 ? "🔥 Quente" : seqSem >= 5 ? "🧊 Fria" : totalPremios ? "🍀 Positiva" : "A iniciar";
+
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set("premiumNivel", nivel);
+  set("premiumScoreValor", String(score));
+  set("premiumApostas", String(totalApostas || 0));
+  set("premiumPremios", String(totalPremios || 0));
+  set("premiumTaxa", `${taxa}%`);
+  set("premiumFase", fase);
+
+  const ring = document.getElementById("premiumRing");
+  if (ring) ring.style.setProperty("--score", score);
+
+  const texto = document.getElementById("premiumScoreTexto");
+  if (texto) {
+    texto.textContent = score >= 60 ? "Bom histórico para os dados atuais." :
+      score >= 30 ? "Histórico em evolução." :
+      totalApostas ? "Ainda estás a construir histórico." :
+      "Adiciona apostas para gerar o índice.";
+  }
+
+  const seqEl = document.getElementById("premiumSequencia");
+  if (seqEl) {
+    seqEl.innerHTML = seq.length
+      ? seq.map(v => `<span class="${v ? "win" : "lose"}">${v ? "🏆" : "×"}</span>`).join("")
+      : '<small>Sem dados</small>';
+  }
+
+  const topEl = document.getElementById("premiumTopJogos");
+  if (topEl) {
+    const entradas = Object.entries(porJogo).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    if (!entradas.length) {
+      topEl.innerHTML = '<small>Sem dados</small>';
+    } else {
+      const max = Math.max(...entradas.map(([,n])=>n), 1);
+      topEl.innerHTML = entradas.map(([j,n]) => {
+        const pct = Math.round((n/max)*100);
+        return `<div class="premium-top-row">
+          <div><span>${formatarJogoV40(j)}</span><b>${n}</b></div>
+          <i><em style="width:${pct}%"></em></i>
+        </div>`;
+      }).join("");
+    }
+  }
+}
+
+
+setTimeout(() => {
+  try { atualizarDashboardPremiumV40(); } catch(e) {}
+}, 1100);
+setInterval(() => {
+  try { atualizarDashboardPremiumV40(); } catch(e) {}
+}, 3000);
+document.addEventListener("click", () => {
+  setTimeout(() => { try { atualizarDashboardPremiumV40(); } catch(e) {} }, 250);
 });
