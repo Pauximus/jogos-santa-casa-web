@@ -71,5 +71,6 @@
       ]
     }
   ],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "version": "v38-auto-update"
 }

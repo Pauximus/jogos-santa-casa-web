@@ -1,4 +1,4 @@
-window.APP_VERSION = "v37-notificacoes-clean";
+window.APP_VERSION = "v38-auto-update";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -2509,3 +2509,25 @@ setTimeout(() => {
 setInterval(() => {
   try { executarNotificacoesAutomaticasV37(); } catch(e) {}
 }, 60000);
+
+
+// V38 Auto Update
+const VERSAO_ATUAL="v38-auto-update";
+async function verificarNovaVersao(){
+ try{
+   const r=await fetch('manifest.json?ts='+Date.now(),{cache:'no-store'});
+   const m=await r.json();
+   const nova=m.version||VERSAO_ATUAL;
+   if(nova!==VERSAO_ATUAL){
+      if(confirm(`Existe uma nova versão (${nova}). Atualizar agora?`)){
+         if('serviceWorker' in navigator){
+           const regs=await navigator.serviceWorker.getRegistrations();
+           for(const reg of regs){try{await reg.update();}catch(e){}}
+         }
+         location.reload(true);
+      }
+   }
+ }catch(e){}
+}
+setInterval(verificarNovaVersao,300000);
+setTimeout(verificarNovaVersao,5000);
