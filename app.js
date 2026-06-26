@@ -1,4 +1,4 @@
-window.APP_VERSION = "v30-pro-estatisticas";
+window.APP_VERSION = "v31-estatisticas-clean";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1249,6 +1249,7 @@ async function carregarAliasCloud() {
 
 
 
+
 function mostrarFeedbackAlias(msg) {
   const el = document.getElementById("aliasFeedback");
   if (!el) return;
@@ -1261,7 +1262,22 @@ function mostrarFeedbackAlias(msg) {
   }, 2500);
 }
 
-function formatarJogoV30(nome) {
+function normalizarJogoV31(nome) {
+  const raw = String(nome || "").toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9_ -]/g, "");
+  if (!raw) return "";
+  if (raw.includes("eurom")) return "euromilhoes";
+  if (raw.includes("toto")) return "totoloto";
+  if (raw.includes("dream")) return "eurodreams";
+  if (raw.includes("milhao") || raw.includes("m1lhao")) return "milhao";
+  if (raw.includes("class")) return "lotaria_classica";
+  if (raw.includes("popular")) return "lotaria_popular";
+  return raw.replace(/\s+/g, "_");
+}
+
+function formatarJogoV31(nome) {
+  const key = normalizarJogoV31(nome);
   const map = {
     euromilhoes: "Euromilhões",
     totoloto: "Totoloto",
@@ -1270,143 +1286,132 @@ function formatarJogoV30(nome) {
     lotaria_classica: "Lotaria Clássica",
     lotaria_popular: "Lotaria Popular"
   };
-  return map[nome] || nome || "—";
+  return map[key] || nome || "—";
 }
 
-function normalizarJogoV30(nome) {
-  const raw = String(nome || "").toLowerCase().trim();
-  if (!raw) return "";
-  if (raw.includes("eurom")) return "euromilhoes";
-  if (raw.includes("toto")) return "totoloto";
-  if (raw.includes("dream")) return "eurodreams";
-  if (raw.includes("milh")) return "milhao";
-  if (raw.includes("class")) return "lotaria_classica";
-  if (raw.includes("popular")) return "lotaria_popular";
-  return raw;
+function parseJsonV31(valor, fallback) {
+  try { return valor ? JSON.parse(valor) : fallback; } catch { return fallback; }
 }
 
-function obterListaApostasV30() {
-  if (Array.isArray(apostas)) return apostas;
-  if (Array.isArray(window.apostas)) return window.apostas;
+function recolherApostasV31() {
+  const out = [];
+  const seen = new Set();
 
-  try {
-    const raw = localStorage.getItem("apostas") || localStorage.getItem("jsc_apostas") || localStorage.getItem("apostas_guardadas");
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+  function add(lista) {
+    if (!Array.isArray(lista)) return;
+    lista.forEach((item) => {
+      if (!item) return;
+      const key = JSON.stringify(item);
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    });
   }
+
+  try { if (Array.isArray(apostas)) add(apostas); } catch {}
+  if (Array.isArray(window.apostas)) add(window.apostas);
+  if (Array.isArray(window.apostasGuardadas)) add(window.apostasGuardadas);
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.toLowerCase().includes("aposta")) continue;
+    const p = parseJsonV31(localStorage.getItem(k), null);
+    if (Array.isArray(p)) add(p);
+    else if (p && typeof p === "object") Object.values(p).forEach(v => Array.isArray(v) && add(v));
+  }
+
+  return out;
 }
 
-function obterHistoricoV30() {
-  if (Array.isArray(historico)) return historico;
+function recolherHistoricoV31() {
+  try { if (Array.isArray(historico)) return historico; } catch {}
   if (Array.isArray(window.historico)) return window.historico;
+  for (const k of ["historico", "jsc_historico", "historico_premios", "premios_historico"]) {
+    const p = parseJsonV31(localStorage.getItem(k), null);
+    if (Array.isArray(p)) return p;
+  }
+  return [];
+}
 
+function jogoDaApostaV31(aposta) {
+  const direto = aposta?.jogo || aposta?.tipo || aposta?.game || aposta?.nomeJogo || aposta?.lottery || aposta?.endpoint;
+  if (direto) return normalizarJogoV31(direto);
+
+  // Se a estrutura não trouxer jogo, usa o jogo atualmente selecionado como fallback.
   try {
-    const raw = localStorage.getItem("historico") || localStorage.getItem("jsc_historico") || localStorage.getItem("historico_premios");
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return normalizarJogoV31(jogoAtual || document.querySelector("select")?.value || "");
   } catch {
-    return [];
+    return "";
   }
 }
 
-function contarApostasPorJogoV30() {
-  const contagem = {};
-  obterListaApostasV30().forEach((aposta) => {
-    const jogo = normalizarJogoV30(aposta?.jogo || aposta?.tipo || jogoAtual || "");
+function contarApostasPorJogoV31() {
+  const c = {};
+  recolherApostasV31().forEach(a => {
+    const jogo = jogoDaApostaV31(a);
     if (!jogo) return;
-    contagem[jogo] = (contagem[jogo] || 0) + 1;
+    c[jogo] = (c[jogo] || 0) + 1;
   });
-  return contagem;
+  return c;
 }
 
-function contarPremiosPorJogoV30() {
-  const contagem = {};
-  obterHistoricoV30().forEach((item) => {
-    const jogo = normalizarJogoV30(item?.jogo || item?.tipo || "");
+function contarPremiosPorJogoV31() {
+  const c = {};
+  recolherHistoricoV31().forEach(h => {
+    const jogo = normalizarJogoV31(h?.jogo || h?.tipo || h?.game || "");
     if (!jogo) return;
-    contagem[jogo] = (contagem[jogo] || 0) + 1;
+    c[jogo] = (c[jogo] || 0) + 1;
   });
-
-  if (!Object.keys(contagem).length && typeof contagemPremiosPorJogo === "function") {
-    try {
-      return contagemPremiosPorJogo() || {};
-    } catch {}
+  if (!Object.keys(c).length && typeof contagemPremiosPorJogo === "function") {
+    try { return contagemPremiosPorJogo() || {}; } catch {}
   }
-
-  return contagem;
+  return c;
 }
 
-function maiorEntradaV30(obj) {
-  const entradas = Object.entries(obj || {});
-  if (!entradas.length) return null;
-  return entradas.sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), "pt-PT"))[0];
+function maiorEntradaV31(obj) {
+  const e = Object.entries(obj || {});
+  if (!e.length) return null;
+  return e.sort((a,b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), "pt-PT"))[0];
 }
 
-function extrairValorEuroV30(item) {
-  const fonte = String(item?.valor || item?.premio || item?.descricao || item?.titulo || "");
-  const matches = fonte.match(/(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)/g);
-  if (!matches) return 0;
-
-  return Math.max(...matches.map((m) => {
-    const limpo = m.replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
-    return Number(limpo) || 0;
-  }));
+function valorPremioV31(item) {
+  const t = String(item?.valor || item?.premio || item?.descricao || item?.titulo || "");
+  const m = t.match(/(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)/g);
+  if (!m) return 0;
+  return Math.max(...m.map(x => Number(x.replace(/\s/g,"").replace(/\./g,"").replace(",", ".")) || 0));
 }
 
-function obterMaiorPremioV30() {
-  const hist = obterHistoricoV30();
-  if (!hist.length) return null;
-  return [...hist].sort((a, b) => extrairValorEuroV30(b) - extrairValorEuroV30(a))[0];
-}
-
-function calcularSequenciaSemPremiosV30() {
-  const apostasLista = obterListaApostasV30();
-  const hist = obterHistoricoV30();
-
-  if (!apostasLista.length) return 0;
-  if (!hist.length) return apostasLista.length;
-
-  const totalPremios = hist.length;
-  return Math.max(0, apostasLista.length - totalPremios);
+function maiorPremioV31() {
+  const h = recolherHistoricoV31();
+  if (!h.length) return null;
+  return [...h].sort((a,b) => valorPremioV31(b) - valorPremioV31(a))[0];
 }
 
 function atualizarEstatisticasAvancadas() {
-  const porApostas = contarApostasPorJogoV30();
-  const porPremios = contarPremiosPorJogoV30();
-  const maisApostado = maiorEntradaV30(porApostas);
-  const maisPremiado = maiorEntradaV30(porPremios);
-  const maiorPremio = obterMaiorPremioV30();
-  const sequencia = calcularSequenciaSemPremiosV30();
+  const porApostas = contarApostasPorJogoV31();
+  const porPremios = contarPremiosPorJogoV31();
+  const totalApostas = Object.values(porApostas).reduce((s,n)=>s+n,0);
+  const totalPremios = Object.values(porPremios).reduce((s,n)=>s+n,0);
+  const maisApostado = maiorEntradaV31(porApostas);
+  const maisPremiado = maiorEntradaV31(porPremios);
+  const maior = maiorPremioV31();
 
-  const setTxt = (id, txt) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = txt;
-  };
+  const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  setTxt("statJogoMaisApostado", maisApostado ? `${formatarJogoV31(maisApostado[0])} (${maisApostado[1]})` : "—");
+  setTxt("statJogoMaisPremiado", maisPremiado ? `${formatarJogoV31(maisPremiado[0])} (${maisPremiado[1]})` : "—");
 
-  setTxt("statJogoMaisApostado", maisApostado ? `${formatarJogoV30(maisApostado[0])} (${maisApostado[1]})` : "—");
-  setTxt("statJogoMaisPremiado", maisPremiado ? `${formatarJogoV30(maisPremiado[0])} (${maisPremiado[1]})` : "—");
+  if (maior) {
+    const valor = valorPremioV31(maior);
+    setTxt("statMelhorPremio", `${formatarJogoV31(maior.jogo)}${valor ? " — " + valor.toLocaleString("pt-PT", {style:"currency", currency:"EUR"}) : ""}`);
+  } else setTxt("statMelhorPremio", "—");
 
-  if (maiorPremio) {
-    const valor = extrairValorEuroV30(maiorPremio);
-    const txtValor = valor ? ` — ${valor.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}` : "";
-    setTxt("statMelhorPremio", `${formatarJogoV30(maiorPremio.jogo)}${txtValor}`);
-  } else {
-    setTxt("statMelhorPremio", "—");
-  }
-
-  setTxt("statUltimaSync", sequencia ? `${sequencia} aposta(s)` : "0");
+  setTxt("statUltimaSync", `${Math.max(0, totalApostas - totalPremios)} aposta(s)`);
 
   const ranking = document.getElementById("statRankingJogos");
   const resumo = document.getElementById("statResumoRanking");
-  const entradas = Object.entries(porPremios).sort((a, b) => b[1] - a[1]);
+  const entradas = Object.entries(porPremios).sort((a,b)=>b[1]-a[1]);
 
-  if (resumo) {
-    const total = entradas.reduce((s, [, n]) => s + n, 0);
-    resumo.textContent = total ? `${total} prémio(s) em ${entradas.length} jogo(s)` : "Sem dados";
-  }
-
+  if (resumo) resumo.textContent = totalPremios ? `${totalPremios} prémio(s) em ${entradas.length} jogo(s)` : "Sem dados";
   if (!ranking) return;
 
   if (!entradas.length) {
@@ -1414,11 +1419,11 @@ function atualizarEstatisticasAvancadas() {
     return;
   }
 
-  const max = Math.max(...entradas.map(([, total]) => total), 1);
-  ranking.innerHTML = entradas.map(([jogo, total], idx) => {
+  const max = Math.max(...entradas.map(([,n])=>n), 1);
+  ranking.innerHTML = entradas.map(([jogo,total], idx) => {
     const pct = Math.max(8, Math.round((total / max) * 100));
     return `<div class="mini-ranking-row">
-      <div class="mini-ranking-label"><span>${idx + 1}.º ${formatarJogoV30(jogo)}</span><strong>${total}</strong></div>
+      <div class="mini-ranking-label"><span>${idx + 1}.º ${formatarJogoV31(jogo)}</span><strong>${total}</strong></div>
       <div class="mini-ranking-bar"><i style="width:${pct}%"></i></div>
     </div>`;
   }).join("");
@@ -1959,7 +1964,12 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 
 
 
-setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 800);
-window.__statsV30Interval = setInterval(() => {
+
+
+setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 500);
+window.__statsV31Interval = setInterval(() => {
   try { atualizarEstatisticasAvancadas(); } catch(e) {}
-}, 2500);
+}, 1500);
+document.addEventListener("click", () => {
+  setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 150);
+});
