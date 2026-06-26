@@ -993,3 +993,8 @@ button.danger{
 .seq-chip.win{background:#dcfce7}.seq-chip.lose{background:#fee2e2}
 .conquistas-pro{margin-top:12px;border:1px solid #dbe5ef;border-radius:14px;padding:12px;background:#fff}
 .conquistas-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.conquista{display:flex;gap:8px;align-items:flex-start;border:1px solid #e2e8f0;border-radius:12px;padding:10px;background:#f8fafc}.conquista b{font-size:20px}.conquista strong{display:block;font-size:12px}.conquista span{display:block;margin-top:2px;color:#607085;font-size:11px}.conquista.ok{border-color:#bbf7d0;background:#f0fdf4}.conquista.locked{opacity:.65}@media(max-width:760px){.conquistas-grid{grid-template-columns:1fr}}
+
+/* V34 - notificacoes reais PWA */
+.notify-btn.ativo{background:#dcfce7 !important;border-color:#86efac !important;color:#166534 !important;}
+.notificacoes-estado{min-height:16px;margin-top:4px;font-size:12px;font-weight:700;color:#17633a;opacity:0;transition:opacity .2s ease;}
+.notificacoes-estado.visivel{opacity:1}

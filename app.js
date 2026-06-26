@@ -1,4 +1,4 @@
-window.APP_VERSION = "v33-premium-notificacoes";
+window.APP_VERSION = "v34-notificacoes-pwa";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -1866,6 +1866,164 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 
 
 
-setTimeout(() => { try { iniciarNotificacoesV33(); atualizarEstatisticasAvancadas(); notificarPremiosSeNecessarioV33(); } catch(e) {} }, 500);
-window.__statsV33Interval = setInterval(() => { try { atualizarEstatisticasAvancadas(); notificarPremiosSeNecessarioV33(); } catch(e) {} }, 2000);
+setTimeout(() => { try { iniciarNotificacoesV34(); atualizarEstatisticasAvancadas(); notificarPremiosSeNecessarioV34(); } catch(e) {} }, 500);
+window.__statsV33Interval = setInterval(() => { try { atualizarEstatisticasAvancadas(); notificarPremiosSeNecessarioV34(); } catch(e) {} }, 2000);
 document.addEventListener("click", () => { setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 150); });
+
+
+// V34 - Notificações PWA
+const VAPID_PUBLIC_KEY = ""; // Futuro: chave pública VAPID para push real via servidor.
+
+function atualizarEstadoNotificacoesV34(msg = "") {
+  const btn = document.getElementById("ativarNotificacoesBtn");
+  const estadoEl = document.getElementById("notificacoesEstado");
+  const suportado = "Notification" in window && "serviceWorker" in navigator;
+  const perm = suportado ? Notification.permission : "unsupported";
+  const ativo = localStorage.getItem("jsc_notificacoes") === "1" && perm === "granted";
+
+  if (btn) {
+    if (!suportado) {
+      btn.textContent = "🔕 Sem suporte";
+      btn.disabled = true;
+    } else if (ativo) {
+      btn.textContent = "🔔 Ativas";
+      btn.classList.add("ativo");
+      btn.disabled = false;
+    } else if (perm === "denied") {
+      btn.textContent = "🔕 Bloqueadas";
+      btn.classList.remove("ativo");
+      btn.disabled = false;
+    } else {
+      btn.textContent = "🔔 Notificações";
+      btn.classList.remove("ativo");
+      btn.disabled = false;
+    }
+  }
+
+  if (estadoEl && msg) {
+    estadoEl.textContent = msg;
+    estadoEl.classList.add("visivel");
+    clearTimeout(window.__notificacoesEstadoTimer);
+    window.__notificacoesEstadoTimer = setTimeout(() => {
+      estadoEl.textContent = "";
+      estadoEl.classList.remove("visivel");
+    }, 4500);
+  }
+}
+
+function urlBase64ParaUint8ArrayV34(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function obterServiceWorkerProntoV34() {
+  if (!("serviceWorker" in navigator)) return null;
+  try { return await navigator.serviceWorker.ready; }
+  catch {
+    try { return await navigator.serviceWorker.register("./service-worker.js"); }
+    catch { return null; }
+  }
+}
+
+async function guardarSubscricaoPushV34(subscription) {
+  if (!subscription) return;
+  localStorage.setItem("jsc_push_subscription", JSON.stringify(subscription));
+  try {
+    if (typeof supabaseClient !== "undefined" && supabaseClient && currentUser) {
+      await supabaseClient.from("push_subscriptions").upsert({
+        user_id: currentUser.id,
+        subscription,
+        user_agent: navigator.userAgent,
+        atualizado_em: new Date().toISOString()
+      }, { onConflict: "user_id" });
+    }
+  } catch {}
+}
+
+async function subscreverPushSePossivelV34(reg) {
+  if (!reg || !("PushManager" in window)) return null;
+  try {
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub && VAPID_PUBLIC_KEY) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ParaUint8ArrayV34(VAPID_PUBLIC_KEY)
+      });
+    }
+    if (sub) await guardarSubscricaoPushV34(sub);
+    return sub;
+  } catch { return null; }
+}
+
+async function mostrarNotificacaoLocalV34(titulo, opcoes = {}) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return false;
+  const reg = await obterServiceWorkerProntoV34();
+  const options = {
+    body: opcoes.body || "",
+    icon: opcoes.icon || "./icon-192.png",
+    badge: opcoes.badge || "./icon-192.png",
+    tag: opcoes.tag || "jsc-notificacao",
+    renotify: true,
+    data: { url: "./", ...(opcoes.data || {}) }
+  };
+  try {
+    if (reg && reg.showNotification) await reg.showNotification(titulo, options);
+    else new Notification(titulo, options);
+    return true;
+  } catch { return false; }
+}
+
+async function pedirPermissaoNotificacoesV34() {
+  if (!("Notification" in window)) { alert("Este browser não suporta notificações."); return; }
+  if (!window.isSecureContext) { alert("As notificações precisam de HTTPS."); return; }
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") {
+    localStorage.setItem("jsc_notificacoes", "0");
+    atualizarEstadoNotificacoesV34(perm === "denied" ? "Notificações bloqueadas. Ativa-as nas definições do browser." : "Notificações não ativadas.");
+    return;
+  }
+  localStorage.setItem("jsc_notificacoes", "1");
+  const reg = await obterServiceWorkerProntoV34();
+  await subscreverPushSePossivelV34(reg);
+  atualizarEstadoNotificacoesV34("Notificações ativas neste dispositivo.");
+  await mostrarNotificacaoLocalV34("Notificações ativas 🍀", {
+    body: "Vais receber alertas quando a app encontrar prémios.",
+    tag: "jsc-notificacoes-ativas"
+  });
+}
+
+function notificarPremiosSeNecessarioV34() {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (localStorage.getItem("jsc_notificacoes") !== "1") return;
+  let historicoLista = [];
+  try {
+    if (typeof recolherHistoricoV33 === "function") historicoLista = recolherHistoricoV33();
+    else if (typeof recolherHistoricoV32 === "function") historicoLista = recolherHistoricoV32();
+  } catch {}
+  const totalPremios = historicoLista.length;
+  const ultimoAvisado = Number(localStorage.getItem("jsc_premios_notificados") || "0");
+  if (totalPremios > ultimoAvisado) {
+    const ultimo = historicoLista[0] || historicoLista[historicoLista.length - 1] || {};
+    const jogo = (typeof obterCampoJogoPremioV33 === "function" ? obterCampoJogoPremioV33(ultimo) : (ultimo.jogo || ultimo.titulo || ""));
+    const jogoTxt = (typeof formatarJogoV33 === "function" ? formatarJogoV33(jogo) : (jogo || "Jogo"));
+    mostrarNotificacaoLocalV34("🎉 Prémio encontrado!", {
+      body: `${jogoTxt}: ${ultimo.premio || "prémio registado"}`,
+      tag: `jsc-premio-${totalPremios}`
+    });
+    localStorage.setItem("jsc_premios_notificados", String(totalPremios));
+  }
+}
+
+function iniciarNotificacoesV34() {
+  const btn = document.getElementById("ativarNotificacoesBtn");
+  atualizarEstadoNotificacoesV34();
+  if (btn && !btn.__notificacoesV34) {
+    btn.__notificacoesV34 = true;
+    btn.addEventListener("click", () => pedirPermissaoNotificacoesV34());
+  }
+}
+

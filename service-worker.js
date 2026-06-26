@@ -1,4 +1,4 @@
-const CACHE_NAME = "jogos-santa-casa-v33";
+const CACHE_NAME = "jogos-santa-casa-v34";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -71,3 +71,12 @@ self.addEventListener("fetch", event => {
 });
 
 self.addEventListener("notificationclick", (event) => { event.notification.close(); event.waitUntil(clients.openWindow("./")); });
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; }
+  catch (e) { data = { title: "Jogos Santa Casa", body: event.data ? event.data.text() : "Nova atualização disponível." }; }
+  event.waitUntil(self.registration.showNotification(data.title || "Jogos Santa Casa", {
+    body: data.body || "Toca para abrir o verificador.", icon: data.icon || "./icon-192.png", badge: data.badge || "./icon-192.png", tag: data.tag || "jsc-push", data: { url: data.url || "./" }
+  }));
+});
