@@ -1,4 +1,4 @@
-window.APP_VERSION = "v29-estatisticas-feedback";
+window.APP_VERSION = "v30-pro-estatisticas";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -905,7 +905,7 @@ async function atualizarResultadosBackend() {
     }
     return data;
   } catch (err) {
-    console.warn("Atualização automática do backend falhou:", err);
+    console.info("Atualização automática indisponível neste momento.");
     return null;
   }
 }
@@ -970,7 +970,7 @@ async function obterResultadoAtual() {
       return linhaResultadoParaFormatoApp(row, cfg);
     }
   } catch (err) {
-    console.warn("Resultados oficiais via backend indisponíveis. A tentar API direta:", err);
+    console.info("Backend indisponível; a usar fallback/cache.");
   }
 
   const res = await fetch(`${API}/${cfg.endpoint}`, { cache: "no-store" });
@@ -1248,6 +1248,7 @@ async function carregarAliasCloud() {
 }
 
 
+
 function mostrarFeedbackAlias(msg) {
   const el = document.getElementById("aliasFeedback");
   if (!el) return;
@@ -1260,7 +1261,7 @@ function mostrarFeedbackAlias(msg) {
   }, 2500);
 }
 
-function formatarJogoV29(nome) {
+function formatarJogoV30(nome) {
   const map = {
     euromilhoes: "Euromilhões",
     totoloto: "Totoloto",
@@ -1272,40 +1273,130 @@ function formatarJogoV29(nome) {
   return map[nome] || nome || "—";
 }
 
-function contarApostasPorJogoV29() {
+function normalizarJogoV30(nome) {
+  const raw = String(nome || "").toLowerCase().trim();
+  if (!raw) return "";
+  if (raw.includes("eurom")) return "euromilhoes";
+  if (raw.includes("toto")) return "totoloto";
+  if (raw.includes("dream")) return "eurodreams";
+  if (raw.includes("milh")) return "milhao";
+  if (raw.includes("class")) return "lotaria_classica";
+  if (raw.includes("popular")) return "lotaria_popular";
+  return raw;
+}
+
+function obterListaApostasV30() {
+  if (Array.isArray(apostas)) return apostas;
+  if (Array.isArray(window.apostas)) return window.apostas;
+
+  try {
+    const raw = localStorage.getItem("apostas") || localStorage.getItem("jsc_apostas") || localStorage.getItem("apostas_guardadas");
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function obterHistoricoV30() {
+  if (Array.isArray(historico)) return historico;
+  if (Array.isArray(window.historico)) return window.historico;
+
+  try {
+    const raw = localStorage.getItem("historico") || localStorage.getItem("jsc_historico") || localStorage.getItem("historico_premios");
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function contarApostasPorJogoV30() {
   const contagem = {};
-  (apostas || []).forEach((aposta) => {
-    const jogo = normalizarJogo ? normalizarJogo(aposta.jogo || jogoAtual || "") : (aposta.jogo || jogoAtual || "");
+  obterListaApostasV30().forEach((aposta) => {
+    const jogo = normalizarJogoV30(aposta?.jogo || aposta?.tipo || jogoAtual || "");
     if (!jogo) return;
     contagem[jogo] = (contagem[jogo] || 0) + 1;
   });
   return contagem;
 }
 
-function maiorEntradaV29(obj) {
+function contarPremiosPorJogoV30() {
+  const contagem = {};
+  obterHistoricoV30().forEach((item) => {
+    const jogo = normalizarJogoV30(item?.jogo || item?.tipo || "");
+    if (!jogo) return;
+    contagem[jogo] = (contagem[jogo] || 0) + 1;
+  });
+
+  if (!Object.keys(contagem).length && typeof contagemPremiosPorJogo === "function") {
+    try {
+      return contagemPremiosPorJogo() || {};
+    } catch {}
+  }
+
+  return contagem;
+}
+
+function maiorEntradaV30(obj) {
   const entradas = Object.entries(obj || {});
   if (!entradas.length) return null;
   return entradas.sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), "pt-PT"))[0];
 }
 
+function extrairValorEuroV30(item) {
+  const fonte = String(item?.valor || item?.premio || item?.descricao || item?.titulo || "");
+  const matches = fonte.match(/(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)/g);
+  if (!matches) return 0;
+
+  return Math.max(...matches.map((m) => {
+    const limpo = m.replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
+    return Number(limpo) || 0;
+  }));
+}
+
+function obterMaiorPremioV30() {
+  const hist = obterHistoricoV30();
+  if (!hist.length) return null;
+  return [...hist].sort((a, b) => extrairValorEuroV30(b) - extrairValorEuroV30(a))[0];
+}
+
+function calcularSequenciaSemPremiosV30() {
+  const apostasLista = obterListaApostasV30();
+  const hist = obterHistoricoV30();
+
+  if (!apostasLista.length) return 0;
+  if (!hist.length) return apostasLista.length;
+
+  const totalPremios = hist.length;
+  return Math.max(0, apostasLista.length - totalPremios);
+}
+
 function atualizarEstatisticasAvancadas() {
-  const porApostas = contarApostasPorJogoV29();
-  const maisApostado = maiorEntradaV29(porApostas);
-  const porPremios = typeof contagemPremiosPorJogo === "function" ? contagemPremiosPorJogo() : {};
-  const maisPremiado = maiorEntradaV29(porPremios);
-  const melhor = (historico || [])[0];
+  const porApostas = contarApostasPorJogoV30();
+  const porPremios = contarPremiosPorJogoV30();
+  const maisApostado = maiorEntradaV30(porApostas);
+  const maisPremiado = maiorEntradaV30(porPremios);
+  const maiorPremio = obterMaiorPremioV30();
+  const sequencia = calcularSequenciaSemPremiosV30();
 
   const setTxt = (id, txt) => {
     const el = document.getElementById(id);
     if (el) el.textContent = txt;
   };
 
-  setTxt("statJogoMaisApostado", maisApostado ? `${formatarJogoV29(maisApostado[0])} (${maisApostado[1]})` : "—");
-  setTxt("statJogoMaisPremiado", maisPremiado ? `${formatarJogoV29(maisPremiado[0])} (${maisPremiado[1]})` : "—");
-  setTxt("statMelhorPremio", melhor ? `${formatarJogoV29(melhor.jogo)} — ${melhor.premio || "Prémio"}` : "—");
+  setTxt("statJogoMaisApostado", maisApostado ? `${formatarJogoV30(maisApostado[0])} (${maisApostado[1]})` : "—");
+  setTxt("statJogoMaisPremiado", maisPremiado ? `${formatarJogoV30(maisPremiado[0])} (${maisPremiado[1]})` : "—");
 
-  const ultima = localStorage.getItem("jsc_ultima_sincronizacao") || localStorage.getItem("ultima_sincronizacao") || "";
-  setTxt("statUltimaSync", ultima ? new Date(ultima).toLocaleString("pt-PT") : "—");
+  if (maiorPremio) {
+    const valor = extrairValorEuroV30(maiorPremio);
+    const txtValor = valor ? ` — ${valor.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}` : "";
+    setTxt("statMelhorPremio", `${formatarJogoV30(maiorPremio.jogo)}${txtValor}`);
+  } else {
+    setTxt("statMelhorPremio", "—");
+  }
+
+  setTxt("statUltimaSync", sequencia ? `${sequencia} aposta(s)` : "0");
 
   const ranking = document.getElementById("statRankingJogos");
   const resumo = document.getElementById("statResumoRanking");
@@ -1316,20 +1407,21 @@ function atualizarEstatisticasAvancadas() {
     resumo.textContent = total ? `${total} prémio(s) em ${entradas.length} jogo(s)` : "Sem dados";
   }
 
-  if (ranking) {
-    if (!entradas.length) {
-      ranking.innerHTML = '<div class="mini-ranking-empty">Ainda não há prémios suficientes para estatísticas.</div>';
-    } else {
-      const max = Math.max(...entradas.map(([, total]) => total), 1);
-      ranking.innerHTML = entradas.map(([jogo, total]) => {
-        const pct = Math.max(6, Math.round((total / max) * 100));
-        return `<div class="mini-ranking-row">
-          <div class="mini-ranking-label"><span>${formatarJogoV29(jogo)}</span><strong>${total}</strong></div>
-          <div class="mini-ranking-bar"><i style="width:${pct}%"></i></div>
-        </div>`;
-      }).join("");
-    }
+  if (!ranking) return;
+
+  if (!entradas.length) {
+    ranking.innerHTML = '<div class="mini-ranking-empty">Ainda não há prémios suficientes para estatísticas.</div>';
+    return;
   }
+
+  const max = Math.max(...entradas.map(([, total]) => total), 1);
+  ranking.innerHTML = entradas.map(([jogo, total], idx) => {
+    const pct = Math.max(8, Math.round((total / max) * 100));
+    return `<div class="mini-ranking-row">
+      <div class="mini-ranking-label"><span>${idx + 1}.º ${formatarJogoV30(jogo)}</span><strong>${total}</strong></div>
+      <div class="mini-ranking-bar"><i style="width:${pct}%"></i></div>
+    </div>`;
+  }).join("");
 }
 
 async function guardarAliasUtilizador() {
@@ -1357,7 +1449,7 @@ async function guardarAliasUtilizador() {
 
       if (!error) {
         estado.textContent = "Nome do relatório guardado.";
-        mostrarFeedbackAlias("Nome guardado na cloud.");
+        mostrarFeedbackAlias("Nome guardado com sucesso.");
         return;
       }
     } catch (err) {
@@ -1366,7 +1458,7 @@ async function guardarAliasUtilizador() {
   }
 
   estado.textContent = "Nome guardado neste dispositivo.";
-  mostrarFeedbackAlias("Nome guardado neste dispositivo.");
+  mostrarFeedbackAlias("Nome guardado com sucesso.");
 }
 
 function historicoParaRelatorioOrdenado() {
@@ -1865,7 +1957,9 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
   }
 })();
 
-setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 1200);
-window.__statsV29Interval = setInterval(() => {
+
+
+setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 800);
+window.__statsV30Interval = setInterval(() => {
   try { atualizarEstatisticasAvancadas(); } catch(e) {}
-}, 5000);
+}, 2500);
