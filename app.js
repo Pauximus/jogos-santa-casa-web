@@ -1,4 +1,4 @@
-window.APP_VERSION = "v31-estatisticas-clean";
+window.APP_VERSION = "v32-sequencia-pro";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -899,13 +899,13 @@ async function atualizarResultadosBackend() {
     const res = await fetchComTimeout(`${BACKEND_API}/atualizar`, { cache: "no-store" }, 70000);
     const data = await res.json().catch(() => ({}));
     if (data && data.ok === false) {
-      console.info("Atualização backend incompleta; a usar últimos resultados guardados.", data.atualizado_em || "");
+      
     } else {
       console.info("Atualização backend concluída.", data?.atualizado_em || "");
     }
     return data;
   } catch (err) {
-    console.info("Atualização automática indisponível neste momento.");
+    
     return null;
   }
 }
@@ -1250,6 +1250,7 @@ async function carregarAliasCloud() {
 
 
 
+
 function mostrarFeedbackAlias(msg) {
   const el = document.getElementById("aliasFeedback");
   if (!el) return;
@@ -1262,7 +1263,7 @@ function mostrarFeedbackAlias(msg) {
   }, 2500);
 }
 
-function normalizarJogoV31(nome) {
+function normalizarJogoV32(nome) {
   const raw = String(nome || "").toLowerCase().trim()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9_ -]/g, "");
@@ -1276,8 +1277,8 @@ function normalizarJogoV31(nome) {
   return raw.replace(/\s+/g, "_");
 }
 
-function formatarJogoV31(nome) {
-  const key = normalizarJogoV31(nome);
+function formatarJogoV32(nome) {
+  const key = normalizarJogoV32(nome);
   const map = {
     euromilhoes: "Euromilhões",
     totoloto: "Totoloto",
@@ -1289,14 +1290,13 @@ function formatarJogoV31(nome) {
   return map[key] || nome || "—";
 }
 
-function parseJsonV31(valor, fallback) {
+function parseJsonV32(valor, fallback) {
   try { return valor ? JSON.parse(valor) : fallback; } catch { return fallback; }
 }
 
-function recolherApostasV31() {
+function recolherApostasV32() {
   const out = [];
   const seen = new Set();
-
   function add(lista) {
     if (!Array.isArray(lista)) return;
     lista.forEach((item) => {
@@ -1307,58 +1307,55 @@ function recolherApostasV31() {
       out.push(item);
     });
   }
-
   try { if (Array.isArray(apostas)) add(apostas); } catch {}
   if (Array.isArray(window.apostas)) add(window.apostas);
   if (Array.isArray(window.apostasGuardadas)) add(window.apostasGuardadas);
-
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
     if (!k || !k.toLowerCase().includes("aposta")) continue;
-    const p = parseJsonV31(localStorage.getItem(k), null);
+    const p = parseJsonV32(localStorage.getItem(k), null);
     if (Array.isArray(p)) add(p);
     else if (p && typeof p === "object") Object.values(p).forEach(v => Array.isArray(v) && add(v));
   }
-
   return out;
 }
 
-function recolherHistoricoV31() {
+function recolherHistoricoV32() {
   try { if (Array.isArray(historico)) return historico; } catch {}
   if (Array.isArray(window.historico)) return window.historico;
-  for (const k of ["historico", "jsc_historico", "historico_premios", "premios_historico"]) {
-    const p = parseJsonV31(localStorage.getItem(k), null);
-    if (Array.isArray(p)) return p;
-  }
-  return [];
+  const all = [];
+  const keys = ["historico", "jsc_historico", "historico_premios", "premios_historico", "historicoPremios"];
+  keys.forEach(k => {
+    const p = parseJsonV32(localStorage.getItem(k), null);
+    if (Array.isArray(p)) all.push(...p);
+  });
+  return all;
 }
 
-function jogoDaApostaV31(aposta) {
+function obterCampoJogoPremioV32(item) {
+  return item?.jogo || item?.tipo || item?.game || item?.nomeJogo || item?.lottery || item?.endpoint || item?.titulo || item?.descricao || "";
+}
+
+function jogoDaApostaV32(aposta) {
   const direto = aposta?.jogo || aposta?.tipo || aposta?.game || aposta?.nomeJogo || aposta?.lottery || aposta?.endpoint;
-  if (direto) return normalizarJogoV31(direto);
-
-  // Se a estrutura não trouxer jogo, usa o jogo atualmente selecionado como fallback.
-  try {
-    return normalizarJogoV31(jogoAtual || document.querySelector("select")?.value || "");
-  } catch {
-    return "";
-  }
+  if (direto) return normalizarJogoV32(direto);
+  try { return normalizarJogoV32(jogoAtual || document.querySelector("select")?.value || ""); } catch { return ""; }
 }
 
-function contarApostasPorJogoV31() {
+function contarApostasPorJogoV32() {
   const c = {};
-  recolherApostasV31().forEach(a => {
-    const jogo = jogoDaApostaV31(a);
+  recolherApostasV32().forEach(a => {
+    const jogo = jogoDaApostaV32(a);
     if (!jogo) return;
     c[jogo] = (c[jogo] || 0) + 1;
   });
   return c;
 }
 
-function contarPremiosPorJogoV31() {
+function contarPremiosPorJogoV32() {
   const c = {};
-  recolherHistoricoV31().forEach(h => {
-    const jogo = normalizarJogoV31(h?.jogo || h?.tipo || h?.game || "");
+  recolherHistoricoV32().forEach(h => {
+    const jogo = normalizarJogoV32(obterCampoJogoPremioV32(h));
     if (!jogo) return;
     c[jogo] = (c[jogo] || 0) + 1;
   });
@@ -1368,64 +1365,77 @@ function contarPremiosPorJogoV31() {
   return c;
 }
 
-function maiorEntradaV31(obj) {
+function maiorEntradaV32(obj) {
   const e = Object.entries(obj || {});
   if (!e.length) return null;
   return e.sort((a,b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), "pt-PT"))[0];
 }
 
-function valorPremioV31(item) {
+function valorPremioV32(item) {
   const t = String(item?.valor || item?.premio || item?.descricao || item?.titulo || "");
   const m = t.match(/(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)/g);
   if (!m) return 0;
   return Math.max(...m.map(x => Number(x.replace(/\s/g,"").replace(/\./g,"").replace(",", ".")) || 0));
 }
 
-function maiorPremioV31() {
-  const h = recolherHistoricoV31();
+function maiorPremioV32() {
+  const h = recolherHistoricoV32();
   if (!h.length) return null;
-  return [...h].sort((a,b) => valorPremioV31(b) - valorPremioV31(a))[0];
+  return [...h].sort((a,b) => valorPremioV32(b) - valorPremioV32(a))[0];
+}
+
+function gerarSequenciaV32(totalApostas, historicoLista) {
+  const totalPremios = historicoLista.length;
+  const tamanho = Math.min(Math.max(totalApostas, totalPremios), 10);
+  if (!tamanho) return [];
+  return Array.from({ length: tamanho }, (_, i) => i >= tamanho - totalPremios);
+}
+
+function maiorSequenciaPremiosV32(seq) {
+  let melhor = 0, atual = 0;
+  seq.forEach(v => { if (v) { atual++; melhor = Math.max(melhor, atual); } else { atual = 0; } });
+  return melhor;
+}
+
+function atualizarSequenciaVisualV32(totalApostas, historicoLista) {
+  const el = document.getElementById("statSequenciaVisual");
+  const resumo = document.getElementById("statMaiorSequencia");
+  if (!el) return;
+  const seq = gerarSequenciaV32(totalApostas, historicoLista);
+  const maiorSeq = maiorSequenciaPremiosV32(seq);
+  if (resumo) resumo.textContent = maiorSeq ? `${maiorSeq} prémio(s) seguidos` : "Sem sequência";
+  if (!seq.length) { el.innerHTML = '<span class="sequencia-vazia">Sem dados suficientes</span>'; return; }
+  el.innerHTML = seq.map((ganhou, idx) => `<i class="${ganhou ? "win" : "lose"}" title="${idx + 1}: ${ganhou ? "Prémio" : "Sem prémio"}"></i>`).join("");
 }
 
 function atualizarEstatisticasAvancadas() {
-  const porApostas = contarApostasPorJogoV31();
-  const porPremios = contarPremiosPorJogoV31();
+  const historicoLista = recolherHistoricoV32();
+  const porApostas = contarApostasPorJogoV32();
+  const porPremios = contarPremiosPorJogoV32();
   const totalApostas = Object.values(porApostas).reduce((s,n)=>s+n,0);
   const totalPremios = Object.values(porPremios).reduce((s,n)=>s+n,0);
-  const maisApostado = maiorEntradaV31(porApostas);
-  const maisPremiado = maiorEntradaV31(porPremios);
-  const maior = maiorPremioV31();
-
+  const maisApostado = maiorEntradaV32(porApostas);
+  const maisPremiado = maiorEntradaV32(porPremios);
+  const maior = maiorPremioV32();
   const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
-  setTxt("statJogoMaisApostado", maisApostado ? `${formatarJogoV31(maisApostado[0])} (${maisApostado[1]})` : "—");
-  setTxt("statJogoMaisPremiado", maisPremiado ? `${formatarJogoV31(maisPremiado[0])} (${maisPremiado[1]})` : "—");
-
+  setTxt("statJogoMaisApostado", maisApostado ? `${formatarJogoV32(maisApostado[0])} (${maisApostado[1]})` : "—");
+  setTxt("statJogoMaisPremiado", maisPremiado ? `${formatarJogoV32(maisPremiado[0])} (${maisPremiado[1]})` : "—");
   if (maior) {
-    const valor = valorPremioV31(maior);
-    setTxt("statMelhorPremio", `${formatarJogoV31(maior.jogo)}${valor ? " — " + valor.toLocaleString("pt-PT", {style:"currency", currency:"EUR"}) : ""}`);
+    const valor = valorPremioV32(maior);
+    setTxt("statMelhorPremio", `${formatarJogoV32(obterCampoJogoPremioV32(maior))}${valor ? " — " + valor.toLocaleString("pt-PT", {style:"currency", currency:"EUR"}) : ""}`);
   } else setTxt("statMelhorPremio", "—");
-
   setTxt("statUltimaSync", `${Math.max(0, totalApostas - totalPremios)} aposta(s)`);
-
+  atualizarSequenciaVisualV32(totalApostas, historicoLista);
   const ranking = document.getElementById("statRankingJogos");
   const resumo = document.getElementById("statResumoRanking");
   const entradas = Object.entries(porPremios).sort((a,b)=>b[1]-a[1]);
-
   if (resumo) resumo.textContent = totalPremios ? `${totalPremios} prémio(s) em ${entradas.length} jogo(s)` : "Sem dados";
   if (!ranking) return;
-
-  if (!entradas.length) {
-    ranking.innerHTML = '<div class="mini-ranking-empty">Ainda não há prémios suficientes para estatísticas.</div>';
-    return;
-  }
-
+  if (!entradas.length) { ranking.innerHTML = '<div class="mini-ranking-empty">Ainda não há prémios suficientes para estatísticas.</div>'; return; }
   const max = Math.max(...entradas.map(([,n])=>n), 1);
   ranking.innerHTML = entradas.map(([jogo,total], idx) => {
     const pct = Math.max(8, Math.round((total / max) * 100));
-    return `<div class="mini-ranking-row">
-      <div class="mini-ranking-label"><span>${idx + 1}.º ${formatarJogoV31(jogo)}</span><strong>${total}</strong></div>
-      <div class="mini-ranking-bar"><i style="width:${pct}%"></i></div>
-    </div>`;
+    return `<div class="mini-ranking-row"><div class="mini-ranking-label"><span>${idx + 1}.º ${formatarJogoV32(jogo)}</span><strong>${total}</strong></div><div class="mini-ranking-bar"><i style="width:${pct}%"></i></div></div>`;
   }).join("");
 }
 
@@ -1966,8 +1976,10 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 
 
 
+
+
 setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 500);
-window.__statsV31Interval = setInterval(() => {
+window.__statsV32Interval = setInterval(() => {
   try { atualizarEstatisticasAvancadas(); } catch(e) {}
 }, 1500);
 document.addEventListener("click", () => {

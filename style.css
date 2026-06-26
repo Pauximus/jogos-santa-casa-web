@@ -974,3 +974,15 @@ button.danger{
 }
 
 /* V31 - estatísticas corrigidas */
+
+/* V32 - sequência visual */
+.sequencia-pro{margin-top:12px;border:1px solid #dbe5ef;border-radius:14px;padding:12px;background:#fff}
+.sequencia-pro-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+.sequencia-pro-head strong{display:block;font-size:13px}
+.sequencia-pro-head span{display:block;margin-top:2px;color:#607085;font-size:12px}
+.sequencia-pro-head b{color:#17633a;font-size:13px}
+.sequencia-dots{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.sequencia-dots i{width:18px;height:18px;border-radius:50%;display:inline-block;box-shadow:0 1px 3px rgba(15,23,42,.18)}
+.sequencia-dots i.win{background:#22a65a}
+.sequencia-dots i.lose{background:#ef4444}
+.sequencia-vazia{color:#607085;font-size:13px}
