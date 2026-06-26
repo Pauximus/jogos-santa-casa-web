@@ -1,4 +1,4 @@
-window.APP_VERSION = "v38-auto-update";
+window.APP_VERSION = "v39-estatisticas-inteligentes";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -2531,3 +2531,246 @@ async function verificarNovaVersao(){
 }
 setInterval(verificarNovaVersao,300000);
 setTimeout(verificarNovaVersao,5000);
+
+
+// V39 - Estatísticas inteligentes
+function normalizarJogoV39(nome) {
+  const raw = String(nome || "").toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9_ -]/g, "");
+  if (!raw) return "";
+  if (raw.includes("eurom")) return "euromilhoes";
+  if (raw.includes("toto")) return "totoloto";
+  if (raw.includes("dream")) return "eurodreams";
+  if (raw.includes("milhao") || raw.includes("m1lhao")) return "milhao";
+  if (raw.includes("class")) return "lotaria_classica";
+  if (raw.includes("popular")) return "lotaria_popular";
+  return raw.replace(/\s+/g, "_");
+}
+
+function formatarJogoV39(nome) {
+  const key = normalizarJogoV39(nome);
+  const map = {
+    euromilhoes: "Euromilhões",
+    totoloto: "Totoloto",
+    eurodreams: "EuroDreams",
+    milhao: "M1lhão",
+    lotaria_classica: "Lotaria Clássica",
+    lotaria_popular: "Lotaria Popular"
+  };
+  return map[key] || nome || "—";
+}
+
+function parseJsonV39(valor, fallback) {
+  try { return valor ? JSON.parse(valor) : fallback; } catch { return fallback; }
+}
+
+function recolherApostasV39() {
+  const out = [];
+  const seen = new Set();
+  function add(lista) {
+    if (!Array.isArray(lista)) return;
+    lista.forEach(item => {
+      if (!item) return;
+      const key = JSON.stringify(item);
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    });
+  }
+
+  try { if (Array.isArray(apostas)) add(apostas); } catch {}
+  if (Array.isArray(window.apostas)) add(window.apostas);
+  if (Array.isArray(window.apostasGuardadas)) add(window.apostasGuardadas);
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.toLowerCase().includes("aposta")) continue;
+    const p = parseJsonV39(localStorage.getItem(k), null);
+    if (Array.isArray(p)) add(p);
+    else if (p && typeof p === "object") Object.values(p).forEach(v => Array.isArray(v) && add(v));
+  }
+  return out;
+}
+
+function recolherHistoricoV39() {
+  const out = [];
+  const seen = new Set();
+  function add(lista) {
+    if (!Array.isArray(lista)) return;
+    lista.forEach(item => {
+      if (!item) return;
+      const key = JSON.stringify(item);
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    });
+  }
+
+  try { if (Array.isArray(historico)) add(historico); } catch {}
+  if (Array.isArray(window.historico)) add(window.historico);
+
+  ["historico", "jsc_historico", "historico_premios", "premios_historico", "historicoPremios"].forEach(k => {
+    const p = parseJsonV39(localStorage.getItem(k), null);
+    if (Array.isArray(p)) add(p);
+  });
+
+  return out;
+}
+
+function jogoDaApostaV39(aposta) {
+  const direto = aposta?.jogo || aposta?.tipo || aposta?.game || aposta?.nomeJogo || aposta?.lottery || aposta?.endpoint;
+  if (direto) return normalizarJogoV39(direto);
+  try { return normalizarJogoV39(jogoAtual || document.querySelector("select")?.value || ""); }
+  catch { return ""; }
+}
+
+function jogoDoPremioV39(item) {
+  const campo = item?.jogo || item?.tipo || item?.game || item?.nomeJogo || item?.lottery || item?.endpoint || item?.titulo || item?.descricao || "";
+  return normalizarJogoV39(campo);
+}
+
+function contarPorJogoV39(lista, getter) {
+  const c = {};
+  lista.forEach(item => {
+    const jogo = getter(item);
+    if (!jogo) return;
+    c[jogo] = (c[jogo] || 0) + 1;
+  });
+  return c;
+}
+
+function maiorEntradaV39(obj) {
+  const e = Object.entries(obj || {});
+  if (!e.length) return null;
+  return e.sort((a,b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), "pt-PT"))[0];
+}
+
+function calcularSequenciasV39(totalApostas, totalPremios) {
+  const tamanho = Math.min(Math.max(totalApostas, totalPremios), 10);
+  const seq = Array.from({length:tamanho}, (_, i) => i >= tamanho - totalPremios);
+  let semAtual = 0;
+  for (let i = seq.length - 1; i >= 0; i--) {
+    if (seq[i]) break;
+    semAtual++;
+  }
+  let premAtual = 0;
+  for (let i = seq.length - 1; i >= 0; i--) {
+    if (!seq[i]) break;
+    premAtual++;
+  }
+  return { seq, semAtual, premAtual };
+}
+
+function setTxtV39(id, txt) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = txt;
+}
+
+function criarInsightV39(tipo, texto) {
+  const icons = {
+    bom: "✅",
+    aviso: "⚠️",
+    info: "ℹ️",
+    fogo: "🔥",
+    alvo: "🎯"
+  };
+  return `<div class="intel-insight ${tipo}"><b>${icons[tipo] || "ℹ️"}</b><span>${texto}</span></div>`;
+}
+
+function atualizarEstatisticasInteligentesV39() {
+  const apostasLista = recolherApostasV39();
+  const historicoLista = recolherHistoricoV39();
+
+  const porApostas = contarPorJogoV39(apostasLista, jogoDaApostaV39);
+  const porPremios = contarPorJogoV39(historicoLista, jogoDoPremioV39);
+
+  const totalApostas = Object.values(porApostas).reduce((s,n)=>s+n,0);
+  const totalPremios = Object.values(porPremios).reduce((s,n)=>s+n,0);
+
+  const maisApostado = maiorEntradaV39(porApostas);
+  const maisPremiado = maiorEntradaV39(porPremios);
+  const sequencias = calcularSequenciasV39(totalApostas, totalPremios);
+
+  const taxa = totalApostas ? Math.round((totalPremios / totalApostas) * 100) : 0;
+  const media = totalPremios ? Math.round(totalApostas / totalPremios) : 0;
+
+  setTxtV39("intelMediaPremios", totalPremios ? `1 a cada ${media} aposta(s)` : "Sem prémios ainda");
+  setTxtV39("intelMelhorJogo", maisPremiado ? `${formatarJogoV39(maisPremiado[0])} (${maisPremiado[1]})` : "—");
+  setTxtV39("intelJogoDominante", maisApostado ? `${formatarJogoV39(maisApostado[0])} (${maisApostado[1]})` : "—");
+
+  let momento = "Neutro";
+  if (sequencias.premAtual >= 2) momento = "🔥 Boa fase";
+  else if (sequencias.semAtual >= 5) momento = "🧊 Fase fria";
+  else if (totalPremios > 0) momento = "🍀 Com prémios";
+  setTxtV39("intelMomento", momento);
+
+  const badge = document.getElementById("intelResumoBadge");
+  if (badge) {
+    badge.textContent = taxa ? `${taxa}% sucesso` : "A iniciar histórico";
+    badge.className = taxa >= 20 ? "bom" : taxa > 0 ? "ok" : "";
+  }
+
+  const insights = [];
+  if (!totalApostas) {
+    insights.push(criarInsightV39("info", "Ainda não há apostas suficientes para criar uma análise inteligente."));
+  } else {
+    insights.push(criarInsightV39("alvo", `Tens ${totalApostas} aposta(s) registada(s) e ${totalPremios} prémio(s) no histórico.`));
+
+    if (maisApostado) {
+      const pctDominante = Math.round((maisApostado[1] / totalApostas) * 100);
+      insights.push(criarInsightV39("info", `${formatarJogoV39(maisApostado[0])} representa ${pctDominante}% das tuas apostas.`));
+    }
+
+    if (maisPremiado) {
+      insights.push(criarInsightV39("bom", `O teu jogo mais premiado é ${formatarJogoV39(maisPremiado[0])}.`));
+    }
+
+    if (sequencias.semAtual >= 5) {
+      insights.push(criarInsightV39("aviso", `Estás há cerca de ${sequencias.semAtual} aposta(s) sem prémio na sequência recente.`));
+    } else if (sequencias.premAtual > 0) {
+      insights.push(criarInsightV39("fogo", `A sequência recente terminou com ${sequencias.premAtual} prémio(s).`));
+    }
+
+    if (taxa >= 20) {
+      insights.push(criarInsightV39("fogo", "A tua taxa de prémios está forte para o histórico atual."));
+    } else if (taxa > 0) {
+      insights.push(criarInsightV39("info", "Já existe histórico positivo, mas ainda é cedo para tirar grandes conclusões."));
+    }
+  }
+
+  const insightEl = document.getElementById("intelInsights");
+  if (insightEl) insightEl.innerHTML = insights.join("");
+
+  const dist = document.getElementById("intelDistribuicaoJogos");
+  const resumo = document.getElementById("intelDistribuicaoResumo");
+  const entradas = Object.entries(porApostas).sort((a,b)=>b[1]-a[1]);
+
+  if (resumo) resumo.textContent = totalApostas ? `${entradas.length} jogo(s)` : "Sem dados";
+  if (dist) {
+    if (!entradas.length) {
+      dist.innerHTML = '<div class="mini-ranking-empty">Sem apostas suficientes.</div>';
+    } else {
+      const max = Math.max(...entradas.map(([,n])=>n), 1);
+      dist.innerHTML = entradas.map(([jogo,total]) => {
+        const pct = Math.round((total / totalApostas) * 100);
+        const width = Math.max(8, Math.round((total / max) * 100));
+        return `<div class="intel-dist-row">
+          <div><span>${formatarJogoV39(jogo)}</span><strong>${total} · ${pct}%</strong></div>
+          <i><em style="width:${width}%"></em></i>
+        </div>`;
+      }).join("");
+    }
+  }
+}
+
+
+setTimeout(() => {
+  try { atualizarEstatisticasInteligentesV39(); } catch(e) {}
+}, 1000);
+setInterval(() => {
+  try { atualizarEstatisticasInteligentesV39(); } catch(e) {}
+}, 3000);
+document.addEventListener("click", () => {
+  setTimeout(() => { try { atualizarEstatisticasInteligentesV39(); } catch(e) {} }, 200);
+});
