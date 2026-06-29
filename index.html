@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=46">
+  <link rel="stylesheet" href="style.css?v=47">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -407,13 +407,20 @@
           <div id="intelDistribuicaoJogos"></div>
         </div>
       </section>
+
+      <section class="card debug-resultados-card" id="debugResultadosCard">
+        <div class="debug-resultados-head"><div><h2>🧪 Debug Resultados</h2><p>Ferramenta temporária para descobrir a origem do “SEM PRÉMIO”.</p></div><button id="debugResultadosFechar" type="button">Fechar</button></div>
+        <div class="debug-resultados-actions"><button id="debugResultadosAnalisar" type="button">Analisar agora</button><button id="debugResultadosCopiar" type="button">Copiar relatório</button></div>
+        <pre id="debugResultadosOutput">A aguardar análise...</pre>
+      </section>
+
 </main>
 
   <footer id="estado">Pronto.</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=46"></script>
+  <script src="app.js?v=47"></script>
 
       <div id="notifModal" class="notif-modal" hidden>
         <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>
