@@ -1849,3 +1849,6 @@ section.dashboard + section.dashboard-premium{
   font-size:11px;
   line-height:1.35;
 }
+
+/* V43.4 - clean debug */
+.debug-valores-card{display:none!important}

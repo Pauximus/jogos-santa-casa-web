@@ -1,4 +1,4 @@
-window.APP_VERSION = "v43.3-backend-valores-debug";
+window.APP_VERSION = "v43.4-valores-historico-clean";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -4156,4 +4156,138 @@ async function atualizarValoresPremiosV433() {
 
 setTimeout(() => { try { atualizarValoresPremiosV433(); } catch(e) {} }, 2500);
 setInterval(() => { try { atualizarValoresPremiosV433(); } catch(e) {} }, 5000);
+
+
+
+// V43.4 - Limpar debug e gravar valores no histórico/visual
+function valorParaTextoV434(v) {
+  if (v === undefined || v === null) return "";
+  if (typeof v === "number" && Number.isFinite(v)) {
+    return v.toLocaleString("pt-PT", { style:"currency", currency:"EUR" });
+  }
+  const s = String(v).trim();
+  if (!s || /consultar/i.test(s)) return "";
+  if (/€/.test(s)) return s;
+  const n = (typeof moedaNumV431 === "function" ? moedaNumV431(s) : (typeof parseValorPremioV42 === "function" ? parseValorPremioV42(s) : null));
+  return Number.isFinite(n) ? n.toLocaleString("pt-PT", { style:"currency", currency:"EUR" }) : s;
+}
+
+function obterHistoricoArrayV434() {
+  try { if (typeof historicoPremiosV42 === "function") return historicoPremiosV42() || []; } catch {}
+  try { if (typeof obterHistoricoPremiosV41 === "function") return obterHistoricoPremiosV41() || []; } catch {}
+  try { if (Array.isArray(historico)) return historico; } catch {}
+  return [];
+}
+
+function calcularValorHistoricoV434(item) {
+  try {
+    if (typeof valorConhecidoPremioV42 === "function") {
+      const v = valorConhecidoPremioV42(item);
+      const txt = valorParaTextoV434(v);
+      if (txt) return txt;
+    }
+  } catch {}
+  try {
+    if (typeof valorPremioV411 === "function") {
+      const txt = valorParaTextoV434(valorPremioV411(item));
+      if (txt) return txt;
+    }
+  } catch {}
+  return "";
+}
+
+function guardarHistoricoEmTodasChavesV434(hist) {
+  const chaves = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && /historico/i.test(k)) chaves.push(k);
+    }
+  } catch {}
+  [...new Set(chaves)].forEach(k => {
+    try {
+      const raw = localStorage.getItem(k);
+      const parsed = JSON.parse(raw || "null");
+      if (Array.isArray(parsed)) localStorage.setItem(k, JSON.stringify(hist));
+    } catch {}
+  });
+}
+
+function enriquecerHistoricoComValoresV434() {
+  const hist = obterHistoricoArrayV434();
+  let alterado = false;
+
+  hist.forEach(item => {
+    if (!item || typeof item !== "object") return;
+    const atual = valorParaTextoV434(item.valorPremio || item.valor || item.premioValor);
+    if (atual) {
+      item.valorPremio = atual;
+      item.valor = atual;
+      if (item.premio && /consultar/i.test(item.premio)) item.premio = `Prémio — ${atual}`;
+      return;
+    }
+
+    const valor = calcularValorHistoricoV434(item);
+    if (valor) {
+      item.valorPremio = valor;
+      item.valor = valor;
+      item.premio = `Prémio — ${valor}`;
+      alterado = true;
+    }
+  });
+
+  if (alterado) {
+    guardarHistoricoEmTodasChavesV434(hist);
+    try { if (typeof guardarHistoricoCloud === "function") guardarHistoricoCloud(hist); } catch {}
+  }
+  return alterado;
+}
+
+function atualizarTextoHistoricoVisualV434() {
+  const hist = obterHistoricoArrayV434();
+  if (!hist.length) return;
+
+  const corpo = document.body;
+  hist.forEach(item => {
+    const valor = valorParaTextoV434(item.valorPremio || item.valor || item.premioValor) || calcularValorHistoricoV434(item);
+    if (!valor) return;
+    const data = item.dataSorteio || item.data || "";
+    const aposta = item.aposta || "";
+    const walker = document.createTreeWalker(corpo, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      if (/valor a consultar|A consultar/i.test(node.nodeValue || "")) {
+        const parentText = node.parentElement ? node.parentElement.innerText : "";
+        if ((!data || parentText.includes(data)) || (!aposta || parentText.includes(aposta)) || parentText.includes(item.jogo || "")) {
+          nodes.push(node);
+        }
+      }
+    }
+    nodes.slice(0, 4).forEach(n => {
+      n.nodeValue = n.nodeValue.replace(/valor a consultar|A consultar/gi, valor);
+    });
+  });
+}
+
+function limparDebugValoresV434() {
+  const card = document.getElementById("debugValoresCard");
+  if (card) card.remove();
+}
+
+function atualizarValoresHistoricoCleanV434() {
+  limparDebugValoresV434();
+  enriquecerHistoricoComValoresV434();
+  try { atualizarPremiosPremiumV42?.(); } catch {}
+  try { atualizarPerfilApostadorV43?.(); } catch {}
+  setTimeout(atualizarTextoHistoricoVisualV434, 300);
+}
+
+// desativa debug automático da V43.2/V43.3
+function iniciarDebugValoresV432() {}
+function mostrarDebugValoresV432() {}
+function copiarDebugValoresV432() {}
+
+setTimeout(() => { try { atualizarValoresHistoricoCleanV434(); } catch(e) {} }, 1200);
+setInterval(() => { try { atualizarValoresHistoricoCleanV434(); } catch(e) {} }, 4000);
 
