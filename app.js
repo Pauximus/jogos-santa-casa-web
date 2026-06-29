@@ -1,4 +1,4 @@
-window.APP_VERSION = "v43.4-valores-historico-clean";
+window.APP_VERSION = "v44-resultados-premium";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -4291,3 +4291,31 @@ function copiarDebugValoresV432() {}
 setTimeout(() => { try { atualizarValoresHistoricoCleanV434(); } catch(e) {} }, 1200);
 setInterval(() => { try { atualizarValoresHistoricoCleanV434(); } catch(e) {} }, 4000);
 
+
+
+// V44 - Resultados Premium: corrigir cartões com prémio/valor
+function valorTextoV44(v) {
+  try { if (typeof valorParaTextoV434 === "function") { const t = valorParaTextoV434(v); if (t) return t; } } catch {}
+  if (v === undefined || v === null) return "";
+  if (typeof v === "number" && Number.isFinite(v)) return v.toLocaleString("pt-PT", { style:"currency", currency:"EUR" });
+  const s = String(v).trim();
+  if (!s || /consultar/i.test(s)) return "";
+  if (/€/.test(s)) return s;
+  const n = Number(s.replace(",", "."));
+  return Number.isFinite(n) ? n.toLocaleString("pt-PT", { style:"currency", currency:"EUR" }) : s;
+}
+function historicoV44(){try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}try{if(typeof historicoPremiosV42==="function")return historicoPremiosV42()||[]}catch{}try{if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[]}catch{}return[]}
+function normalizarApostaV44(s){return String(s||"").replace(/\s+/g," ").replace(/\+/g," + ").replace(/\s+/g," ").trim()}
+function mapaPremiosHistoricoV44(){const mapa=new Map();historicoV44().forEach(item=>{if(!item)return;const valor=valorTextoV44(item.valorPremio||item.valor||item.premioValor)||valorTextoV44(typeof calcularValorHistoricoV434==="function"?calcularValorHistoricoV434(item):"");const resultado=item.resultado||item.acertos||"";const jogo=String(item.jogo||"").toLowerCase();const aposta=normalizarApostaV44(item.aposta||"");const data=String(item.dataSorteio||item.data||"");const info={valor,resultado,item};if(jogo&&aposta&&data)mapa.set(`${jogo}|${aposta}|${data}`,info);if(jogo&&aposta)mapa.set(`${jogo}|${aposta}`,info)});return mapa}
+function valorPremioParaApostaV44(jogo,aposta,data){const mapa=mapaPremiosHistoricoV44();const j=String(jogo||"").toLowerCase();const a=normalizarApostaV44(aposta);return mapa.get(`${j}|${a}|${data||""}`)||mapa.get(`${j}|${a}`)||null}
+function extrairJogoCardV44(card){const sec=card.closest("section, .card")||document;const txt=(sec.querySelector("h2,h3,strong")?.textContent||sec.textContent||"");if(/totoloto/i.test(txt))return"Totoloto";if(/euromilh/i.test(txt))return"Euromilhões";if(/euro.?dream/i.test(txt))return"EuroDreams";if(/m1lh|milh/i.test(txt))return"M1lhão";if(/class/i.test(txt))return"Lotaria Clássica";if(/popular/i.test(txt))return"Lotaria Popular";return""}
+function dataResultadoAtualV44(){const txt=document.body.innerText||"";const m=txt.match(/Data:\s*(\d{2}\/\d{2}\/\d{4})/i);return m?m[1]:""}
+function atualizarCardsResultadosPremiumV44(){const candidatos=Array.from(document.querySelectorAll("div, article, li")).filter(el=>{const t=el.innerText||"";return /SEM PR[ÉE]MIO|COM ACERTOS|PREMIADO/i.test(t)&&/Aposta\s*\d+/i.test(t)&&/Acertos:/i.test(t)});candidatos.forEach(card=>{const txt=card.innerText||"";const ap=txt.match(/Aposta\s*\d+\s*:\s*([^\n]+)/i);const aposta=ap?ap[1].trim():"";const jogo=extrairJogoCardV44(card);const data=dataResultadoAtualV44();const info=valorPremioParaApostaV44(jogo,aposta,data);if(!info||!info.valor)return;card.classList.add("resultado-premium-card","resultado-premium-ganho");const valor=info.valor;const resultado=info.resultado||(txt.match(/Acertos:\s*([^\n]+)/i)?.[1]||"");card.innerHTML=card.innerHTML.replace(/SEM PR[ÉE]MIO/gi,`🏆 PRÉMIO — ${valor}`).replace(/COM ACERTOS\s*[—-]\s*sem pr[ée]mio/gi,`🏆 PRÉMIO — ${valor}`).replace(/Pr[ée]mio\s*[—-]\s*valor a consultar/gi,`Prémio — ${valor}`);if(!card.querySelector(".resultado-premium-valor")){const linha=document.createElement("div");linha.className="resultado-premium-valor";linha.innerHTML=`<span>💰 Valor do prémio</span><strong>${valor}</strong>`;card.appendChild(linha)}if(resultado&&!card.querySelector(".resultado-premium-acertos")){const ac=document.createElement("div");ac.className="resultado-premium-acertos";ac.textContent=`🏆 ${resultado}`;card.appendChild(ac)}const num=parseFloat(String(valor).replace(/[^\d,.-]/g,"").replace(".","").replace(",","."));card.classList.remove("resultado-premium-pequeno","resultado-premium-medio","resultado-premium-alto","resultado-premium-jackpot");if(Number.isFinite(num)){if(num>=10000)card.classList.add("resultado-premium-jackpot");else if(num>=1000)card.classList.add("resultado-premium-alto");else if(num>=100)card.classList.add("resultado-premium-medio");else card.classList.add("resultado-premium-pequeno")}})}
+function melhorarCentroSorteV44(){const el=document.getElementById("premiumScoreTexto");const val=document.getElementById("premiumScoreValor");if(el&&val){const n=Number(val.textContent||0);el.textContent=n>=75?"🔥 Excelente momento":n>=50?"🍀 Boa fase":n>=25?"Histórico em evolução":"A iniciar histórico"}}
+if(typeof corpoPremioV41==="function"){const corpoPremioOriginalV44=corpoPremioV41;corpoPremioV41=function(item){const valor=valorTextoV44(item?.valorPremio||item?.valor||item?.premioValor)||valorTextoV44(typeof calcularValorHistoricoV434==="function"?calcularValorHistoricoV434(item):"");const resultado=item?.resultado||item?.acertos||"";const jogo=item?.jogo||(typeof jogoPremioV42==="function"?jogoPremioV42(item):"Jogo");const data=item?.dataSorteio||item?.data||"";if(valor)return[data?`${jogo} • ${data}`:jogo,resultado?`🏆 ${resultado}`:"",`💰 ${valor}`].filter(Boolean).join("\n");return corpoPremioOriginalV44(item)}}
+function iniciarResultadosPremiumV44(){try{atualizarValoresHistoricoCleanV434?.()}catch{}atualizarCardsResultadosPremiumV44();melhorarCentroSorteV44()}
+
+
+setTimeout(()=>{try{iniciarResultadosPremiumV44()}catch(e){}},1400);
+setInterval(()=>{try{iniciarResultadosPremiumV44()}catch(e){}},2500);
+document.addEventListener("click",()=>setTimeout(()=>{try{iniciarResultadosPremiumV44()}catch(e){}},400));

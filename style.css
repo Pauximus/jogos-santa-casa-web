@@ -1852,3 +1852,15 @@ section.dashboard + section.dashboard-premium{
 
 /* V43.4 - clean debug */
 .debug-valores-card{display:none!important}
+
+/* V44 - resultados premium */
+.resultado-premium-card{position:relative;overflow:hidden}
+.resultado-premium-ganho{background:#ecfdf5!important;border-color:#86efac!important;border-left:6px solid #22c55e!important}
+.resultado-premium-pequeno{box-shadow:0 0 0 1px rgba(34,197,94,.08) inset}
+.resultado-premium-medio{background:#eff6ff!important;border-color:#93c5fd!important;border-left-color:#3b82f6!important}
+.resultado-premium-alto{background:#f5f3ff!important;border-color:#c4b5fd!important;border-left-color:#8b5cf6!important}
+.resultado-premium-jackpot{background:linear-gradient(135deg,#fffbeb,#fef3c7)!important;border-color:#f59e0b!important;border-left-color:#d97706!important}
+.resultado-premium-valor{margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid rgba(34,197,94,.35);background:#fff;border-radius:12px;padding:9px 10px}
+.resultado-premium-valor span{color:#166534;font-weight:900;font-size:12px}
+.resultado-premium-valor strong{font-size:18px;color:#14532d}
+.resultado-premium-acertos{margin-top:8px;color:#14532d;font-weight:900}
