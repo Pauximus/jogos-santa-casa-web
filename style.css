@@ -1805,3 +1805,47 @@ section.dashboard + section.dashboard-premium{
 
 /* V43.1 - valores prémios */
 .premio-row.valor b,#premioTotalGanho,#premioMaior,#perfilTotalGanho,#perfilMaiorPremio{letter-spacing:-0.02em}
+
+/* V43.2 - debug valores */
+.debug-valores-card{
+  margin-top:16px;
+  border:1px solid #fed7aa;
+  background:#fff7ed;
+}
+.debug-valores-card[hidden]{display:none !important}
+.debug-valores-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+  margin-bottom:10px;
+}
+.debug-valores-head h2{margin:0}
+.debug-valores-head p{margin:3px 0 0;color:#9a3412;font-size:13px}
+.debug-valores-head button,
+.debug-valores-actions button{
+  border:1px solid #fb923c;
+  border-radius:10px;
+  background:#fff;
+  color:#9a3412;
+  padding:8px 10px;
+  font-weight:900;
+  cursor:pointer;
+}
+.debug-valores-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+#debugValoresOutput{
+  max-height:360px;
+  overflow:auto;
+  white-space:pre-wrap;
+  background:#111827;
+  color:#e5e7eb;
+  border-radius:12px;
+  padding:12px;
+  font-size:11px;
+  line-height:1.35;
+}

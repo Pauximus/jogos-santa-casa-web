@@ -1,4 +1,4 @@
-window.APP_VERSION = "v43.1-valores-premios-fix";
+window.APP_VERSION = "v43.2-debug-valores-premios";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -3880,3 +3880,129 @@ function iniciarValoresPremiosFixV431(){atualizarValoresPremiosV431()}
 
 setTimeout(()=>{try{iniciarValoresPremiosFixV431()}catch(e){}},1800);
 setInterval(()=>{try{atualizarValoresPremiosV431()}catch(e){}},5000);
+
+
+// V43.2 - Debug de valores dos prémios
+function safeJsonV432(obj, max = 18000) {
+  try {
+    const txt = JSON.stringify(obj, null, 2);
+    return txt.length > max ? txt.slice(0, max) + "\n...CORTADO..." : txt;
+  } catch (e) {
+    return String(obj);
+  }
+}
+
+function compactarObjV432(obj, depth = 0) {
+  if (depth > 3) return "[max-depth]";
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.slice(0, 4).map(x => compactarObjV432(x, depth + 1));
+  const out = {};
+  Object.entries(obj).slice(0, 80).forEach(([k,v]) => {
+    if (/valor|premio|prémio|amount|prize|escalao|escal|winner|rank|categoria|acerto|numero|estrela|sorte|data|sorteio|concurso|jogo|tipo/i.test(k)) {
+      out[k] = compactarObjV432(v, depth + 1);
+    } else if (depth < 1 && typeof v === "object") {
+      const s = JSON.stringify(v || {});
+      if (/valor|premio|prémio|amount|prize|escalao|winner|rank|categoria/i.test(s)) {
+        out[k] = compactarObjV432(v, depth + 1);
+      }
+    }
+  });
+  return out;
+}
+
+function fontesDebugV432() {
+  const fontes = {};
+  try { if (typeof resultadosOficiais !== "undefined") fontes.resultadosOficiais = resultadosOficiais; } catch {}
+  try { if (window.resultadosOficiais) fontes.window_resultadosOficiais = window.resultadosOficiais; } catch {}
+  try { if (window.resultados) fontes.window_resultados = window.resultados; } catch {}
+  try { if (window.ultimosResultados) fontes.window_ultimosResultados = window.ultimosResultados; } catch {}
+  try { if (typeof historicoPremiosV42 === "function") fontes.historicoPremiosV42 = historicoPremiosV42(); } catch {}
+  try { if (typeof obterHistoricoPremiosV41 === "function") fontes.obterHistoricoPremiosV41 = obterHistoricoPremiosV41(); } catch {}
+  try { fontes.localStorage_keys = Object.keys(localStorage).filter(k => /historico|resultado|premio|aposta/i.test(k)).map(k => ({ key:k, value: String(localStorage.getItem(k)).slice(0,800) })); } catch {}
+  return fontes;
+}
+
+function analisarValoresPremiosV432() {
+  const output = document.getElementById("debugValoresOutput");
+  const fontes = fontesDebugV432();
+
+  const hist = fontes.historicoPremiosV42 || fontes.obterHistoricoPremiosV41 || [];
+  const rel = {
+    appVersion: window.APP_VERSION,
+    data: new Date().toISOString(),
+    resumo: {
+      premiosHistorico: Array.isArray(hist) ? hist.length : "não-array",
+      fontesDisponiveis: Object.keys(fontes),
+      resultadosOficiaisKeys: fontes.resultadosOficiais ? Object.keys(fontes.resultadosOficiais) : []
+    },
+    historicoCompacto: compactarObjV432(hist),
+    resultadosCompacto: compactarObjV432(fontes.resultadosOficiais || fontes.window_resultadosOficiais || fontes.window_resultados || {}),
+    localStorage: fontes.localStorage_keys || []
+  };
+
+  window.DEBUG_VALORES_PREMIOS = rel;
+  localStorage.setItem("jsc_debug_valores_premios", safeJsonV432(rel, 60000));
+
+  if (output) output.textContent = safeJsonV432(rel, 28000);
+  console.log("DEBUG_VALORES_PREMIOS", rel);
+  return rel;
+}
+
+function mostrarDebugValoresV432() {
+  const card = document.getElementById("debugValoresCard");
+  if (card) card.hidden = false;
+  setTimeout(() => analisarValoresPremiosV432(), 100);
+}
+
+async function copiarDebugValoresV432() {
+  const rel = window.DEBUG_VALORES_PREMIOS || analisarValoresPremiosV432();
+  const txt = safeJsonV432(rel, 60000);
+  try {
+    await navigator.clipboard.writeText(txt);
+    alert("Relatório copiado. Cola-o aqui no chat.");
+  } catch {
+    prompt("Copia este relatório e cola no chat:", txt);
+  }
+}
+
+function iniciarDebugValoresV432() {
+  window.analisarValoresPremios = analisarValoresPremiosV432;
+  window.mostrarDebugValores = mostrarDebugValoresV432;
+  window.copiarDebugValores = copiarDebugValoresV432;
+
+  const fechar = document.getElementById("debugValoresFechar");
+  const analisar = document.getElementById("debugValoresAnalisar");
+  const copiar = document.getElementById("debugValoresCopiar");
+
+  if (fechar && !fechar.__v432) {
+    fechar.__v432 = true;
+    fechar.addEventListener("click", () => {
+      const card = document.getElementById("debugValoresCard");
+      if (card) card.hidden = true;
+    });
+  }
+  if (analisar && !analisar.__v432) {
+    analisar.__v432 = true;
+    analisar.addEventListener("click", analisarValoresPremiosV432);
+  }
+  if (copiar && !copiar.__v432) {
+    copiar.__v432 = true;
+    copiar.addEventListener("click", copiarDebugValoresV432);
+  }
+
+  // Mostra automaticamente se houver prémios a consultar
+  try {
+    const txt = document.body.innerText || "";
+    if (/A consultar|valor a consultar/i.test(txt)) {
+      const card = document.getElementById("debugValoresCard");
+      if (card) card.hidden = false;
+      setTimeout(analisarValoresPremiosV432, 1200);
+    }
+  } catch {}
+}
+
+
+setTimeout(() => {
+  try { iniciarDebugValoresV432(); } catch(e) {}
+}, 2200);
