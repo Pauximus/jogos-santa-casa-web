@@ -1,4 +1,4 @@
-window.APP_VERSION = "v44-resultados-premium";
+window.APP_VERSION = "v45-resultados-premium-definitivo";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -4319,3 +4319,133 @@ function iniciarResultadosPremiumV44(){try{atualizarValoresHistoricoCleanV434?.(
 setTimeout(()=>{try{iniciarResultadosPremiumV44()}catch(e){}},1400);
 setInterval(()=>{try{iniciarResultadosPremiumV44()}catch(e){}},2500);
 document.addEventListener("click",()=>setTimeout(()=>{try{iniciarResultadosPremiumV44()}catch(e){}},400));
+
+
+// V45 - Resultados Premium Definitivos
+function dinheiroV45(v) {
+  try { if (typeof valorTextoV44 === "function") { const t = valorTextoV44(v); if (t) return t; } } catch {}
+  try { if (typeof valorParaTextoV434 === "function") { const t = valorParaTextoV434(v); if (t) return t; } } catch {}
+  if (v === undefined || v === null) return "";
+  if (typeof v === "number" && Number.isFinite(v)) return v.toLocaleString("pt-PT", {style:"currency",currency:"EUR"});
+  const s = String(v).trim();
+  if (!s || /consultar/i.test(s)) return "";
+  return /€/.test(s) ? s : s;
+}
+function normalizarV45(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+}
+function apostaNormV45(s) {
+  return String(s || "").replace(/\s*\+\s*/g, " + ").replace(/\s+/g, " ").trim();
+}
+function histV45() {
+  try { if (typeof obterHistoricoArrayV434 === "function") return obterHistoricoArrayV434() || []; } catch {}
+  try { if (typeof historicoV44 === "function") return historicoV44() || []; } catch {}
+  try { if (typeof historicoPremiosV42 === "function") return historicoPremiosV42() || []; } catch {}
+  try { if (typeof obterHistoricoPremiosV41 === "function") return obterHistoricoPremiosV41() || []; } catch {}
+  return [];
+}
+function premioInfoV45(jogo, aposta, data) {
+  const j = normalizarV45(jogo);
+  const a = apostaNormV45(aposta);
+  const d = String(data || "");
+  for (const item of histV45()) {
+    if (!item) continue;
+    const ij = normalizarV45(item.jogo || "");
+    const ia = apostaNormV45(item.aposta || "");
+    const id = String(item.dataSorteio || item.data || "");
+    if (ij && j && ij !== j) continue;
+    if (ia && a && ia !== a) continue;
+    if (d && id && d !== id) continue;
+    const valor = dinheiroV45(item.valorPremio || item.valor || item.premioValor || (typeof calcularValorHistoricoV434 === "function" ? calcularValorHistoricoV434(item) : ""));
+    if (valor) return { valor, resultado: item.resultado || item.acertos || "", item };
+  }
+  return null;
+}
+function jogoDaZonaResultadosV45(el) {
+  const section = el.closest("section, .card, main") || document;
+  const around = section.innerText || document.body.innerText || "";
+  if (/TOTOL?OTO/i.test(around)) return "Totoloto";
+  if (/EUROMILH/i.test(around)) return "Euromilhões";
+  if (/EURO.?DREAM/i.test(around)) return "EuroDreams";
+  if (/M1LH|MILHÃO|MILHAO/i.test(around)) return "M1lhão";
+  if (/CL[ÁA]SSICA|CLASSICA/i.test(around)) return "Lotaria Clássica";
+  if (/POPULAR/i.test(around)) return "Lotaria Popular";
+  return "";
+}
+function dataDaZonaResultadosV45(el) {
+  const section = el.closest("section, .card, main") || document;
+  const txt = section.innerText || document.body.innerText || "";
+  const m = txt.match(/Data:\s*(\d{2}\/\d{2}\/\d{4})/i);
+  return m ? m[1] : "";
+}
+function classValorV45(valor) {
+  const n = parseFloat(String(valor).replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
+  if (!Number.isFinite(n)) return "premio-pequeno-v45";
+  if (n >= 10000) return "premio-jackpot-v45";
+  if (n >= 1000) return "premio-alto-v45";
+  if (n >= 100) return "premio-medio-v45";
+  return "premio-pequeno-v45";
+}
+function transformarCardResultadoV45(card, info) {
+  if (!card || !info || !info.valor) return;
+  const valor = info.valor;
+  const resultado = info.resultado || "Prémio encontrado";
+  card.classList.add("resultado-v45", classValorV45(valor));
+  card.innerHTML = card.innerHTML
+    .replace(/🔴\s*/g, "")
+    .replace(/SEM PR[ÉE]MIO/gi, "🏆 PRÉMIO")
+    .replace(/COM ACERTOS\s*[—-]\s*sem pr[ée]mio/gi, "🏆 PRÉMIO")
+    .replace(/Pr[ée]mio\s*[—-]\s*valor a consultar/gi, `Prémio — ${valor}`)
+    .replace(/Acertos:\s*0\s*n[úu]mero\(s\)\s*\+\s*0\s*estrela\(s\)/gi, `Acertos: ${resultado}`)
+    .replace(/Acertos:\s*0\s*n[úu]mero\(s\)\s*\+\s*0\s*N[ºo]\s*da\s*Sorte\(s\)/gi, `Acertos: ${resultado}`)
+    .replace(/Acertos:\s*0\s*n[úu]mero\(s\)/gi, `Acertos: ${resultado}`);
+  if (!card.querySelector(".resultado-v45-title")) {
+    const header = document.createElement("div");
+    header.className = "resultado-v45-title";
+    header.innerHTML = `<span>🏆 PRÉMIO</span><strong>${valor}</strong>`;
+    card.prepend(header);
+  }
+  if (!card.querySelector(".resultado-v45-acertos")) {
+    const ac = document.createElement("div");
+    ac.className = "resultado-v45-acertos";
+    ac.textContent = `✔ ${resultado}`;
+    card.appendChild(ac);
+  }
+  if (!card.querySelector(".resultado-v45-valor")) {
+    const val = document.createElement("div");
+    val.className = "resultado-v45-valor";
+    val.innerHTML = `<span>💰 Valor</span><strong>${valor}</strong>`;
+    card.appendChild(val);
+  }
+}
+function encontrarCardsResultadosV45() {
+  return Array.from(document.querySelectorAll("div, article, li")).filter(el => {
+    const t = el.innerText || "";
+    return /Aposta\s*\d+\s*:/i.test(t) && /SEM PR[ÉE]MIO|COM ACERTOS|Acertos:/i.test(t) && t.length < 900;
+  });
+}
+function atualizarResultadosPremiumDefinitivoV45() {
+  try { atualizarValoresHistoricoCleanV434?.(); } catch {}
+  encontrarCardsResultadosV45().forEach(card => {
+    const txt = card.innerText || "";
+    const aposta = txt.match(/Aposta\s*\d+\s*:\s*([^\n]+)/i)?.[1]?.trim() || "";
+    if (!aposta) return;
+    const info = premioInfoV45(jogoDaZonaResultadosV45(card), aposta, dataDaZonaResultadosV45(card));
+    if (info && info.valor) transformarCardResultadoV45(card, info);
+  });
+  try { atualizarPremiosPremiumV42?.(); } catch {}
+  try { atualizarPerfilApostadorV43?.(); } catch {}
+}
+function corpoPremioV45(item) {
+  const valor = dinheiroV45(item?.valorPremio || item?.valor || item?.premioValor || (typeof calcularValorHistoricoV434 === "function" ? calcularValorHistoricoV434(item) : ""));
+  const jogo = item?.jogo || (typeof jogoPremioV42 === "function" ? jogoPremioV42(item) : "Jogo");
+  const data = item?.dataSorteio || item?.data || "";
+  const resultado = item?.resultado || item?.acertos || "";
+  if (valor) return [data ? `${jogo} • ${data}` : jogo, resultado ? `🏆 ${resultado}` : "", `💰 ${valor}`].filter(Boolean).join("\n");
+  return `${jogo}\n${resultado}`;
+}
+if (typeof corpoPremioV41 === "function") corpoPremioV41 = corpoPremioV45;
+setTimeout(() => { try { atualizarResultadosPremiumDefinitivoV45(); } catch(e) {} }, 1000);
+setInterval(() => { try { atualizarResultadosPremiumDefinitivoV45(); } catch(e) {} }, 1800);
+document.addEventListener("click", () => setTimeout(() => { try { atualizarResultadosPremiumDefinitivoV45(); } catch(e) {} }, 250));
+

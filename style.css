@@ -1864,3 +1864,16 @@ section.dashboard + section.dashboard-premium{
 .resultado-premium-valor span{color:#166534;font-weight:900;font-size:12px}
 .resultado-premium-valor strong{font-size:18px;color:#14532d}
 .resultado-premium-acertos{margin-top:8px;color:#14532d;font-weight:900}
+
+/* V45 - resultados premium definitivo */
+.resultado-v45{background:#ecfdf5!important;border-color:#86efac!important;border-left:7px solid #22c55e!important;box-shadow:0 10px 30px rgba(34,197,94,.10)!important}
+.resultado-v45.premio-medio-v45{background:#eff6ff!important;border-color:#93c5fd!important;border-left-color:#3b82f6!important}
+.resultado-v45.premio-alto-v45{background:#f5f3ff!important;border-color:#c4b5fd!important;border-left-color:#8b5cf6!important}
+.resultado-v45.premio-jackpot-v45{background:linear-gradient(135deg,#fffbeb,#fde68a)!important;border-color:#f59e0b!important;border-left-color:#d97706!important}
+.resultado-v45-title{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid rgba(34,197,94,.35);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.resultado-v45-title span{color:#14532d;font-weight:1000;letter-spacing:.02em}
+.resultado-v45-title strong{color:#14532d;font-size:20px}
+.resultado-v45-acertos{margin-top:8px;color:#14532d;font-weight:1000}
+.resultado-v45-valor{margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid rgba(34,197,94,.32);border-radius:13px;padding:9px 11px}
+.resultado-v45-valor span{color:#166534;font-weight:900;font-size:12px}
+.resultado-v45-valor strong{color:#14532d;font-size:18px}
