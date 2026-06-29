@@ -1802,3 +1802,6 @@ section.dashboard + section.dashboard-premium{
   .perfil-stats-grid,.perfil-recordes{grid-template-columns:1fr}
   .perfil-head{flex-direction:column}
 }
+
+/* V43.1 - valores prémios */
+.premio-row.valor b,#premioTotalGanho,#premioMaior,#perfilTotalGanho,#perfilMaiorPremio{letter-spacing:-0.02em}

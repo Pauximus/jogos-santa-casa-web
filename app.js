@@ -1,4 +1,4 @@
-window.APP_VERSION = "v43-perfil-apostador-valores";
+window.APP_VERSION = "v43.1-valores-premios-fix";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -3698,3 +3698,185 @@ setTimeout(() => {
 setInterval(() => {
   try { atualizarPerfilApostadorV43(); } catch(e) {}
 }, 3000);
+
+
+// V43.1 - Cruzar histórico com tabelas de prémios oficiais
+function moedaNumV431(v){
+  if(v===undefined||v===null)return null;
+  let s=String(v).trim();
+  if(!s||/consultar/i.test(s))return null;
+  s=s.replace(/[€\s]/g,"");
+  if(s.includes(",")&&s.includes("."))s=s.replace(/\./g,"").replace(",",".");
+  else if(s.includes(","))s=s.replace(",",".");
+  const n=Number(s);
+  return Number.isFinite(n)?n:null;
+}
+function fmtMoedaV431(n){
+  return Number.isFinite(n)?n.toLocaleString("pt-PT",{style:"currency",currency:"EUR"}):"A consultar";
+}
+function normV431(t){
+  return String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[ºª.]/g," ").replace(/\s+/g," ").trim();
+}
+function jogoKeyV431(t){
+  const s=normV431(t);
+  if(s.includes("eurom"))return"euromilhoes";
+  if(s.includes("toto"))return"totoloto";
+  if(s.includes("dream"))return"eurodreams";
+  if(s.includes("milhao")||s.includes("m1lhao"))return"milhao";
+  if(s.includes("class"))return"lotaria_classica";
+  if(s.includes("popular"))return"lotaria_popular";
+  return s.replace(/\s+/g,"_");
+}
+function valorTextoV431(t){
+  const s=String(t||"");
+  const m=s.match(/€\s*(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)|(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)\s*€/);
+  return m?moedaNumV431(m[1]||m[2]):null;
+}
+function fontesResultadosV431(){
+  const a=[];
+  try{if(typeof resultadosOficiais!=="undefined")a.push(resultadosOficiais)}catch{}
+  try{if(window.resultadosOficiais)a.push(window.resultadosOficiais)}catch{}
+  try{if(window.resultados)a.push(window.resultados)}catch{}
+  try{if(window.ultimosResultados)a.push(window.ultimosResultados)}catch{}
+  return a.filter(Boolean);
+}
+function resultadoJogoV431(jogo){
+  const key=jogoKeyV431(jogo);
+  for(const f of fontesResultadosV431()){
+    if(f[key])return f[key];
+    if(typeof f==="object"){
+      for(const [k,v] of Object.entries(f)){
+        if(jogoKeyV431(k)===key)return v;
+        if(v&&typeof v==="object"){
+          const j=v.jogo||v.tipo||v.nome||v.name||v.game;
+          if(j&&jogoKeyV431(j)===key)return v;
+        }
+      }
+    }
+  }
+  return null;
+}
+function tabelasPremiosV431(obj,prof=0){
+  const out=[];
+  if(!obj||prof>6)return out;
+  if(Array.isArray(obj)){
+    if(obj.some(x=>/premio|valor|escalao|categoria|acertos|numeros|estrelas|sorte|prize|amount/i.test(JSON.stringify(x||{}))))out.push(obj);
+    obj.forEach(x=>out.push(...tabelasPremiosV431(x,prof+1)));
+  }else if(typeof obj==="object"){
+    for(const [k,v] of Object.entries(obj)){
+      if(Array.isArray(v)&&/premios|premio|tabela|escalao|escaloes|prizes|winners|rank|odds/i.test(k))out.push(v);
+      out.push(...tabelasPremiosV431(v,prof+1));
+    }
+  }
+  return out;
+}
+function acertosFromTextV431(txt){
+  const s=normV431(txt);
+  const pick=(re)=>{const m=s.match(re);return m?Number(m[1]):null};
+  return {
+    numeros:pick(/(\d+)\s*numero/),
+    estrelas:pick(/(\d+)\s*estrela/),
+    sorte:pick(/(\d+)\s*(?:n\s*da\s*sorte|numero\s*da\s*sorte|sorte)/),
+    sonhos:pick(/(\d+)\s*sonho/),
+    escalao:pick(/(\d+)\s*(?:premio|escalao)/),
+    texto:s
+  };
+}
+function acertosItemV431(item){
+  return acertosFromTextV431([item?.acertos,item?.resultadoAposta,item?.match,item?.matches,item?.premio,item?.titulo,item?.descricao,item?.texto,JSON.stringify(item||{})].filter(Boolean).join(" "));
+}
+function acertosRowV431(row){
+  const base=acertosFromTextV431(JSON.stringify(row||{}));
+  if(row&&typeof row==="object"){
+    const map=[["numeros",["numeros","numero","numbers","n","acertos_numeros"]],["estrelas",["estrelas","estrela","stars","acertos_estrelas"]],["sorte",["numero_sorte","n_sorte","sorte","numeroDaSorte"]],["sonhos",["sonhos","sonho","dreams"]],["escalao",["escalao","premio","categoria","rank"]]];
+    for(const [dst,keys] of map){
+      for(const k of keys){
+        if(row[k]!==undefined&&Number.isFinite(Number(row[k])))base[dst]=Number(row[k]);
+      }
+    }
+  }
+  return base;
+}
+function valorRowV431(row){
+  if(!row)return null;
+  const keys=["valor","valorPremio","premioValor","valor_premio","premio_valor","amount","prize","prize_value","valorUnitario","valor_unitario","value","montante","quantia"];
+  if(typeof row==="object"){
+    for(const k of keys){
+      if(row[k]!==undefined){
+        const v=moedaNumV431(row[k])??valorTextoV431(row[k]);
+        if(v!==null)return v;
+      }
+    }
+  }
+  return valorTextoV431(JSON.stringify(row));
+}
+function matchEscalaoV431(a,b){
+  const pairs=["numeros","estrelas","sorte","sonhos"];
+  let any=false;
+  for(const p of pairs){
+    if(a[p]!==null&&b[p]!==null){
+      any=true;
+      if(a[p]!==b[p])return false;
+    }
+  }
+  if(any)return true;
+  if(a.escalao!==null&&b.escalao!==null)return a.escalao===b.escalao;
+  return false;
+}
+function valorOficialPremioV431(item){
+  const jogo=(typeof jogoPremioV41==="function"?jogoPremioV41(item):(item?.jogo||item?.tipo||""));
+  const res=resultadoJogoV431(jogo);
+  if(!res)return null;
+  const ac=acertosItemV431(item);
+  for(const tab of tabelasPremiosV431(res)){
+    for(const row of tab){
+      if(matchEscalaoV431(ac,acertosRowV431(row))){
+        const v=valorRowV431(row);
+        if(v!==null)return v;
+      }
+    }
+  }
+  return null;
+}
+function valorConhecidoPremioV42(item){
+  const oficial=valorOficialPremioV431(item);
+  if(oficial!==null)return oficial;
+  try{const direto=procurarValorEmObjetoV43?.(item); if(direto!==null&&direto!==undefined)return direto}catch{}
+  try{if(typeof valorPremioV411==="function"){const v=moedaNumV431(valorPremioV411(item));if(v!==null)return v}}catch{}
+  try{if(typeof valorPremioV41==="function"){const v=moedaNumV431(valorPremioV41(item));if(v!==null)return v}}catch{}
+  return null;
+}
+function enriquecerHistoricoComValoresV431(){
+  let hist=[];
+  try{if(typeof historicoPremiosV42==="function")hist=historicoPremiosV42()||[]}catch{}
+  if(!hist.length){try{if(typeof obterHistoricoPremiosV41==="function")hist=obterHistoricoPremiosV41()||[]}catch{}}
+  let alterado=false;
+  hist.forEach(item=>{
+    if(!item||typeof item!=="object")return;
+    const atual=moedaNumV431(item.valorPremio??item.valor??item.premioValor);
+    if(atual!==null)return;
+    const v=valorOficialPremioV431(item);
+    if(v!==null){
+      item.valorPremio=fmtMoedaV431(v);
+      item.valor=item.valorPremio;
+      alterado=true;
+    }
+  });
+  if(alterado){
+    ["historico","jsc_historico","historico_premios","premios_historico","historicoPremios"].forEach(k=>{
+      try{const raw=localStorage.getItem(k);if(raw&&Array.isArray(JSON.parse(raw)))localStorage.setItem(k,JSON.stringify(hist))}catch{}
+    });
+    try{if(typeof atualizarHistorico==="function")atualizarHistorico()}catch{}
+    try{if(typeof renderHistorico==="function")renderHistorico()}catch{}
+  }
+}
+function atualizarValoresPremiosV431(){
+  enriquecerHistoricoComValoresV431();
+  try{atualizarPremiosPremiumV42()}catch{}
+  try{atualizarPerfilApostadorV43()}catch{}
+}
+function iniciarValoresPremiosFixV431(){atualizarValoresPremiosV431()}
+
+
+setTimeout(()=>{try{iniciarValoresPremiosFixV431()}catch(e){}},1800);
+setInterval(()=>{try{atualizarValoresPremiosV431()}catch(e){}},5000);
