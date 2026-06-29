@@ -1,4 +1,4 @@
-window.APP_VERSION = "v41-notificacoes-premium";
+window.APP_VERSION = "v41.1-notificacoes-premium-fix";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -3196,3 +3196,100 @@ function iniciarNotificacoesPremiumV41() {
 
 setTimeout(() => { try { iniciarNotificacoesPremiumV41(); } catch(e) {} }, 1300);
 setInterval(() => { try { executarNotificacoesAutomaticasV41(); } catch(e) {} }, 60000);
+
+
+// V41.1 - Afinar notificações premium
+function assetNotifV411(nome) {
+  try { return new URL(nome, location.href).href; }
+  catch { return nome; }
+}
+
+const JSC_ICON_V411 = assetNotifV411("icon-192.png");
+const JSC_BADGE_V411 = assetNotifV411("icon-192.png");
+
+function valorPremioV411(item) {
+  const direto = campoTextoV41(item, ["valor", "valorPremio", "premioValor", "amount", "prize", "prize_value", "premio_valor"]);
+  if (direto) {
+    const d = String(direto).trim();
+    if (/consultar/i.test(d)) return "valor a consultar";
+    if (/€/.test(d)) return d;
+    if (/^\d+([,.]\d{2})?$/.test(d)) return `${d.replace(".", ",")} €`;
+    return d;
+  }
+
+  const texto = [
+    campoTextoV41(item, ["premio", "titulo", "descricao", "resultado", "texto", "resumo"]),
+    JSON.stringify(item || {})
+  ].join(" ");
+
+  const eur1 = texto.match(/€\s*(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)/);
+  if (eur1) return `${eur1[1].replace(/\s/g, ".")} €`;
+
+  const eur2 = texto.match(/(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)\s*€/);
+  if (eur2) return `${eur2[1].replace(/\s/g, ".")} €`;
+
+  if (/valor\s+a\s+consultar/i.test(texto)) return "valor a consultar";
+  if (/a\s+consultar/i.test(texto)) return "valor a consultar";
+  return "";
+}
+
+function limparPremioTextoV411(txt) {
+  return String(txt || "")
+    .replace(/pr[ée]mio\s*[—-]\s*/i, "")
+    .replace(/valor\s+a\s+consultar/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function corpoPremioV41(item) {
+  const jogo = jogoPremioV41(item);
+  const concurso = concursoPremioV41(item);
+  const acertos = acertosPremioV41(item);
+  const valor = valorPremioV411(item);
+  const premioTexto = limparPremioTextoV411(campoTextoV41(item, ["premio", "titulo", "descricao"]));
+
+  const linhas = [];
+  linhas.push(concurso ? `${jogo} • ${concurso}` : jogo);
+  if (acertos) linhas.push(acertos);
+  else if (premioTexto && !/premio encontrado/i.test(premioTexto)) linhas.push(premioTexto);
+  linhas.push(`Valor: ${valor || "a consultar"}`);
+  return linhas.join("\n");
+}
+
+async function mostrarNotificacaoPremiumV41(tipo, titulo, body, extra = {}) {
+  if (estadoNotifV41() !== "granted") return false;
+  const reg = await swReadyV41();
+  const options = {
+    body,
+    icon: extra.icon || JSC_ICON_V411,
+    badge: extra.badge || JSC_BADGE_V411,
+    tag: extra.tag || gerarTagUnicaV41(`jsc-${tipo}`),
+    renotify: false,
+    vibrate: extra.vibrate || vibracaoV41(tipo),
+    requireInteraction: tipo === "premio",
+    data: { url: extra.url || urlDestinoNotifV41(tipo), tipo, criadoEm: new Date().toISOString(), ...(extra.data || {}) },
+    actions: extra.actions || [{ action: "abrir", title: "Abrir app" }]
+  };
+
+  if (tipo === "premio") {
+    options.actions = [{ action: "ver_premio", title: "Ver prémio" }, { action: "abrir", title: "Abrir app" }];
+  } else if (tipo === "resultados") {
+    options.actions = [{ action: "ver_resultados", title: "Ver resultados" }, { action: "abrir", title: "Abrir app" }];
+  }
+
+  try {
+    if (reg && reg.showNotification) await reg.showNotification(titulo, options);
+    else new Notification(titulo, options);
+    localStorage.setItem("jsc_ultima_notificacao", new Date().toISOString());
+    if (typeof atualizarMiniNotificacoesV37 === "function") atualizarMiniNotificacoesV37();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function enviarNotificacaoTesteV37() {
+  return mostrarNotificacaoPremiumV41("geral", "🍀 Jogos Santa Casa", "Teste com ícone da app e som por defeito do telemóvel.", { tag: gerarTagUnicaV41("jsc-teste") });
+}
+async function enviarNotificacaoTesteV35(){ return enviarNotificacaoTesteV37(); }
+
