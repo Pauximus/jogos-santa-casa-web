@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=41.1">
+  <link rel="stylesheet" href="style.css?v=42">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -180,6 +180,45 @@
         </div>
       </section>
 
+      <section class="card premios-premium" id="premiosPremium">
+        <div class="premios-premium-head">
+          <div>
+            <h2>💰 Prémios Premium</h2>
+            <p>Resumo financeiro dos prémios encontrados.</p>
+          </div>
+          <strong id="premiosNivelBadge">A calcular...</strong>
+        </div>
+
+        <div class="premios-premium-grid">
+          <div class="premio-total">
+            <span>Total ganho</span>
+            <b id="premioTotalGanho">—</b>
+            <small id="premioTotalNota">Valores conhecidos + prémios a consultar.</small>
+          </div>
+          <div>
+            <span>Maior prémio</span>
+            <b id="premioMaior">—</b>
+          </div>
+          <div>
+            <span>Melhor jogo</span>
+            <b id="premioMelhorJogo">—</b>
+          </div>
+          <div>
+            <span>Tendência</span>
+            <b id="premioTendencia">—</b>
+          </div>
+        </div>
+
+        <div class="premios-premium-lista">
+          <div class="premios-premium-lista-head">
+            <strong>Últimos prémios</strong>
+            <span id="premiosPremiumResumo">—</span>
+          </div>
+          <div id="premiosPremiumLista"></div>
+        </div>
+      </section>
+
+
 
       <nav class="tabs" id="tabs"></nav>
 
@@ -330,7 +369,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=41.1"></script>
+  <script src="app.js?v=42"></script>
 
       <div id="notifModal" class="notif-modal" hidden>
         <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>

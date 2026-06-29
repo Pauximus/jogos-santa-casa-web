@@ -1,4 +1,4 @@
-window.APP_VERSION = "v41.1-notificacoes-premium-fix";
+window.APP_VERSION = "v42-premios-premium";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -3293,3 +3293,198 @@ async function enviarNotificacaoTesteV37() {
 }
 async function enviarNotificacaoTesteV35(){ return enviarNotificacaoTesteV37(); }
 
+
+
+// V42 - Prémios Premium com valores e tendência
+function parseValorPremioV42(valor) {
+  if (valor === undefined || valor === null) return null;
+  let txt = String(valor).trim();
+  if (!txt || /consultar/i.test(txt)) return null;
+  txt = txt.replace(/[€\s]/g, "");
+  if (txt.includes(",") && txt.includes(".")) txt = txt.replace(/\./g, "").replace(",", ".");
+  else if (txt.includes(",")) txt = txt.replace(",", ".");
+  const n = Number(txt);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatMoedaV42(n) {
+  if (!Number.isFinite(n)) return "valor a consultar";
+  return n.toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
+}
+
+function historicoPremiosV42() {
+  try { if (typeof obterHistoricoPremiosV41 === "function") return obterHistoricoPremiosV41() || []; } catch {}
+  try { if (typeof recolherHistoricoV39 === "function") return recolherHistoricoV39() || []; } catch {}
+  try { if (typeof recolherHistoricoV40 === "function") return recolherHistoricoV40() || []; } catch {}
+  try { if (Array.isArray(historico)) return historico; } catch {}
+  return [];
+}
+
+function valorConhecidoPremioV42(item) {
+  try {
+    if (typeof valorPremioV411 === "function") return parseValorPremioV42(valorPremioV411(item));
+    if (typeof valorPremioV41 === "function") return parseValorPremioV42(valorPremioV41(item));
+  } catch {}
+  const campos = ["valor", "valorPremio", "premioValor", "amount", "prize", "prize_value", "premio_valor"];
+  for (const c of campos) {
+    const v = parseValorPremioV42(item?.[c]);
+    if (v !== null) return v;
+  }
+  const texto = JSON.stringify(item || {});
+  const m = texto.match(/(?:€\s*)?(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)\s*€/);
+  return m ? parseValorPremioV42(m[1]) : null;
+}
+
+function jogoPremioV42(item) {
+  try { if (typeof jogoPremioV41 === "function") return jogoPremioV41(item); } catch {}
+  return item?.jogo || item?.tipo || "Jogo";
+}
+
+function dataPremioV42(item) {
+  return item?.data || item?.dataSorteio || item?.date || item?.dia || "";
+}
+
+function acertosPremioV42(item) {
+  try { if (typeof acertosPremioV41 === "function") return acertosPremioV41(item); } catch {}
+  return item?.acertos || item?.resultado || "";
+}
+
+function tendenciaPremiosV42(totalApostas, totalPremios) {
+  if (!totalApostas) return "—";
+  const taxa = totalPremios / totalApostas;
+  if (taxa >= 0.20) return "⬆ A melhorar";
+  if (taxa >= 0.08) return "➡ Estável";
+  return "⬇ Baixa";
+}
+
+function apostasTotaisV42() {
+  try {
+    if (typeof recolherApostasV40 === "function") {
+      const ap = recolherApostasV40();
+      if (Array.isArray(ap) && ap.length) return ap.length;
+    }
+  } catch {}
+  try {
+    if (typeof recolherApostasV39 === "function") {
+      const ap = recolherApostasV39();
+      if (Array.isArray(ap) && ap.length) return ap.length;
+    }
+  } catch {}
+  const txt = document.body.innerText.match(/Total de apostas\s+(\d+)/i);
+  return txt ? Number(txt[1]) : 0;
+}
+
+function atualizarPremiosPremiumV42() {
+  const hist = historicoPremiosV42();
+  const totalPremios = hist.length;
+  const totalApostas = apostasTotaisV42();
+
+  const conhecidos = hist.map(p => ({ item:p, valor:valorConhecidoPremioV42(p) }));
+  const apenasValores = conhecidos.map(x => x.valor).filter(v => v !== null);
+  const totalGanho = apenasValores.reduce((s,n)=>s+n,0);
+  const maior = apenasValores.length ? Math.max(...apenasValores) : null;
+  const consultar = conhecidos.filter(x => x.valor === null).length;
+
+  const porJogo = {};
+  hist.forEach(p => {
+    const j = jogoPremioV42(p);
+    porJogo[j] = (porJogo[j] || 0) + 1;
+  });
+  const melhorJogo = Object.entries(porJogo).sort((a,b)=>b[1]-a[1])[0];
+
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+
+  set("premioTotalGanho", apenasValores.length ? formatMoedaV42(totalGanho) : "A consultar");
+  set("premioTotalNota", consultar ? `${consultar} prémio(s) ainda com valor a consultar.` : "Todos os valores conhecidos.");
+  set("premioMaior", maior !== null ? formatMoedaV42(maior) : "A consultar");
+  set("premioMelhorJogo", melhorJogo ? `${melhorJogo[0]} (${melhorJogo[1]})` : "—");
+  set("premioTendencia", tendenciaPremiosV42(totalApostas, totalPremios));
+
+  const badge = document.getElementById("premiosNivelBadge");
+  if (badge) {
+    if (!totalPremios) badge.textContent = "Sem prémios";
+    else if (apenasValores.length) badge.textContent = `${formatMoedaV42(totalGanho)}`;
+    else badge.textContent = `${totalPremios} prémio(s)`;
+  }
+
+  const resumo = document.getElementById("premiosPremiumResumo");
+  if (resumo) resumo.textContent = `${totalPremios} prémio(s) · ${consultar} a consultar`;
+
+  const lista = document.getElementById("premiosPremiumLista");
+  if (lista) {
+    if (!hist.length) {
+      lista.innerHTML = '<div class="premios-empty">Ainda sem prémios registados.</div>';
+    } else {
+      lista.innerHTML = hist.slice(0, 5).map(p => {
+        const valor = valorConhecidoPremioV42(p);
+        const jogo = jogoPremioV42(p);
+        const data = dataPremioV42(p);
+        const acertos = acertosPremioV42(p);
+        return `<div class="premio-row ${valor !== null ? "valor" : "consultar"}">
+          <div>
+            <strong>${jogo}</strong>
+            <span>${[data, acertos].filter(Boolean).join(" · ") || "Prémio encontrado"}</span>
+          </div>
+          <b>${valor !== null ? formatMoedaV42(valor) : "A consultar"}</b>
+        </div>`;
+      }).join("");
+    }
+  }
+}
+
+// Override texto das notificações para destacar valor
+function corpoPremioV41(item) {
+  const jogo = jogoPremioV42(item);
+  const data = dataPremioV42(item);
+  const acertos = acertosPremioV42(item);
+  const valor = valorConhecidoPremioV42(item);
+  const linhas = [];
+  linhas.push(data ? `${jogo} • ${data}` : jogo);
+  if (acertos) linhas.push(acertos);
+  linhas.push(`Valor: ${valor !== null ? formatMoedaV42(valor) : "a consultar"}`);
+  return linhas.join("\n");
+}
+
+async function mostrarAnimacaoPremioV42() {
+  if (document.getElementById("premioConfettiV42")) return;
+  const wrap = document.createElement("div");
+  wrap.id = "premioConfettiV42";
+  wrap.innerHTML = Array.from({length: 24}, (_, i) => `<i style="--i:${i}">🎉</i>`).join("");
+  document.body.appendChild(wrap);
+  setTimeout(() => wrap.remove(), 2400);
+}
+
+async function verificarPremiosPremiumV41() {
+  if (estadoNotifV41() !== "granted") return;
+  const hist = obterHistoricoPremiosV41();
+  const total = hist.length;
+  const avisado = Number(localStorage.getItem("jsc_premios_notificados_v41") || localStorage.getItem("jsc_premios_notificados") || "0");
+  if (total > avisado) {
+    const novos = hist.slice(0, Math.min(total - avisado, 5));
+    for (let i = novos.length - 1; i >= 0; i--) {
+      const item = novos[i] || {};
+      const valor = valorConhecidoPremioV42(item);
+      await mostrarNotificacaoPremiumV41(
+        "premio",
+        valor !== null ? `🏆 Ganhou ${formatMoedaV42(valor)}!` : "🏆 Encontrámos um prémio!",
+        corpoPremioV41(item),
+        { tag: gerarTagUnicaV41("jsc-premio"), url: "./#secHistorico", data: { premio: item } }
+      );
+    }
+    localStorage.setItem("jsc_premios_notificados_v41", String(total));
+    localStorage.setItem("jsc_premios_notificados", String(total));
+    mostrarAnimacaoPremioV42();
+  }
+}
+
+function iniciarPremiosPremiumV42() {
+  atualizarPremiosPremiumV42();
+}
+
+
+setTimeout(() => {
+  try { iniciarPremiosPremiumV42(); } catch(e) {}
+}, 1400);
+setInterval(() => {
+  try { atualizarPremiosPremiumV42(); } catch(e) {}
+}, 3000);
