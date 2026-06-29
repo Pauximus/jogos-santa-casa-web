@@ -1,4 +1,4 @@
-window.APP_VERSION = "v40-dashboard-premium";
+window.APP_VERSION = "v41-notificacoes-premium";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -2966,3 +2966,233 @@ setInterval(() => {
 document.addEventListener("click", () => {
   setTimeout(() => { try { atualizarDashboardPremiumV40(); } catch(e) {} }, 250);
 });
+
+
+// V41 - Notificações premium com valor de prémio, logo, badge e ações
+const JSC_ICON_V41 = "./icon-192.png";
+const JSC_BADGE_V41 = "./icon-192.png";
+
+function estadoNotifV41() {
+  if (!("Notification" in window) || !("serviceWorker" in navigator) || !window.isSecureContext) return "unsupported";
+  if (Notification.permission === "granted" && localStorage.getItem("jsc_notificacoes") === "1") return "granted";
+  return Notification.permission;
+}
+
+async function swReadyV41() {
+  if (!("serviceWorker" in navigator)) return null;
+  try { return await navigator.serviceWorker.ready; }
+  catch {
+    try { return await navigator.serviceWorker.register("./service-worker.js"); }
+    catch { return null; }
+  }
+}
+
+function gerarTagUnicaV41(prefixo) {
+  return `${prefixo}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function vibracaoV41(tipo) {
+  if (tipo === "premio") return [280, 90, 280, 90, 420];
+  if (tipo === "sorteio") return [150, 80, 150];
+  if (tipo === "resultados") return [120, 70, 120, 70, 120];
+  if (tipo === "update") return [100];
+  return [120];
+}
+
+function urlDestinoNotifV41(tipo) {
+  if (tipo === "premio") return "./#secHistorico";
+  if (tipo === "resultados") return "./#secResultados";
+  return "./";
+}
+
+async function mostrarNotificacaoPremiumV41(tipo, titulo, body, extra = {}) {
+  if (estadoNotifV41() !== "granted") return false;
+  const reg = await swReadyV41();
+  const options = {
+    body,
+    icon: extra.icon || JSC_ICON_V41,
+    badge: extra.badge || JSC_BADGE_V41,
+    tag: extra.tag || gerarTagUnicaV41(`jsc-${tipo}`),
+    renotify: false,
+    vibrate: extra.vibrate || vibracaoV41(tipo),
+    requireInteraction: tipo === "premio",
+    data: { url: extra.url || urlDestinoNotifV41(tipo), tipo, criadoEm: new Date().toISOString(), ...(extra.data || {}) },
+    actions: extra.actions || [{ action: "abrir", title: "Abrir app" }]
+  };
+
+  if (tipo === "premio") {
+    options.actions = [{ action: "ver_premio", title: "Ver prémio" }, { action: "abrir", title: "Abrir app" }];
+  } else if (tipo === "resultados") {
+    options.actions = [{ action: "ver_resultados", title: "Ver resultados" }, { action: "abrir", title: "Abrir app" }];
+  }
+
+  try {
+    if (reg && reg.showNotification) await reg.showNotification(titulo, options);
+    else new Notification(titulo, options);
+    localStorage.setItem("jsc_ultima_notificacao", new Date().toISOString());
+    if (typeof atualizarMiniNotificacoesV37 === "function") atualizarMiniNotificacoesV37();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function obterHistoricoPremiosV41() {
+  try { if (typeof recolherHistoricoV39 === "function") return recolherHistoricoV39() || []; } catch {}
+  try { if (typeof recolherHistoricoV40 === "function") return recolherHistoricoV40() || []; } catch {}
+  try { if (typeof recolherHistoricoV33 === "function") return recolherHistoricoV33() || []; } catch {}
+  try { if (Array.isArray(historico)) return historico; } catch {}
+  try { return JSON.parse(localStorage.getItem("historico") || localStorage.getItem("jsc_historico") || "[]") || []; }
+  catch { return []; }
+}
+
+function campoTextoV41(item, nomes) {
+  for (const n of nomes) {
+    if (item && item[n] !== undefined && item[n] !== null && String(item[n]).trim() !== "") return String(item[n]).trim();
+  }
+  return "";
+}
+
+function jogoPremioV41(item) {
+  const raw = campoTextoV41(item, ["jogo", "tipo", "game", "nomeJogo", "lottery", "endpoint", "titulo"]);
+  try {
+    if (typeof formatarJogoV39 === "function") return formatarJogoV39(raw);
+    if (typeof formatarJogoV40 === "function") return formatarJogoV40(raw);
+    if (typeof formatarJogoV33 === "function") return formatarJogoV33(raw);
+  } catch {}
+  return raw || "Jogo";
+}
+
+function valorPremioV41(item) {
+  const direto = campoTextoV41(item, ["valor", "valorPremio", "premioValor", "amount", "prize", "prize_value"]);
+  if (direto) return direto;
+
+  const texto = [campoTextoV41(item, ["premio", "titulo", "descricao", "resultado", "texto"]), JSON.stringify(item || {})].join(" ");
+  const eur = texto.match(/(?:€\s*)?(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)\s*€/);
+  if (eur) return `${eur[1].replace(/\s/g, ".")} €`;
+  if (/valor\s+a\s+consultar/i.test(texto)) return "valor a consultar";
+  return "";
+}
+
+function acertosPremioV41(item) {
+  const direto = campoTextoV41(item, ["acertos", "resultadoAposta", "match", "matches"]);
+  if (direto) return direto;
+  const texto = [campoTextoV41(item, ["descricao", "resultado", "premio", "texto"]), JSON.stringify(item || {})].join(" ");
+  const m = texto.match(/(\d+\s*n[úu]mero\(s\).*?(?:estrela\(s\)|n[ºo]\s*da\s*sorte|sonho\(s\))?|\d+\s*n[úu]mero\(s\)|\d+\s*estrela\(s\)|\d+\s*n[ºo]\s*da\s*sorte)/i);
+  return m ? m[0].replace(/\s+/g, " ").trim() : "";
+}
+
+function concursoPremioV41(item) {
+  const sorteio = campoTextoV41(item, ["sorteio", "concurso", "draw", "numeroSorteio"]);
+  const data = campoTextoV41(item, ["data", "dataSorteio", "date", "dia"]);
+  if (sorteio && data) return `Concurso ${sorteio} • ${data}`;
+  if (sorteio) return `Concurso ${sorteio}`;
+  if (data) return data;
+  return "";
+}
+
+function corpoPremioV41(item) {
+  const jogo = jogoPremioV41(item);
+  const concurso = concursoPremioV41(item);
+  const acertos = acertosPremioV41(item);
+  const valor = valorPremioV41(item);
+  const linhas = [];
+  linhas.push(concurso ? `${jogo} • ${concurso}` : jogo);
+  if (acertos) linhas.push(acertos);
+  linhas.push(`Valor: ${valor || "a consultar"}`);
+  return linhas.join("\n");
+}
+
+async function verificarPremiosPremiumV41() {
+  if (estadoNotifV41() !== "granted") return;
+  const hist = obterHistoricoPremiosV41();
+  const total = hist.length;
+  const avisado = Number(localStorage.getItem("jsc_premios_notificados_v41") || localStorage.getItem("jsc_premios_notificados") || "0");
+  if (total > avisado) {
+    const novos = hist.slice(0, Math.min(total - avisado, 5));
+    for (let i = novos.length - 1; i >= 0; i--) {
+      const item = novos[i] || {};
+      await mostrarNotificacaoPremiumV41("premio", "🏆 Encontrámos um prémio!", corpoPremioV41(item), {
+        tag: gerarTagUnicaV41("jsc-premio"),
+        url: "./#secHistorico",
+        data: { premio: item }
+      });
+    }
+    localStorage.setItem("jsc_premios_notificados_v41", String(total));
+    localStorage.setItem("jsc_premios_notificados", String(total));
+  }
+}
+
+function assinaturaResultadosPremiumV41() {
+  try { if (typeof assinaturaResultadosV37 === "function") return assinaturaResultadosV37(); } catch {}
+  const partes = [];
+  try {
+    const jogos = ["euromilhoes", "totoloto", "eurodreams", "milhao", "lotaria_classica", "lotaria_popular"];
+    jogos.forEach(j => {
+      const r = (typeof resultadosOficiais !== "undefined" && resultadosOficiais) ? resultadosOficiais[j] : null;
+      if (r) partes.push(`${j}:${r.sorteio || ""}:${r.data || r.data_sorteio || ""}:${JSON.stringify(r.resultado || r.numeros || "")}`);
+    });
+  } catch {}
+  return partes.join("|");
+}
+
+async function verificarResultadosPremiumV41() {
+  if (estadoNotifV41() !== "granted") return;
+  const ass = assinaturaResultadosPremiumV41();
+  if (!ass) return;
+  const anterior = localStorage.getItem("jsc_assinatura_resultados_v41") || localStorage.getItem("jsc_assinatura_resultados") || "";
+  if (anterior && anterior !== ass) {
+    await mostrarNotificacaoPremiumV41("resultados", "📢 Novos resultados disponíveis", "Já existem resultados atualizados para verificar as tuas apostas.", {
+      tag: gerarTagUnicaV41("jsc-resultados"),
+      url: "./#secResultados"
+    });
+  }
+  localStorage.setItem("jsc_assinatura_resultados_v41", ass);
+  localStorage.setItem("jsc_assinatura_resultados", ass);
+}
+
+function jogosHojePremiumV41() {
+  try { if (typeof jogosComSorteioHojeV37 === "function") return jogosComSorteioHojeV37(); } catch {}
+  const dia = new Date().getDay();
+  const jogos = [];
+  if (dia === 2 || dia === 5) jogos.push("Euromilhões");
+  if (dia === 3 || dia === 6) jogos.push("Totoloto");
+  if ([1,2,3,4,5,6].includes(dia)) jogos.push("M1lhão");
+  return jogos;
+}
+
+async function verificarSorteiosPremiumV41() {
+  if (estadoNotifV41() !== "granted") return;
+  const hoje = new Date().toISOString().slice(0,10);
+  const key = `jsc_sorteio_avisado_v41_${hoje}`;
+  if (localStorage.getItem(key) === "1") return;
+  if (new Date().getHours() < 10) return;
+  const jogos = jogosHojePremiumV41();
+  if (!jogos.length) return;
+  await mostrarNotificacaoPremiumV41("sorteio", "🎲 Hoje há sorteio", `${jogos.join(", ")}. Boa sorte! 🍀`, {
+    tag: gerarTagUnicaV41("jsc-sorteio"),
+    url: "./"
+  });
+  localStorage.setItem(key, "1");
+}
+
+async function enviarNotificacaoV37(titulo, body, tag = "jsc-notificacao") {
+  return mostrarNotificacaoPremiumV41("geral", titulo, body, { tag: gerarTagUnicaV41(tag) });
+}
+async function enviarNotificacaoTesteV37() {
+  return mostrarNotificacaoPremiumV41("geral", "🍀 Jogos Santa Casa", "Teste enviado com sucesso. Som por defeito do telemóvel.", { tag: gerarTagUnicaV41("jsc-teste") });
+}
+async function enviarNotificacaoTesteV35(){ return enviarNotificacaoTesteV37(); }
+
+async function executarNotificacoesAutomaticasV41() {
+  await verificarPremiosPremiumV41();
+  await verificarResultadosPremiumV41();
+  await verificarSorteiosPremiumV41();
+}
+function iniciarNotificacoesPremiumV41() {
+  executarNotificacoesAutomaticasV41();
+}
+
+
+setTimeout(() => { try { iniciarNotificacoesPremiumV41(); } catch(e) {} }, 1300);
+setInterval(() => { try { executarNotificacoesAutomaticasV41(); } catch(e) {} }, 60000);

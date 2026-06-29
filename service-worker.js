@@ -1,4 +1,4 @@
-const CACHE_NAME = "jogos-santa-casa-v40";
+const CACHE_NAME = "jogos-santa-casa-v41";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -70,13 +70,39 @@ self.addEventListener("fetch", event => {
   );
 });
 
-self.addEventListener("notificationclick", (event) => { event.notification.close(); event.waitUntil(clients.openWindow("./")); });
+
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  let targetUrl = event.notification?.data?.url || "./";
+  if (event.action === "ver_premio") targetUrl = "./#secHistorico";
+  if (event.action === "ver_resultados") targetUrl = "./#secResultados";
+  if (event.action === "abrir") targetUrl = event.notification?.data?.url || "./";
+  event.waitUntil((async () => {
+    const windowClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windowClients) {
+      if ("navigate" in client) await client.navigate(targetUrl);
+      if ("focus" in client) return client.focus();
+    }
+    return clients.openWindow(targetUrl);
+  })());
+});
 
 self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; }
   catch (e) { data = { title: "Jogos Santa Casa", body: event.data ? event.data.text() : "Nova atualização disponível." }; }
+  const tipo = data.tipo || "geral";
+  const vibrate = tipo === "premio" ? [280,90,280,90,420] : tipo === "sorteio" ? [150,80,150] : [120,70,120];
   event.waitUntil(self.registration.showNotification(data.title || "Jogos Santa Casa", {
-    body: data.body || "Toca para abrir o verificador.", icon: data.icon || "./icon-192.png", badge: data.badge || "./icon-192.png", tag: data.tag || "jsc-push", data: { url: data.url || "./" }
+    body: data.body || "Toca para abrir o verificador.",
+    icon: data.icon || "./icon-192.png",
+    badge: data.badge || "./icon-192.png",
+    tag: data.tag || `jsc-${tipo}-${Date.now()}`,
+    renotify: false,
+    vibrate,
+    requireInteraction: tipo === "premio",
+    data: { url: data.url || "./", tipo },
+    actions: data.actions || [{ action: "abrir", title: "Abrir app" }]
   }));
 });
