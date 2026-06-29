@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=42">
+  <link rel="stylesheet" href="style.css?v=43">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -218,6 +218,51 @@
         </div>
       </section>
 
+      <section class="card perfil-apostador" id="perfilApostador">
+        <div class="perfil-head">
+          <div>
+            <h2>👤 Perfil do Apostador</h2>
+            <p>O teu percurso, nível e recordes pessoais.</p>
+          </div>
+          <strong id="perfilNivelBadge">A calcular...</strong>
+        </div>
+
+        <div class="perfil-main">
+          <div class="perfil-level-card">
+            <div class="perfil-avatar" id="perfilAvatar">🍀</div>
+            <div>
+              <span>Nível atual</span>
+              <b id="perfilNivel">—</b>
+              <small id="perfilNivelTexto">A analisar histórico...</small>
+            </div>
+          </div>
+
+          <div class="perfil-stats-grid">
+            <div><span>Apostas</span><b id="perfilApostas">—</b></div>
+            <div><span>Prémios</span><b id="perfilPremios">—</b></div>
+            <div><span>Total ganho</span><b id="perfilTotalGanho">—</b></div>
+            <div><span>Maior prémio</span><b id="perfilMaiorPremio">—</b></div>
+            <div><span>Jogo favorito</span><b id="perfilJogoFavorito">—</b></div>
+            <div><span>Taxa sucesso</span><b id="perfilTaxa">—</b></div>
+          </div>
+        </div>
+
+        <div class="perfil-progress">
+          <div>
+            <strong>Progresso para o próximo nível</strong>
+            <span id="perfilProximoNivel">—</span>
+          </div>
+          <i><em id="perfilProgressBar" style="width:0%"></em></i>
+        </div>
+
+        <div class="perfil-recordes">
+          <div><span>Sequência sem prémios</span><b id="perfilSeqSem">—</b></div>
+          <div><span>Melhor sequência</span><b id="perfilSeqPremios">—</b></div>
+          <div><span>Índice de sorte</span><b id="perfilIndiceSorte">—</b></div>
+        </div>
+      </section>
+
+
 
 
       <nav class="tabs" id="tabs"></nav>
@@ -369,7 +414,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=42"></script>
+  <script src="app.js?v=43"></script>
 
       <div id="notifModal" class="notif-modal" hidden>
         <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>

@@ -1,4 +1,4 @@
-window.APP_VERSION = "v42-premios-premium";
+window.APP_VERSION = "v43-perfil-apostador-valores";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -3487,4 +3487,214 @@ setTimeout(() => {
 }, 1400);
 setInterval(() => {
   try { atualizarPremiosPremiumV42(); } catch(e) {}
+}, 3000);
+
+
+// V43 - Perfil do Apostador + valores oficiais mais agressivos
+function limparNumeroMoedaV43(txt) {
+  if (txt === undefined || txt === null) return null;
+  let s = String(txt).trim();
+  if (!s || /consultar/i.test(s)) return null;
+  s = s.replace(/[€\s]/g, "");
+  if (s.includes(",") && s.includes(".")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (s.includes(",")) s = s.replace(",", ".");
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatMoedaV43(n) {
+  if (!Number.isFinite(n)) return "A consultar";
+  return n.toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
+}
+
+function procurarValorEmObjetoV43(obj, profundidade = 0) {
+  if (!obj || profundidade > 5) return null;
+
+  if (typeof obj === "number") return obj > 0 ? obj : null;
+
+  if (typeof obj === "string") {
+    const moeda1 = obj.match(/€\s*(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)/);
+    if (moeda1) return limparNumeroMoedaV43(moeda1[1]);
+
+    const moeda2 = obj.match(/(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)\s*€/);
+    if (moeda2) return limparNumeroMoedaV43(moeda2[1]);
+
+    if (/valor|premio|prémio|amount|prize/i.test(obj)) {
+      const n = limparNumeroMoedaV43(obj);
+      if (n !== null) return n;
+    }
+    return null;
+  }
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const v = procurarValorEmObjetoV43(item, profundidade + 1);
+      if (v !== null) return v;
+    }
+    return null;
+  }
+
+  if (typeof obj === "object") {
+    const preferidas = [
+      "valor", "valorPremio", "premioValor", "valor_premio", "premio_valor",
+      "amount", "prize", "prize_value", "valorPremios", "premios", "premio",
+      "jackpot", "value", "quantia", "montante"
+    ];
+
+    for (const k of preferidas) {
+      if (obj[k] !== undefined) {
+        const v = procurarValorEmObjetoV43(obj[k], profundidade + 1);
+        if (v !== null) return v;
+      }
+    }
+
+    for (const [k, v0] of Object.entries(obj)) {
+      if (/valor|premio|prémio|amount|prize|quantia|montante/i.test(k)) {
+        const v = procurarValorEmObjetoV43(v0, profundidade + 1);
+        if (v !== null) return v;
+      }
+    }
+
+    for (const v0 of Object.values(obj)) {
+      const v = procurarValorEmObjetoV43(v0, profundidade + 1);
+      if (v !== null) return v;
+    }
+  }
+
+  return null;
+}
+
+function valorConhecidoPremioV42(item) {
+  const direto = procurarValorEmObjetoV43(item);
+  if (direto !== null) return direto;
+
+  try {
+    if (typeof valorPremioV411 === "function") {
+      const v = limparNumeroMoedaV43(valorPremioV411(item));
+      if (v !== null) return v;
+    }
+    if (typeof valorPremioV41 === "function") {
+      const v = limparNumeroMoedaV43(valorPremioV41(item));
+      if (v !== null) return v;
+    }
+  } catch {}
+
+  return null;
+}
+
+function recolherApostasPerfilV43() {
+  try { if (typeof recolherApostasV40 === "function") return recolherApostasV40() || []; } catch {}
+  try { if (typeof recolherApostasV39 === "function") return recolherApostasV39() || []; } catch {}
+  return [];
+}
+
+function recolherHistoricoPerfilV43() {
+  try { if (typeof historicoPremiosV42 === "function") return historicoPremiosV42() || []; } catch {}
+  try { if (typeof obterHistoricoPremiosV41 === "function") return obterHistoricoPremiosV41() || []; } catch {}
+  return [];
+}
+
+function jogoApostaPerfilV43(aposta) {
+  try { if (typeof jogoDaApostaV40 === "function") return formatarJogoV40(jogoDaApostaV40(aposta)); } catch {}
+  try { if (typeof jogoDaApostaV39 === "function") return formatarJogoV39(jogoDaApostaV39(aposta)); } catch {}
+  return aposta?.jogo || "—";
+}
+
+function calcularNivelPerfilV43(pontos) {
+  const niveis = [
+    { nome:"🥉 Bronze", min:0, prox:50 },
+    { nome:"🥈 Prata", min:50, prox:120 },
+    { nome:"🥇 Ouro", min:120, prox:250 },
+    { nome:"💎 Diamante", min:250, prox:500 },
+    { nome:"👑 Lendário", min:500, prox:null }
+  ];
+  let atual = niveis[0];
+  for (const n of niveis) if (pontos >= n.min) atual = n;
+  return atual;
+}
+
+function sequenciasPerfilV43(totalApostas, totalPremios) {
+  const tamanho = Math.min(Math.max(totalApostas, totalPremios), 20);
+  const seq = Array.from({ length:tamanho }, (_, i) => i >= tamanho - totalPremios);
+  let semAtual = 0;
+  for (let i = seq.length - 1; i >= 0; i--) {
+    if (seq[i]) break;
+    semAtual++;
+  }
+  let melhorPremios = 0, atual = 0;
+  seq.forEach(v => {
+    if (v) { atual++; melhorPremios = Math.max(melhorPremios, atual); }
+    else atual = 0;
+  });
+  return { semAtual, melhorPremios };
+}
+
+function atualizarPerfilApostadorV43() {
+  const apostas = recolherApostasPerfilV43();
+  const hist = recolherHistoricoPerfilV43();
+
+  const totalApostas = apostas.length || apostasTotaisV42?.() || 0;
+  const totalPremios = hist.length;
+  const valores = hist.map(valorConhecidoPremioV42).filter(v => v !== null);
+  const totalGanho = valores.reduce((s,n)=>s+n,0);
+  const maior = valores.length ? Math.max(...valores) : null;
+  const taxa = totalApostas ? Math.round((totalPremios / totalApostas) * 100) : 0;
+
+  const porJogo = {};
+  apostas.forEach(a => {
+    const j = jogoApostaPerfilV43(a);
+    if (!j || j === "—") return;
+    porJogo[j] = (porJogo[j] || 0) + 1;
+  });
+  const favorito = Object.entries(porJogo).sort((a,b)=>b[1]-a[1])[0];
+
+  const seq = sequenciasPerfilV43(totalApostas, totalPremios);
+  const indice = Math.max(0, Math.min(100, Math.round((taxa * 3) + Math.min(totalApostas, 30) + (totalPremios * 8) + (valores.length ? 10 : 0))));
+  const pontos = totalApostas * 4 + totalPremios * 22 + Math.min(Math.round(totalGanho / 10), 150);
+  const nivel = calcularNivelPerfilV43(pontos);
+  const prox = nivel.prox;
+
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set("perfilNivel", nivel.nome);
+  set("perfilNivelBadge", `${pontos} pts`);
+  set("perfilNivelTexto", prox ? `${Math.max(0, prox - pontos)} pontos para o próximo nível.` : "Nível máximo atingido.");
+  set("perfilApostas", String(totalApostas));
+  set("perfilPremios", String(totalPremios));
+  set("perfilTotalGanho", valores.length ? formatMoedaV43(totalGanho) : "A consultar");
+  set("perfilMaiorPremio", maior !== null ? formatMoedaV43(maior) : "A consultar");
+  set("perfilJogoFavorito", favorito ? `${favorito[0]} (${favorito[1]})` : "—");
+  set("perfilTaxa", `${taxa}%`);
+  set("perfilSeqSem", `${seq.semAtual} aposta(s)`);
+  set("perfilSeqPremios", `${seq.melhorPremios} prémio(s)`);
+  set("perfilIndiceSorte", `${indice}/100`);
+
+  const avatar = document.getElementById("perfilAvatar");
+  if (avatar) avatar.textContent = nivel.nome.split(" ")[0];
+
+  if (prox) {
+    const prevMin = nivel.min;
+    const pct = Math.max(0, Math.min(100, Math.round(((pontos - prevMin) / (prox - prevMin)) * 100)));
+    set("perfilProximoNivel", `${pct}%`);
+    const bar = document.getElementById("perfilProgressBar");
+    if (bar) bar.style.width = `${pct}%`;
+  } else {
+    set("perfilProximoNivel", "Máximo");
+    const bar = document.getElementById("perfilProgressBar");
+    if (bar) bar.style.width = "100%";
+  }
+
+  // Refresca também Prémios Premium com a nova leitura agressiva.
+  try { atualizarPremiosPremiumV42(); } catch {}
+}
+
+function iniciarPerfilApostadorV43() {
+  atualizarPerfilApostadorV43();
+}
+
+
+setTimeout(() => {
+  try { iniciarPerfilApostadorV43(); } catch(e) {}
+}, 1600);
+setInterval(() => {
+  try { atualizarPerfilApostadorV43(); } catch(e) {}
 }, 3000);
