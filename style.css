@@ -1877,3 +1877,8 @@ section.dashboard + section.dashboard-premium{
 .resultado-v45-valor{margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid rgba(34,197,94,.32);border-radius:13px;padding:9px 11px}
 .resultado-v45-valor span{color:#166534;font-weight:900;font-size:12px}
 .resultado-v45-valor strong{color:#14532d;font-size:18px}
+
+/* V46 - render resultados premium */
+.resultado-v46-premio{background:#ecfdf5!important;border-color:#86efac!important;border-left:7px solid #22c55e!important;box-shadow:0 10px 30px rgba(34,197,94,.12)!important}
+.resultado-v46-head{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid rgba(34,197,94,.38);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.resultado-v46-head span{color:#14532d;font-weight:1000}.resultado-v46-head strong{color:#14532d;font-size:20px}.resultado-v46-acertos{margin-top:8px;color:#14532d;font-weight:1000}.resultado-v46-valor{margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid rgba(34,197,94,.32);border-radius:13px;padding:9px 11px}.resultado-v46-valor span{color:#166534;font-weight:900;font-size:12px}.resultado-v46-valor strong{color:#14532d;font-size:18px}

@@ -1,4 +1,4 @@
-const CACHE_NAME = "jogos-santa-casa-v45";
+const CACHE_NAME = "jogos-santa-casa-v46";
 const APP_SHELL = [
   "./",
   "index.html",

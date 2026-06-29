@@ -1,4 +1,4 @@
-window.APP_VERSION = "v45-resultados-premium-definitivo";
+window.APP_VERSION = "v46-render-resultados-premium";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -4448,4 +4448,89 @@ if (typeof corpoPremioV41 === "function") corpoPremioV41 = corpoPremioV45;
 setTimeout(() => { try { atualizarResultadosPremiumDefinitivoV45(); } catch(e) {} }, 1000);
 setInterval(() => { try { atualizarResultadosPremiumDefinitivoV45(); } catch(e) {} }, 1800);
 document.addEventListener("click", () => setTimeout(() => { try { atualizarResultadosPremiumDefinitivoV45(); } catch(e) {} }, 250));
+
+
+
+// V46 - Render Resultados Premium: patch agressivo pós-render
+function v46Money(v){
+  try{ if(typeof dinheiroV45==='function'){ const t=dinheiroV45(v); if(t) return t; } }catch{}
+  try{ if(typeof valorParaTextoV434==='function'){ const t=valorParaTextoV434(v); if(t) return t; } }catch{}
+  if(v==null) return '';
+  if(typeof v==='number' && Number.isFinite(v)) return v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'});
+  const s=String(v).trim();
+  return (!s || /consultar/i.test(s)) ? '' : s;
+}
+function v46NormAposta(s){return String(s||'').replace(/\s*\+\s*/g,' + ').replace(/\s+/g,' ').trim();}
+function v46Norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();}
+function v46Hist(){
+  try{ if(typeof obterHistoricoArrayV434==='function') return obterHistoricoArrayV434()||[]; }catch{}
+  try{ if(typeof historicoV44==='function') return historicoV44()||[]; }catch{}
+  try{ if(typeof histV45==='function') return histV45()||[]; }catch{}
+  try{ if(typeof historicoPremiosV42==='function') return historicoPremiosV42()||[]; }catch{}
+  try{ if(typeof obterHistoricoPremiosV41==='function') return obterHistoricoPremiosV41()||[]; }catch{}
+  return [];
+}
+function v46PrizeMap(){
+  const m=[];
+  v46Hist().forEach(item=>{
+    if(!item) return;
+    const valor=v46Money(item.valorPremio||item.valor||item.premioValor||(typeof calcularValorHistoricoV434==='function'?calcularValorHistoricoV434(item):''));
+    if(!valor) return;
+    m.push({jogo:v46Norm(item.jogo||''),aposta:v46NormAposta(item.aposta||''),data:String(item.dataSorteio||item.data||''),resultado:item.resultado||item.acertos||'Prémio encontrado',valor,item});
+  });
+  return m;
+}
+function v46FindPrizeForBlock(block){
+  const txt=block?.innerText||'';
+  const ap=txt.match(/Aposta\s*\d+\s*:\s*([^\n]+)/i);
+  if(!ap) return null;
+  const aposta=v46NormAposta(ap[1]);
+  const pageTxt=document.body.innerText||'';
+  const data=(txt.match(/Data:\s*(\d{2}\/\d{2}\/\d{4})/i)||pageTxt.match(/Data:\s*(\d{2}\/\d{2}\/\d{4})/i)||[])[1]||'';
+  const area=block.closest('section,.card,main')?.innerText||pageTxt;
+  let jogo='';
+  if(/totoloto/i.test(area)) jogo='totoloto';
+  else if(/euromilh/i.test(area)) jogo='euromilhoes';
+  else if(/euro.?dream/i.test(area)) jogo='eurodreams';
+  else if(/m1lh|milh/i.test(area)) jogo='m1lhao';
+  const list=v46PrizeMap();
+  return list.find(p=>p.aposta===aposta && (!jogo || p.jogo===jogo) && (!data || !p.data || p.data===data)) || list.find(p=>p.aposta===aposta && (!jogo || p.jogo===jogo)) || list.find(p=>p.aposta===aposta) || null;
+}
+function v46DecorateBlock(block, prize){
+  if(!block || !prize || !prize.valor) return;
+  block.classList.add('resultado-v46-premio');
+  const valor=prize.valor;
+  const resultado=prize.resultado||'Prémio encontrado';
+  const walker=document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+  const nodes=[]; let n;
+  while((n=walker.nextNode())) nodes.push(n);
+  nodes.forEach(node=>{
+    let s=node.nodeValue||'';
+    s=s.replace(/SEM PR[ÉE]MIO/gi,'🏆 PRÉMIO');
+    s=s.replace(/COM ACERTOS\s*[—-]\s*sem pr[ée]mio/gi,'🏆 PRÉMIO');
+    s=s.replace(/Pr[ée]mio\s*[—-]\s*valor a consultar/gi,`Prémio — ${valor}`);
+    s=s.replace(/Acertos:\s*0\s*n[úu]mero\(s\)\s*\+\s*0\s*estrela\(s\)/gi,`Acertos: ${resultado}`);
+    s=s.replace(/Acertos:\s*0\s*n[úu]mero\(s\)\s*\+\s*0\s*N[ºo]\s*da\s*Sorte\(s\)/gi,`Acertos: ${resultado}`);
+    s=s.replace(/Acertos:\s*0\s*n[úu]mero\(s\)/gi,`Acertos: ${resultado}`);
+    node.nodeValue=s;
+  });
+  if(!block.querySelector('.resultado-v46-head')){const head=document.createElement('div');head.className='resultado-v46-head';head.innerHTML=`<span>🏆 PRÉMIO</span><strong>${valor}</strong>`;block.prepend(head);}
+  if(!block.querySelector('.resultado-v46-acertos')){const ac=document.createElement('div');ac.className='resultado-v46-acertos';ac.textContent=`✔ ${resultado}`;block.appendChild(ac);}
+  if(!block.querySelector('.resultado-v46-valor')){const val=document.createElement('div');val.className='resultado-v46-valor';val.innerHTML=`<span>💰 Valor do prémio</span><strong>${valor}</strong>`;block.appendChild(val);}
+}
+function v46PatchResultados(){
+  const blocks=Array.from(document.querySelectorAll('div,article,li')).filter(el=>{const t=el.innerText||'';return /Aposta\s*\d+\s*:/i.test(t) && /Acertos:/i.test(t) && /SEM PR[ÉE]MIO|COM ACERTOS|0\s*n[úu]mero/i.test(t) && t.length<1200;});
+  blocks.forEach(block=>{const prize=v46FindPrizeForBlock(block); if(prize) v46DecorateBlock(block,prize);});
+}
+function v46HookRenderFunctions(){
+  Object.keys(window).filter(k=>/render|mostrar|desenhar|atualizar/i.test(k)&&/resultado/i.test(k)&&typeof window[k]==='function').forEach(k=>{
+    if(window[k].__v46hook) return;
+    const orig=window[k];
+    window[k]=function(...args){const r=orig.apply(this,args);setTimeout(v46PatchResultados,30);setTimeout(v46PatchResultados,250);return r;};
+    window[k].__v46hook=true;
+  });
+}
+function iniciarV46(){try{atualizarValoresHistoricoCleanV434?.();}catch{} v46HookRenderFunctions(); v46PatchResultados();}
+setTimeout(iniciarV46,600);setTimeout(iniciarV46,1600);setInterval(iniciarV46,1500);
+try{const obs=new MutationObserver(()=>{clearTimeout(window.__v46mt);window.__v46mt=setTimeout(v46PatchResultados,120);});obs.observe(document.body,{childList:true,subtree:true,characterData:true});}catch{}
 
