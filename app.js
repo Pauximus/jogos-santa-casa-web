@@ -1,4 +1,4 @@
-window.APP_VERSION = "v43.2-debug-valores-premios";
+window.APP_VERSION = "v43.3-backend-valores-debug";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -921,7 +921,10 @@ async function obterResultadosOficiaisBackend() {
   if (!res.ok) throw new Error(`Backend /resultados HTTP ${res.status}`);
   const data = await res.json();
   if (data.erro) throw new Error(data.erro);
-  return data.resultados || data || [];
+  const lista = data.resultados || data || [];
+  window.resultadosOficiaisLista = lista;
+  window.resultadosOficiaisBackendRaw = data;
+  return lista;
 }
 
 function linhaResultadoParaFormatoApp(row, cfg) {
@@ -967,7 +970,10 @@ async function obterResultadoAtual() {
     );
 
     if (temDados) {
-      return linhaResultadoParaFormatoApp(row, cfg);
+      const formatado = linhaResultadoParaFormatoApp(row, cfg);
+      window.ultimoResultadoAtual = formatado;
+      window.ultimoResultadoBackendRow = row;
+      return formatado;
     }
   } catch (err) {
     console.info("Backend indisponível; a usar fallback/cache.");
@@ -976,6 +982,8 @@ async function obterResultadoAtual() {
   const res = await fetch(`${API}/${cfg.endpoint}`, { cache: "no-store" });
   const data = await res.json();
   if (data.erro) throw new Error(data.erro);
+  window.ultimoResultadoAtual = data;
+  window.ultimoResultadoApiRaw = data;
   return data;
 }
 
@@ -4006,3 +4014,146 @@ function iniciarDebugValoresV432() {
 setTimeout(() => {
   try { iniciarDebugValoresV432(); } catch(e) {}
 }, 2200);
+
+
+// V43.3 - Backend/API debug + enriquecimento no momento certo
+function normalizarPremiosBackendV433(premios) {
+  if (!premios) return {};
+  if (typeof premios === "string") {
+    try { premios = JSON.parse(premios); } catch { return {}; }
+  }
+  if (!Array.isArray(premios)) return premios || {};
+
+  const out = {};
+  premios.forEach(row => {
+    const txt = JSON.stringify(row || {});
+    const n = txt.match(/(\d+)\s*n[úu]mero/i)?.[1] || row.numeros || row.numero || row.numbers;
+    const e = txt.match(/(\d+)\s*(?:estrela|n[ºo]\s*da\s*sorte|numero\s*da\s*sorte|sonho)/i)?.[1] || row.estrelas || row.estrela || row.extra || row.extras || row.sorte || row.numero_sorte || row.sonhos;
+    const key = n !== undefined && e !== undefined ? `${Number(n)}+${Number(e)}` : (row.categoria || row.escalao || row.rank || "");
+    if (!key) return;
+    const valor = row.valor || row.valorPremio || row.premioValor || row.amount || row.prize_value || row.premio_valor || row.montante || row.quantia || row.prize || "valor a consultar";
+    const premio = row.premio || row.nome || row.categoria || row.escalao || "Prémio";
+    out[key] = { premio, valor };
+  });
+  return out;
+}
+
+const linhaResultadoParaFormatoAppOriginalV433 = typeof linhaResultadoParaFormatoApp === "function" ? linhaResultadoParaFormatoApp : null;
+if (linhaResultadoParaFormatoAppOriginalV433) {
+  linhaResultadoParaFormatoApp = function(row, cfg) {
+    const data = linhaResultadoParaFormatoAppOriginalV433(row, cfg);
+    data.premios = normalizarPremiosBackendV433(row?.premios || data.premios);
+    window.ultimoResultadoAtual = data;
+    window.ultimoResultadoBackendRow = row;
+    return data;
+  };
+}
+
+function tentarValorPorCategoriaAtualV433(item) {
+  const data = window.ultimoResultadoAtual || {};
+  const premios = normalizarPremiosBackendV433(data.premios);
+  const res = item?.resultado || "";
+  const n = String(res).match(/(\d+)\s*n[úu]mero/i)?.[1];
+  const e = String(res).match(/(\d+)\s*(?:estrela|n[ºo]\s*da\s*sorte|numero\s*da\s*sorte|sonho|extra)/i)?.[1];
+  if (n !== undefined && e !== undefined) {
+    const info = premios?.[`${Number(n)}+${Number(e)}`];
+    if (info?.valor) return info.valor;
+  }
+  return null;
+}
+
+const valorConhecidoPremioV42OriginalV433 = typeof valorConhecidoPremioV42 === "function" ? valorConhecidoPremioV42 : null;
+function valorConhecidoPremioV42(item) {
+  const porCategoria = tentarValorPorCategoriaAtualV433(item);
+  if (porCategoria) {
+    const n = typeof moedaNumV431 === "function" ? moedaNumV431(porCategoria) : (typeof parseValorPremioV42 === "function" ? parseValorPremioV42(porCategoria) : null);
+    if (n !== null && n !== undefined) return n;
+  }
+  if (valorConhecidoPremioV42OriginalV433) {
+    const v = valorConhecidoPremioV42OriginalV433(item);
+    if (v !== null && v !== undefined) return v;
+  }
+  return null;
+}
+
+const guardarEventosHistoricoOriginalV433 = typeof guardarEventosHistorico === "function" ? guardarEventosHistorico : null;
+if (guardarEventosHistoricoOriginalV433) {
+  guardarEventosHistorico = async function(data, eventos) {
+    if (Array.isArray(eventos)) {
+      eventos.forEach(ev => {
+        const premios = normalizarPremiosBackendV433(data?.premios);
+        const res = ev?.resultado || "";
+        const n = String(res).match(/(\d+)\s*n[úu]mero/i)?.[1];
+        const e = String(res).match(/(\d+)\s*(?:estrela|n[ºo]\s*da\s*sorte|numero\s*da\s*sorte|sonho|extra)/i)?.[1];
+        if (n !== undefined && e !== undefined) {
+          const info = premios?.[`${Number(n)}+${Number(e)}`];
+          if (info?.valor && !/consultar/i.test(String(info.valor))) {
+            ev.valorPremio = info.valor;
+            ev.valor = info.valor;
+            ev.premio = `${info.premio || "Prémio"} — ${info.valor}`;
+          }
+        }
+      });
+    }
+    return guardarEventosHistoricoOriginalV433(data, eventos);
+  };
+}
+
+async function fetchJsonDebugV433(url) {
+  try {
+    const res = await fetch(url, { cache:"no-store" });
+    const txt = await res.text();
+    let json = null;
+    try { json = JSON.parse(txt); } catch {}
+    return { ok: res.ok, status: res.status, url, json, text: json ? undefined : txt.slice(0, 1500) };
+  } catch (err) {
+    return { ok:false, url, error:String(err && err.message ? err.message : err) };
+  }
+}
+
+async function analisarValoresPremiosV432() {
+  const output = document.getElementById("debugValoresOutput");
+
+  const backend = await fetchJsonDebugV433(`${BACKEND_API}/resultados?debug=${Date.now()}`);
+  const apiTotoloto = await fetchJsonDebugV433(`${API}/totoloto?debug=${Date.now()}`);
+
+  const hist = (() => {
+    try { if (typeof historicoPremiosV42 === "function") return historicoPremiosV42() || []; } catch {}
+    try { if (typeof obterHistoricoPremiosV41 === "function") return obterHistoricoPremiosV41() || []; } catch {}
+    return [];
+  })();
+
+  const rel = {
+    appVersion: window.APP_VERSION,
+    data: new Date().toISOString(),
+    resumo: {
+      premiosHistorico: Array.isArray(hist) ? hist.length : "não-array",
+      backendStatus: backend.status || backend.error || "sem status",
+      apiTotolotoStatus: apiTotoloto.status || apiTotoloto.error || "sem status",
+      ultimoResultadoKeys: window.ultimoResultadoAtual ? Object.keys(window.ultimoResultadoAtual) : [],
+      backendRows: Array.isArray(backend.json?.resultados) ? backend.json.resultados.length : (Array.isArray(backend.json) ? backend.json.length : "não-array")
+    },
+    historicoCompacto: typeof compactarObjV432 === "function" ? compactarObjV432(hist) : hist,
+    ultimoResultadoAtual: typeof compactarObjV432 === "function" ? compactarObjV432(window.ultimoResultadoAtual || {}) : (window.ultimoResultadoAtual || {}),
+    ultimoResultadoBackendRow: typeof compactarObjV432 === "function" ? compactarObjV432(window.ultimoResultadoBackendRow || {}) : (window.ultimoResultadoBackendRow || {}),
+    backendCompacto: typeof compactarObjV432 === "function" ? compactarObjV432(backend.json || backend) : backend,
+    apiTotolotoCompacto: typeof compactarObjV432 === "function" ? compactarObjV432(apiTotoloto.json || apiTotoloto) : apiTotoloto,
+    localStorage: Object.keys(localStorage).filter(k => /historico|resultado|premio|aposta/i.test(k)).map(k => ({ key:k, value:String(localStorage.getItem(k)).slice(0,1200) }))
+  };
+
+  window.DEBUG_VALORES_PREMIOS = rel;
+  try { localStorage.setItem("jsc_debug_valores_premios", JSON.stringify(rel, null, 2).slice(0, 65000)); } catch {}
+  if (output) output.textContent = JSON.stringify(rel, null, 2).slice(0, 32000);
+  console.log("DEBUG_VALORES_PREMIOS", rel);
+  return rel;
+}
+
+async function atualizarValoresPremiosV433() {
+  try { enriquecerHistoricoComValoresV431?.(); } catch {}
+  try { atualizarPremiosPremiumV42?.(); } catch {}
+  try { atualizarPerfilApostadorV43?.(); } catch {}
+}
+
+setTimeout(() => { try { atualizarValoresPremiosV433(); } catch(e) {} }, 2500);
+setInterval(() => { try { atualizarValoresPremiosV433(); } catch(e) {} }, 5000);
+
