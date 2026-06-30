@@ -1,4 +1,4 @@
-window.APP_VERSION = "v55-layout-dashboard-clean";
+window.APP_VERSION = "v56-compact-layout";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -5426,4 +5426,57 @@ function reposicionarV54V55(){
 setTimeout(reposicionarV54V55, 500);
 setTimeout(reposicionarV54V55, 1600);
 document.addEventListener("click", () => setTimeout(reposicionarV54V55, 250));
+
+
+
+// V56 - Compact Layout
+function aplicarCompactLayoutV56(){
+  document.body.classList.add("compact-v56");
+
+  // Transformar algumas zonas longas em secções recolhíveis leves
+  const titulos = Array.from(document.querySelectorAll("h2"));
+  const recolhiveis = [
+    /Centro de Sorte/i,
+    /Prémios Premium/i,
+    /Perfil do Apostador/i,
+    /^Estatísticas$/i,
+    /Gráficos/i,
+    /Números da Sorte/i
+  ];
+
+  titulos.forEach(h => {
+    if (!recolhiveis.some(rx => rx.test(h.textContent || ""))) return;
+    const card = h.closest("section,.card");
+    if (!card || card.__v56Compact) return;
+    card.__v56Compact = true;
+    card.classList.add("collapsible-v56");
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toggle-v56";
+    btn.textContent = "Recolher";
+    btn.addEventListener("click", () => {
+      card.classList.toggle("collapsed-v56");
+      btn.textContent = card.classList.contains("collapsed-v56") ? "Abrir" : "Recolher";
+    });
+
+    const head = h.parentElement && h.parentElement !== card ? h.parentElement : h;
+    if (!head.querySelector?.(".toggle-v56")) head.appendChild(btn);
+  });
+
+  // Por defeito, deixar gráficos e números recolhidos para encurtar página
+  ["graficosV54Card", "numerosV54Card"].forEach(id => {
+    const el = document.getElementById(id);
+    const btn = el?.querySelector(".toggle-v56");
+    if (el && !el.__v56AutoCollapsed) {
+      el.__v56AutoCollapsed = true;
+      el.classList.add("collapsed-v56");
+      if (btn) btn.textContent = "Abrir";
+    }
+  });
+}
+
+setTimeout(aplicarCompactLayoutV56, 500);
+setTimeout(aplicarCompactLayoutV56, 1600);
+document.addEventListener("click", () => setTimeout(aplicarCompactLayoutV56, 200));
 

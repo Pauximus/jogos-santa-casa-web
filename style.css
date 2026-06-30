@@ -1969,3 +1969,87 @@ section.dashboard + section.dashboard-premium{
 #numerosV54Card{
   margin-top:14px;
 }
+
+/* V56 - compact layout */
+.compact-v56 main,
+.compact-v56 .container{
+  gap:10px!important;
+}
+.compact-v56 .card,
+.compact-v56 section.card{
+  padding:14px!important;
+  margin-top:10px!important;
+}
+.compact-v56 h2{
+  margin-bottom:4px!important;
+}
+.compact-v56 .dv-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.compact-v56 .dv-main{
+  min-height:62px;
+  padding:10px;
+}
+.compact-v56 .dv-main strong{
+  font-size:16px;
+}
+.compact-v56 .dv-frase{
+  padding:7px 10px;
+  margin-top:8px;
+}
+.compact-v56 .tabs{
+  margin-top:8px!important;
+}
+.compact-v56 .result-card{
+  padding:10px!important;
+  margin:8px 0!important;
+}
+.compact-v56 #historico,
+.compact-v56 .historico-list,
+.compact-v56 #listaHistorico{
+  max-height:360px;
+  overflow:auto;
+}
+.collapsible-v56{
+  position:relative;
+}
+.toggle-v56{
+  float:right;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  color:#334155;
+  border-radius:999px;
+  padding:5px 9px;
+  font-size:11px;
+  font-weight:900;
+  cursor:pointer;
+  margin-left:8px;
+}
+.collapsed-v56 > *:not(:first-child):not(.v54-head):not(.dv-head):not(h2){
+  display:none!important;
+}
+.collapsed-v56 .v54-head ~ *,
+.collapsed-v56 .dv-head ~ *{
+  display:none!important;
+}
+.collapsed-v56{
+  padding-bottom:10px!important;
+}
+.compact-v56 .graficos-v54-grid{
+  gap:8px;
+}
+.compact-v56 .grafico-bars-v54,
+.compact-v56 .heatmap-v54{
+  padding:9px;
+}
+.compact-v56 .numero-chip-v54{
+  width:40px;
+  height:40px;
+  border-radius:12px;
+}
+@media(max-width:780px){
+  .compact-v56 .dv-grid{
+    grid-template-columns:1fr 1fr;
+  }
+}
