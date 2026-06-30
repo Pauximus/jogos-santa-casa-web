@@ -1,4 +1,4 @@
-window.APP_VERSION = "v52-refresh-inteligente";
+window.APP_VERSION = "v53-performance-clean";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -5142,4 +5142,215 @@ function instalarHooksV52() {
 
 // Importante: sem setInterval, sem verificar automático em loop.
 setTimeout(instalarHooksV52, 900);
+
+
+
+// V53 - Performance & Código Limpo
+// Objetivo: neutralizar ferramentas de debug antigas e evitar logs ruidosos,
+// mantendo as correções úteis de valores, histórico, prémios premium e refresh inteligente.
+
+window.__JSC_CLEAN_MODE_V53 = true;
+
+function limparDebugV53() {
+  ["debugParserCard","debugVerificarCard","debugResultadosCard","debugValoresCard"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+}
+
+// Neutralizar funções debug antigas, sem partir referências existentes.
+function noopDebugV53() {
+  return null;
+}
+
+[
+  "executarDebugParserV50",
+  "copiarDebugParserV50",
+  "iniciarDebugParserV50",
+  "executarDebugVerificarV49",
+  "copiarDebugVerificarV49",
+  "iniciarDebugVerificarV49",
+  "analisarResultadosV47",
+  "copiarResultadosV47",
+  "iniciarDebugResultadosV47",
+  "analisarValoresPremiosV432",
+  "copiarDebugValoresV432",
+  "mostrarDebugValoresV432",
+  "iniciarDebugValoresV432"
+].forEach(nome => {
+  try { window[nome] = noopDebugV53; } catch {}
+});
+
+// Limpar variáveis de debug pesadas do window/localStorage.
+function limparEstadoDebugV53() {
+  [
+    "DEBUG_PARSER_V50",
+    "DEBUG_VERIFICAR_V49",
+    "DEBUG_RESULTADOS_V47",
+    "DEBUG_VALORES_PREMIOS",
+    "DEBUG_VERIFICAR_V49_LOG",
+    "DEBUG_V49_LOG"
+  ].forEach(k => {
+    try { window[k] = undefined; } catch {}
+  });
+
+  [
+    "jsc_debug_parser_v50",
+    "jsc_debug_verificar_v49",
+    "jsc_debug_resultados_v47",
+    "jsc_debug_valores_premios"
+  ].forEach(k => {
+    try { localStorage.removeItem(k); } catch {}
+  });
+}
+
+// Silenciar apenas logs internos antigos, preservando erros reais.
+(function instalarFiltroLogsV53(){
+  if (console.__jscV53Filtro) return;
+  console.__jscV53Filtro = true;
+
+  const originalLog = console.log.bind(console);
+  const originalInfo = console.info.bind(console);
+  const originalWarn = console.warn.bind(console);
+
+  function deveOcultar(args) {
+    const txt = args.map(a => {
+      try { return typeof a === "string" ? a : JSON.stringify(a); } catch { return String(a); }
+    }).join(" ");
+
+    return /DEBUG_PARSER_V50|DEBUG_VERIFICAR_V49|DEBUG_RESULTADOS_V47|DEBUG_VALORES_PREMIOS/i.test(txt) ||
+           /V51 UI refresh|V50 - Debug|V49 - Instrumentação|V47 - Debug/i.test(txt);
+  }
+
+  console.log = (...args) => {
+    if (deveOcultar(args)) return;
+    originalLog(...args);
+  };
+  console.info = (...args) => {
+    if (deveOcultar(args)) return;
+    originalInfo(...args);
+  };
+  console.warn = (...args) => {
+    if (deveOcultar(args)) return;
+    originalWarn(...args);
+  };
+})();
+
+// Refresh inteligente limpo: sem setInterval, sem loops e sem verificar automático repetido.
+let __v53Refreshing = false;
+let __v53LastSignature = "";
+let __v53LastRun = 0;
+
+function historicoV53() {
+  try { if (typeof obterHistoricoArrayV434 === "function") return obterHistoricoArrayV434() || []; } catch {}
+  try { if (typeof historicoPremiosV42 === "function") return historicoPremiosV42() || []; } catch {}
+  try { if (typeof obterHistoricoPremiosV41 === "function") return obterHistoricoPremiosV41() || []; } catch {}
+  try { if (Array.isArray(historico)) return historico; } catch {}
+  return [];
+}
+
+function assinaturaHistoricoV53() {
+  try {
+    return JSON.stringify(historicoV53().map(h => ({
+      id: h.idLocal || h.id || "",
+      jogo: h.jogo || "",
+      aposta: h.aposta || "",
+      sorteio: h.sorteio || "",
+      dataSorteio: h.dataSorteio || h.data || "",
+      premio: h.premio || "",
+      valorPremio: h.valorPremio || "",
+      valor: h.valor || "",
+      resultado: h.resultado || h.acertos || ""
+    })));
+  } catch {
+    return "";
+  }
+}
+
+async function refrescarUILimpoV53(motivo = "refresh") {
+  const agora = Date.now();
+  if (__v53Refreshing) return;
+  if (agora - __v53LastRun < 1600) return;
+
+  const sig = assinaturaHistoricoV53();
+  if (sig && sig === __v53LastSignature && motivo !== "arranque") return;
+
+  __v53Refreshing = true;
+  __v53LastRun = agora;
+
+  try {
+    limparDebugV53();
+    limparEstadoDebugV53();
+
+    try { if (typeof atualizarValoresHistoricoCleanV434 === "function") atualizarValoresHistoricoCleanV434(); } catch {}
+    try { if (typeof atualizarPremiosPremiumV42 === "function") atualizarPremiosPremiumV42(); } catch {}
+    try { if (typeof atualizarPerfilApostadorV43 === "function") atualizarPerfilApostadorV43(); } catch {}
+    try { if (typeof renderHistorico === "function") renderHistorico(); } catch {}
+    try { if (typeof atualizarEstatisticas === "function") atualizarEstatisticas(); } catch {}
+    try { if (typeof atualizarContador === "function") atualizarContador(); } catch {}
+    try { if (typeof atualizarBadgesTabs === "function") atualizarBadgesTabs(); } catch {}
+
+    // Patches visuais leves mantidos, sem ciclos.
+    try { if (typeof atualizarResultadosPremiumDefinitivoV45 === "function") atualizarResultadosPremiumDefinitivoV45(); } catch {}
+    try { if (typeof v46PatchResultados === "function") v46PatchResultados(); } catch {}
+    try { if (typeof atualizarCardsResultadosPremiumV44 === "function") atualizarCardsResultadosPremiumV44(); } catch {}
+
+    __v53LastSignature = assinaturaHistoricoV53();
+    console.log("V53 pronto:", motivo);
+  } finally {
+    __v53Refreshing = false;
+  }
+}
+
+// Substituir chamadas antigas por refresh seguro.
+function refrescarUICompletaV51(motivo = "refresh") {
+  refrescarUILimpoV53(motivo);
+}
+function refrescarUIInteligenteV52(motivo = "refresh") {
+  refrescarUILimpoV53(motivo);
+}
+function iniciarWatcherV51() {
+  limparDebugV53();
+}
+function iniciarWatcherV52() {
+  limparDebugV53();
+}
+
+function instalarHooksLimposV53() {
+  limparDebugV53();
+  limparEstadoDebugV53();
+  __v53LastSignature = assinaturaHistoricoV53();
+
+  try {
+    if (typeof guardarEventosHistorico === "function" && !guardarEventosHistorico.__v53Hook) {
+      const original = guardarEventosHistorico;
+      guardarEventosHistorico = async function(...args) {
+        const antes = assinaturaHistoricoV53();
+        const r = await original.apply(this, args);
+        const depois = assinaturaHistoricoV53();
+        if (antes !== depois) setTimeout(() => refrescarUILimpoV53("historico alterado"), 500);
+        return r;
+      };
+      guardarEventosHistorico.__v53Hook = true;
+    }
+  } catch {}
+
+  try {
+    if (typeof enriquecerHistoricoComValoresV434 === "function" && !enriquecerHistoricoComValoresV434.__v53Hook) {
+      const original = enriquecerHistoricoComValoresV434;
+      enriquecerHistoricoComValoresV434 = function(...args) {
+        const antes = assinaturaHistoricoV53();
+        const r = original.apply(this, args);
+        const depois = assinaturaHistoricoV53();
+        if (antes !== depois || r) setTimeout(() => refrescarUILimpoV53("valores atualizados"), 500);
+        return r;
+      };
+      enriquecerHistoricoComValoresV434.__v53Hook = true;
+    }
+  } catch {}
+
+  setTimeout(() => refrescarUILimpoV53("arranque"), 1000);
+}
+
+setTimeout(instalarHooksLimposV53, 700);
 

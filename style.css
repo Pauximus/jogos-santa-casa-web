@@ -1929,3 +1929,11 @@ section.dashboard + section.dashboard-premium{
 .debug-valores-card{
   display:none!important;
 }
+
+/* V53 - Performance & Código Limpo */
+.debug-parser-card,
+.debug-verificar-card,
+.debug-resultados-card,
+.debug-valores-card{
+  display:none!important;
+}
