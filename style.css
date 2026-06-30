@@ -1959,3 +1959,13 @@ section.dashboard + section.dashboard-premium{
 .numero-chip-v54.level-1{background:#f8fafc}.numero-chip-v54.level-2{background:#ecfdf5;border-color:#bbf7d0}.numero-chip-v54.level-3{background:#d1fae5;border-color:#86efac}.numero-chip-v54.level-4{background:#bfdbfe;border-color:#60a5fa}.numero-chip-v54.level-5{background:#fde68a;border-color:#f59e0b}
 .empty-v54{color:#64748b;font-weight:800;padding:8px}
 @media(max-width:780px){.dv-grid,.graficos-v54-grid{grid-template-columns:1fr}.v54-head{flex-direction:column}}
+
+/* V55 - layout clean */
+#dashboardVivoCard{
+  border-color:#bbf7d0;
+  background:linear-gradient(180deg,#ffffff,#f0fdf4);
+}
+#graficosV54Card,
+#numerosV54Card{
+  margin-top:14px;
+}

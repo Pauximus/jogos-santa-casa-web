@@ -1,4 +1,4 @@
-window.APP_VERSION = "v54-dashboard-graficos-numeros";
+window.APP_VERSION = "v55-layout-dashboard-clean";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -5384,4 +5384,46 @@ function atualizarV54(){try{atualizarDashboardVivoV54()}catch(e){console.warn("V
 try{if(typeof renderHistorico==="function"&&!renderHistorico.__v54Hook){const o=renderHistorico;renderHistorico=function(...a){const r=o.apply(this,a);setTimeout(atualizarV54,120);return r};renderHistorico.__v54Hook=true}}catch{}
 try{if(typeof guardarApostas==="function"&&!guardarApostas.__v54Hook){const o=guardarApostas;guardarApostas=function(...a){const r=o.apply(this,a);setTimeout(atualizarV54,120);return r};guardarApostas.__v54Hook=true}}catch{}
 setTimeout(atualizarV54,1200);setTimeout(atualizarV54,2500);document.addEventListener("click",()=>setTimeout(atualizarV54,250));
+
+
+
+// V55 - Layout Dashboard Clean
+// Silenciar logs internos "V53 pronto" e deixar só logs úteis.
+(function filtroLogsV55(){
+  if (console.__v55Filtro) return;
+  console.__v55Filtro = true;
+  const oldLog = console.log.bind(console);
+  console.log = (...args) => {
+    const txt = args.map(a => {
+      try { return typeof a === "string" ? a : JSON.stringify(a); } catch { return String(a); }
+    }).join(" ");
+    if (/^V53 pronto:|^V52 UI refresh:|^V51 UI refresh:/i.test(txt)) return;
+    oldLog(...args);
+  };
+})();
+
+function reposicionarV54V55(){
+  const dash = document.getElementById("dashboardVivoCard");
+  const oldDashTitle = Array.from(document.querySelectorAll("h2")).find(h => h.textContent.trim() === "Dashboard");
+  if (dash && oldDashTitle) {
+    const oldCard = oldDashTitle.closest("section,.card");
+    if (oldCard && oldCard.parentElement && oldCard.previousElementSibling !== dash) {
+      oldCard.parentElement.insertBefore(dash, oldCard);
+    }
+  }
+
+  const grafs = document.getElementById("graficosV54Card");
+  const nums = document.getElementById("numerosV54Card");
+  const statInt = Array.from(document.querySelectorAll("h2")).find(h => /Estatísticas inteligentes|Estatisticas inteligentes/i.test(h.textContent));
+  const statCard = statInt?.closest("section,.card");
+  if (statCard && statCard.parentElement) {
+    if (grafs && grafs.nextElementSibling !== nums) statCard.parentElement.insertBefore(grafs, statCard);
+    if (nums) statCard.parentElement.insertBefore(nums, statCard);
+  }
+
+  try { if (typeof atualizarV54 === "function") atualizarV54(); } catch {}
+}
+setTimeout(reposicionarV54V55, 500);
+setTimeout(reposicionarV54V55, 1600);
+document.addEventListener("click", () => setTimeout(reposicionarV54V55, 250));
 
