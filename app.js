@@ -1,4 +1,4 @@
-window.APP_VERSION = "v53-performance-clean";
+window.APP_VERSION = "v54-dashboard-graficos-numeros";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -5353,4 +5353,35 @@ function instalarHooksLimposV53() {
 }
 
 setTimeout(instalarHooksLimposV53, 700);
+
+
+
+// V54 - Dashboard Vivo + Gráficos + Números
+function histV54(){try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}try{if(typeof historicoPremiosV42==="function")return historicoPremiosV42()||[]}catch{}try{if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[]}catch{}try{if(Array.isArray(historico))return historico}catch{}return[]}
+function valorNumV54(v){if(v==null)return null;if(typeof v==="number"&&Number.isFinite(v))return v;const s=String(v).replace(/\s/g,"").replace("€","").replace(/\./g,"").replace(",",".");const n=Number(s.replace(/[^\d.-]/g,""));return Number.isFinite(n)?n:null}
+function valorItemV54(item){for(const c of [item?.valorPremio,item?.valor,item?.premioValor,item?.premio]){const n=valorNumV54(c);if(n!==null)return n}try{const n=valorNumV54(calcularValorHistoricoV434?.(item));if(n!==null)return n}catch{}return null}
+function moedaV54(n){return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}
+function parseDataV54(s){const m=String(s||"").match(/(\d{2})\/(\d{2})\/(\d{4})/);return m?new Date(+m[3],+m[2]-1,+m[1]):null}
+function mesKeyV54(item){const d=parseDataV54(item?.dataSorteio||item?.data||item?.dataRegisto);return d?`${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getFullYear()).slice(-2)}`:"Sem data"}
+function contarPorV54(lista,fn){const m=new Map();lista.forEach(x=>{const k=fn(x)||"—";m.set(k,(m.get(k)||0)+1)});return[...m.entries()].sort((a,b)=>b[1]-a[1])}
+function atualizarDashboardVivoV54(){
+ const hist=histV54();const sorted=[...hist].sort((a,b)=>(parseDataV54(b.dataSorteio||b.data||b.dataRegisto)?.getTime()||0)-(parseDataV54(a.dataSorteio||a.data||a.dataRegisto)?.getTime()||0));const ultimo=sorted[0];const total=hist.reduce((s,h)=>s+(valorItemV54(h)||0),0);const jogoTop=contarPorV54(hist,h=>h.jogo||"—")[0]?.[0]||"—";
+ document.getElementById("dvUltimoPremio")&&(dvUltimoPremio.textContent=ultimo?`${ultimo.jogo||"Jogo"} — ${moedaV54(valorItemV54(ultimo)||0)}`:"Ainda sem prémios");
+ document.getElementById("dvUltimoPremioMeta")&&(dvUltimoPremioMeta.textContent=ultimo?`${ultimo.dataSorteio||ultimo.data||""} · ${ultimo.resultado||""}`:"Quando houver prémios, aparecem aqui.");
+ document.getElementById("dvTotalGanho")&&(dvTotalGanho.textContent=moedaV54(total));
+ document.getElementById("dvSequencia")&&(dvSequencia.textContent=`${hist.length} prémio(s)`);
+ document.getElementById("dvProximaAcao")&&(dvProximaAcao.textContent=hist.length?`Continuar no ${jogoTop}`:"Adicionar apostas");
+ document.getElementById("dvProximaAcaoMeta")&&(dvProximaAcaoMeta.textContent=hist.length?"É o jogo com mais prémios no teu histórico.":"Começa por guardar apostas.");
+ document.getElementById("dvBadge")&&(dvBadge.textContent=total>=100?"💎 Forte":total>=25?"🥇 Bom momento":hist.length?"🍀 Em crescimento":"Novo");
+ document.getElementById("dvFrase")&&(dvFrase.textContent=hist.length?`Tens ${hist.length} prémio(s) registado(s), total conhecido de ${moedaV54(total)} e o teu jogo mais premiado é ${jogoTop}.`:"Ainda estás a construir histórico.");
+}
+function barrasV54(id,dados,lim=8){const el=document.getElementById(id);if(!el)return;const max=Math.max(1,...dados.map(x=>x[1]));el.innerHTML=dados.length?dados.slice(0,lim).map(([n,v])=>`<div class="bar-row-v54"><div class="bar-label-v54"><span>${n}</span><strong>${v}</strong></div><div class="bar-track-v54"><div class="bar-fill-v54" style="width:${Math.max(4,Math.round(v/max*100))}%"></div></div></div>`).join(""):`<div class="empty-v54">Sem dados suficientes.</div>`}
+function atualizarGraficosV54(){const h=histV54();barrasV54("graficoMesesV54",contarPorV54(h,mesKeyV54).sort((a,b)=>a[0].localeCompare(b[0])),12);barrasV54("graficoJogosV54",contarPorV54(h,x=>x.jogo||"—"),8);document.getElementById("graficosV54Resumo")&&(graficosV54Resumo.textContent=`${h.length} prémio(s) analisado(s)`)}
+function parseApostaNumerosV54(aposta){const p=String(aposta||"").split("+");return{nums:(p[0]||"").trim().split(/\s+/).map(Number).filter(Number.isFinite),extras:(p[1]||"").trim().split(/\s+/).map(Number).filter(Number.isFinite)}}
+function todasApostasV54(){const out=[];try{Object.entries(apostas||{}).forEach(([j,l])=>(l||[]).forEach(a=>out.push({jogo:j,aposta:a})))}catch{}return out}
+function atualizarNumerosV54(){const counts=new Map();const aps=todasApostasV54();aps.forEach(({aposta})=>{const p=parseApostaNumerosV54(aposta);[...p.nums,...p.extras].forEach(n=>counts.set(n,(counts.get(n)||0)+1))});const arr=[...counts.entries()].sort((a,b)=>a[0]-b[0]);const max=Math.max(1,...arr.map(x=>x[1]));document.getElementById("numerosV54Resumo")&&(numerosV54Resumo.textContent=`${aps.length} aposta(s) analisada(s)`);const el=document.getElementById("heatmapNumerosV54");if(!el)return;el.innerHTML=arr.length?arr.map(([n,c])=>`<div class="numero-chip-v54 level-${Math.ceil(c/max*5)}"><strong>${n}</strong><span>${c}</span></div>`).join(""):`<div class="empty-v54">Sem apostas guardadas.</div>`}
+function atualizarV54(){try{atualizarDashboardVivoV54()}catch(e){console.warn("V54 dashboard",e)}try{atualizarGraficosV54()}catch(e){console.warn("V54 gráficos",e)}try{atualizarNumerosV54()}catch(e){console.warn("V54 números",e)}}
+try{if(typeof renderHistorico==="function"&&!renderHistorico.__v54Hook){const o=renderHistorico;renderHistorico=function(...a){const r=o.apply(this,a);setTimeout(atualizarV54,120);return r};renderHistorico.__v54Hook=true}}catch{}
+try{if(typeof guardarApostas==="function"&&!guardarApostas.__v54Hook){const o=guardarApostas;guardarApostas=function(...a){const r=o.apply(this,a);setTimeout(atualizarV54,120);return r};guardarApostas.__v54Hook=true}}catch{}
+setTimeout(atualizarV54,1200);setTimeout(atualizarV54,2500);document.addEventListener("click",()=>setTimeout(atualizarV54,250));
 

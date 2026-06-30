@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=53">
+  <link rel="stylesheet" href="style.css?v=54">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -407,13 +407,36 @@
           <div id="intelDistribuicaoJogos"></div>
         </div>
       </section>
+
+      <section class="card dashboard-vivo-card" id="dashboardVivoCard">
+        <div class="v54-head"><div><h2>🍀 Dashboard Vivo</h2><p>Resumo rápido do teu momento atual.</p></div><span id="dvBadge" class="v54-pill">A calcular...</span></div>
+        <div class="dv-grid">
+          <div class="dv-main"><span>🏆 Último prémio</span><strong id="dvUltimoPremio">—</strong><small id="dvUltimoPremioMeta">—</small></div>
+          <div class="dv-main"><span>💰 Total ganho</span><strong id="dvTotalGanho">—</strong><small>Valor acumulado conhecido.</small></div>
+          <div class="dv-main"><span>🔥 Sequência atual</span><strong id="dvSequencia">—</strong><small>Prémios recentes seguidos.</small></div>
+          <div class="dv-main"><span>🎯 Próxima ação</span><strong id="dvProximaAcao">—</strong><small id="dvProximaAcaoMeta">—</small></div>
+        </div>
+        <div class="dv-frase" id="dvFrase">A analisar o teu histórico...</div>
+      </section>
+      <section class="card graficos-v54-card" id="graficosV54Card">
+        <div class="v54-head"><div><h2>📈 Gráficos</h2><p>Evolução dos prémios e distribuição por jogo.</p></div><span id="graficosV54Resumo" class="v54-pill">—</span></div>
+        <div class="graficos-v54-grid">
+          <div><h3>Prémios por mês</h3><div id="graficoMesesV54" class="grafico-bars-v54"></div></div>
+          <div><h3>Prémios por jogo</h3><div id="graficoJogosV54" class="grafico-bars-v54"></div></div>
+        </div>
+      </section>
+      <section class="card numeros-v54-card" id="numerosV54Card">
+        <div class="v54-head"><div><h2>🔢 Números da Sorte</h2><p>Os números mais usados nas tuas apostas guardadas.</p></div><span id="numerosV54Resumo" class="v54-pill">—</span></div>
+        <div id="heatmapNumerosV54" class="heatmap-v54"></div>
+      </section>
+
 </main>
 
   <footer id="estado">Pronto.</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=53"></script>
+  <script src="app.js?v=54"></script>
 
       <div id="notifModal" class="notif-modal" hidden>
         <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>

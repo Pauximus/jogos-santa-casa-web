@@ -1937,3 +1937,25 @@ section.dashboard + section.dashboard-premium{
 .debug-valores-card{
   display:none!important;
 }
+
+/* V54 - Dashboard Vivo + Gráficos + Números */
+.dashboard-vivo-card,.graficos-v54-card,.numeros-v54-card{overflow:hidden}
+.v54-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+.v54-head h2{margin:0}.v54-head p{margin:3px 0 0;color:#64748b;font-size:13px}
+.v54-pill{border:1px solid #bbf7d0;background:#ecfdf5;color:#166534;border-radius:999px;padding:6px 10px;font-weight:1000;white-space:nowrap}
+.dv-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.dv-main{border:1px solid #dbe4ef;background:linear-gradient(180deg,#fff,#f8fafc);border-radius:16px;padding:13px;min-height:82px}
+.dv-main span{display:block;color:#475569;font-weight:900;font-size:12px;margin-bottom:6px}
+.dv-main strong{display:block;color:#0f172a;font-size:19px;line-height:1.15}
+.dv-main small{display:block;color:#64748b;margin-top:6px}
+.dv-frase{margin-top:12px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:14px;padding:10px 12px;font-weight:800}
+.graficos-v54-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.graficos-v54-grid h3{margin:0 0 10px;font-size:14px}
+.grafico-bars-v54{border:1px solid #dbe4ef;border-radius:16px;padding:12px;background:#fff}.bar-row-v54{margin-bottom:10px}.bar-row-v54:last-child{margin-bottom:0}
+.bar-label-v54{display:flex;justify-content:space-between;gap:10px;font-weight:900;font-size:12px;color:#334155;margin-bottom:4px}
+.bar-track-v54{height:9px;border-radius:999px;background:#e5e7eb;overflow:hidden}.bar-fill-v54{height:100%;border-radius:999px;background:linear-gradient(90deg,#22c55e,#3b82f6)}
+.heatmap-v54{display:flex;flex-wrap:wrap;gap:8px;border:1px solid #dbe4ef;border-radius:16px;padding:12px;background:#fff}
+.numero-chip-v54{width:48px;height:48px;border-radius:14px;display:flex;flex-direction:column;justify-content:center;align-items:center;border:1px solid #e2e8f0;background:#f8fafc}
+.numero-chip-v54 strong{color:#0f172a;font-size:16px}.numero-chip-v54 span{color:#64748b;font-size:11px;font-weight:900}
+.numero-chip-v54.level-1{background:#f8fafc}.numero-chip-v54.level-2{background:#ecfdf5;border-color:#bbf7d0}.numero-chip-v54.level-3{background:#d1fae5;border-color:#86efac}.numero-chip-v54.level-4{background:#bfdbfe;border-color:#60a5fa}.numero-chip-v54.level-5{background:#fde68a;border-color:#f59e0b}
+.empty-v54{color:#64748b;font-weight:800;padding:8px}
+@media(max-width:780px){.dv-grid,.graficos-v54-grid{grid-template-columns:1fr}.v54-head{flex-direction:column}}
