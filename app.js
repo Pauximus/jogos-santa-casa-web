@@ -1,4 +1,4 @@
-window.APP_VERSION = "v51-final-refresh-ui";
+window.APP_VERSION = "v52-refresh-inteligente";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -4995,4 +4995,151 @@ function iniciarWatcherV51() {
 }
 
 setTimeout(iniciarWatcherV51, 700);
+
+
+
+// V52 - Refresh Inteligente sem loops
+// Desativa o refresh agressivo da V51.
+try {
+  if (window.__v52Loaded !== true) {
+    window.__v52Loaded = true;
+    window.__v51InsideVerificar = false;
+  }
+} catch {}
+
+let __v52Refreshing = false;
+let __v52LastSignature = "";
+let __v52LastRun = 0;
+
+function historicoV52() {
+  try { if (typeof obterHistoricoArrayV434 === "function") return obterHistoricoArrayV434() || []; } catch {}
+  try { if (typeof historicoPremiosV42 === "function") return historicoPremiosV42() || []; } catch {}
+  try { if (typeof obterHistoricoPremiosV41 === "function") return obterHistoricoPremiosV41() || []; } catch {}
+  try { if (Array.isArray(historico)) return historico; } catch {}
+  return [];
+}
+
+function assinaturaHistoricoV52() {
+  try {
+    return JSON.stringify(historicoV52().map(h => ({
+      id: h.idLocal || h.id || "",
+      jogo: h.jogo || "",
+      aposta: h.aposta || "",
+      sorteio: h.sorteio || "",
+      dataSorteio: h.dataSorteio || h.data || "",
+      premio: h.premio || "",
+      valorPremio: h.valorPremio || "",
+      valor: h.valor || "",
+      resultado: h.resultado || h.acertos || ""
+    })));
+  } catch {
+    return "";
+  }
+}
+
+function limparDebugV52() {
+  ["debugParserCard","debugVerificarCard","debugResultadosCard","debugValoresCard"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+}
+
+// Override da V51 para impedir loop infinito.
+// Mantemos o nome para que hooks antigos chamem esta versão segura.
+function refrescarUICompletaV51(motivo = "refresh") {
+  refrescarUIInteligenteV52(motivo);
+}
+
+async function refrescarUIInteligenteV52(motivo = "refresh") {
+  const agora = Date.now();
+  if (__v52Refreshing) return;
+  if (agora - __v52LastRun < 1800) return;
+
+  const assinaturaAtual = assinaturaHistoricoV52();
+  if (assinaturaAtual && assinaturaAtual === __v52LastSignature && motivo !== "arranque") {
+    return;
+  }
+
+  __v52Refreshing = true;
+  __v52LastRun = agora;
+
+  try {
+    limparDebugV52();
+
+    // 1) Enriquecer valores uma vez, sem chamar verificar.
+    try { if (typeof atualizarValoresHistoricoCleanV434 === "function") atualizarValoresHistoricoCleanV434(); } catch {}
+    try { if (typeof atualizarValoresPremiosV431 === "function") atualizarValoresPremiosV431(); } catch {}
+    try { if (typeof atualizarValoresPremiosV433 === "function") atualizarValoresPremiosV433(); } catch {}
+
+    // 2) Re-render apenas dos blocos dependentes do histórico.
+    try { if (typeof renderHistorico === "function") renderHistorico(); } catch {}
+    try { if (typeof atualizarEstatisticas === "function") atualizarEstatisticas(); } catch {}
+    try { if (typeof atualizarContador === "function") atualizarContador(); } catch {}
+    try { if (typeof atualizarBadgesTabs === "function") atualizarBadgesTabs(); } catch {}
+    try { if (typeof atualizarPremiosPremiumV42 === "function") atualizarPremiosPremiumV42(); } catch {}
+    try { if (typeof atualizarPerfilApostadorV43 === "function") atualizarPerfilApostadorV43(); } catch {}
+
+    // 3) Só aplicar patches visuais leves, sem chamar verificar().
+    try { if (typeof atualizarResultadosPremiumDefinitivoV45 === "function") atualizarResultadosPremiumDefinitivoV45(); } catch {}
+    try { if (typeof v46PatchResultados === "function") v46PatchResultados(); } catch {}
+    try { if (typeof atualizarCardsResultadosPremiumV44 === "function") atualizarCardsResultadosPremiumV44(); } catch {}
+
+    __v52LastSignature = assinaturaHistoricoV52();
+    console.log("V52 UI refresh:", motivo);
+  } finally {
+    __v52Refreshing = false;
+  }
+}
+
+// Reverte/neutraliza watchers antigos da V51 quando possível.
+function iniciarWatcherV51() {
+  limparDebugV52();
+  __v52LastSignature = assinaturaHistoricoV52();
+  setTimeout(() => refrescarUIInteligenteV52("arranque"), 1000);
+}
+
+// Hook seguro: só dispara se a assinatura mudou e com debounce.
+function instalarHooksV52() {
+  limparDebugV52();
+  __v52LastSignature = assinaturaHistoricoV52();
+
+  try {
+    if (typeof guardarEventosHistorico === "function" && !guardarEventosHistorico.__v52Hook) {
+      const original = guardarEventosHistorico;
+      guardarEventosHistorico = async function(...args) {
+        const antes = assinaturaHistoricoV52();
+        const r = await original.apply(this, args);
+        const depois = assinaturaHistoricoV52();
+
+        if (antes !== depois) {
+          setTimeout(() => refrescarUIInteligenteV52("eventos historico alterados"), 500);
+        }
+        return r;
+      };
+      guardarEventosHistorico.__v52Hook = true;
+    }
+  } catch {}
+
+  try {
+    if (typeof enriquecerHistoricoComValoresV434 === "function" && !enriquecerHistoricoComValoresV434.__v52Hook) {
+      const original = enriquecerHistoricoComValoresV434;
+      enriquecerHistoricoComValoresV434 = function(...args) {
+        const antes = assinaturaHistoricoV52();
+        const r = original.apply(this, args);
+        const depois = assinaturaHistoricoV52();
+
+        if (antes !== depois || r) {
+          setTimeout(() => refrescarUIInteligenteV52("valores alterados"), 500);
+        }
+        return r;
+      };
+      enriquecerHistoricoComValoresV434.__v52Hook = true;
+    }
+  } catch {}
+
+  setTimeout(() => refrescarUIInteligenteV52("arranque"), 1200);
+}
+
+// Importante: sem setInterval, sem verificar automático em loop.
+setTimeout(instalarHooksV52, 900);
 
