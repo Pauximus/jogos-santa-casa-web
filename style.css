@@ -1903,3 +1903,13 @@ section.dashboard + section.dashboard-premium{
 .debug-verificar-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .debug-verificar-head button,.debug-verificar-actions button{border:1px solid #8b5cf6;border-radius:10px;background:#fff;color:#5b21b6;padding:8px 10px;font-weight:900;cursor:pointer}
 #debugVerificarOutput{max-height:460px;overflow:auto;white-space:pre-wrap;background:#111827;color:#e5e7eb;border-radius:12px;padding:12px;font-size:11px;line-height:1.35}
+
+/* V50 - debug parser */
+.debug-parser-card{margin-top:16px;border:1px solid #fbbf24;background:#fffbeb}
+.debug-parser-card[hidden]{display:none!important}
+.debug-parser-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
+.debug-parser-head h2{margin:0}
+.debug-parser-head p{margin:3px 0 0;color:#92400e;font-size:13px}
+.debug-parser-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.debug-parser-head button,.debug-parser-actions button{border:1px solid #f59e0b;border-radius:10px;background:#fff;color:#92400e;padding:8px 10px;font-weight:900;cursor:pointer}
+#debugParserOutput{max-height:460px;overflow:auto;white-space:pre-wrap;background:#111827;color:#e5e7eb;border-radius:12px;padding:12px;font-size:11px;line-height:1.35}

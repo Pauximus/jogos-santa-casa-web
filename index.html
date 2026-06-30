@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=49">
+  <link rel="stylesheet" href="style.css?v=50">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -422,13 +422,28 @@
         </div>
         <pre id="debugVerificarOutput">A aguardar análise...</pre>
       </section>
+
+      <section class="card debug-parser-card" id="debugParserCard">
+        <div class="debug-parser-head">
+          <div>
+            <h2>🧪 Debug Parser</h2>
+            <p>Analisa parseAposta(), tipos dos números e comparação includes().</p>
+          </div>
+          <button id="debugParserFechar" type="button">Fechar</button>
+        </div>
+        <div class="debug-parser-actions">
+          <button id="debugParserExecutar" type="button">Analisar parser</button>
+          <button id="debugParserCopiar" type="button">Copiar relatório</button>
+        </div>
+        <pre id="debugParserOutput">A aguardar análise...</pre>
+      </section>
 </main>
 
   <footer id="estado">Pronto.</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=49"></script>
+  <script src="app.js?v=50"></script>
 
       <div id="notifModal" class="notif-modal" hidden>
         <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>

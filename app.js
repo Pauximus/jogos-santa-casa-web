@@ -1,4 +1,4 @@
-window.APP_VERSION = "v49-instrumentacao-verificar";
+window.APP_VERSION = "v50-debug-parser";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -4718,4 +4718,117 @@ function iniciarDebugVerificarV49(){
   setTimeout(executarDebugVerificarV49,1800);
 }
 setTimeout(iniciarDebugVerificarV49,1000);
+
+
+
+// V50 - Debug Parser parseAposta/comparação
+function safeJsonV50(obj, max=120000){
+  try{const t=JSON.stringify(obj,null,2);return t.length>max?t.slice(0,max)+"\n...CORTADO...":t;}catch(e){return String(obj);}
+}
+function tipoArrayV50(arr){
+  if(!Array.isArray(arr)) return {isArray:false,tipo:typeof arr,valor:String(arr)};
+  return {isArray:true,length:arr.length,valores:arr,tipos:arr.map(v=>typeof v),numerosConvertidos:arr.map(v=>Number(v)),todosNumericos:arr.every(v=>Number.isFinite(Number(v)))};
+}
+function parseManualV50(aposta){
+  const raw=String(aposta||"").trim();
+  const partes=raw.split("+").map(p=>p.trim());
+  const nums=(partes[0]||"").split(/\s+/).filter(Boolean).map(Number).filter(Number.isFinite);
+  const extras=(partes[1]||"").split(/\s+/).filter(Boolean).map(Number).filter(Number.isFinite);
+  return {raw,partes,nums,extras};
+}
+function compararV50(aposta,data){
+  let parsedOriginal=null,erroParse=null;
+  try{parsedOriginal=typeof parseAposta==="function"?parseAposta(aposta):null;}catch(e){erroParse=String(e&&e.stack?e.stack:e);}
+  const manual=parseManualV50(aposta);
+  const resultadoNums=data?.numeros||[];
+  const resultadoExtras=data?.extras||[];
+  const pNums=parsedOriginal?.nums||[];
+  const pExtras=parsedOriginal?.extras||[];
+  const resNumsNum=resultadoNums.map(Number);
+  const resExtrasNum=resultadoExtras.map(Number);
+  return {
+    aposta,
+    parseApostaExiste:typeof parseAposta==="function",
+    erroParse,
+    parsedOriginal,
+    parsedOriginalTipos:{nums:tipoArrayV50(pNums),extras:tipoArrayV50(pExtras)},
+    parsedManual:manual,
+    parsedManualTipos:{nums:tipoArrayV50(manual.nums),extras:tipoArrayV50(manual.extras)},
+    resultado:{numeros:resultadoNums,extras:resultadoExtras,numerosTipos:tipoArrayV50(resultadoNums),extrasTipos:tipoArrayV50(resultadoExtras)},
+    contagemOriginal:{
+      nums:Array.isArray(pNums)?pNums.filter(n=>resultadoNums.includes(n)).length:null,
+      extras:Array.isArray(pExtras)?pExtras.filter(n=>resultadoExtras.includes(n)).length:null,
+      numsConvertido:Array.isArray(pNums)?pNums.filter(n=>resNumsNum.includes(Number(n))).length:null,
+      extrasConvertido:Array.isArray(pExtras)?pExtras.filter(n=>resExtrasNum.includes(Number(n))).length:null
+    },
+    contagemManual:{
+      nums:manual.nums.filter(n=>resultadoNums.includes(n)).length,
+      extras:manual.extras.filter(n=>resultadoExtras.includes(n)).length,
+      numsConvertido:manual.nums.filter(n=>resNumsNum.includes(Number(n))).length,
+      extrasConvertido:manual.extras.filter(n=>resExtrasNum.includes(Number(n))).length
+    },
+    comparacaoOriginal:{
+      nums:Array.isArray(pNums)?pNums.map(n=>({valor:n,tipo:typeof n,includesDireto:resultadoNums.includes(n),includesConvertido:resNumsNum.includes(Number(n)),comparacoes:resultadoNums.map(r=>({resultado:r,tipoResultado:typeof r,igualDireto:r===n,igualConvertido:Number(r)===Number(n)}))})):[],
+      extras:Array.isArray(pExtras)?pExtras.map(n=>({valor:n,tipo:typeof n,includesDireto:resultadoExtras.includes(n),includesConvertido:resExtrasNum.includes(Number(n)),comparacoes:resultadoExtras.map(r=>({resultado:r,tipoResultado:typeof r,igualDireto:r===n,igualConvertido:Number(r)===Number(n)}))})):[]
+    },
+    comparacaoManual:{
+      nums:manual.nums.map(n=>({valor:n,tipo:typeof n,includesDireto:resultadoNums.includes(n),includesConvertido:resNumsNum.includes(Number(n))})),
+      extras:manual.extras.map(n=>({valor:n,tipo:typeof n,includesDireto:resultadoExtras.includes(n),includesConvertido:resExtrasNum.includes(Number(n))}))
+    }
+  };
+}
+async function obterResultadoParaDebugV50(){
+  try{if(typeof obterResultadoAtual==="function") return await obterResultadoAtual();}catch(e){return {erroObterResultadoAtual:String(e&&e.stack?e.stack:e),fallback:window.ultimoResultadoAtual||null};}
+  return window.ultimoResultadoAtual||null;
+}
+async function executarDebugParserV50(){
+  const out=document.getElementById("debugParserOutput");
+  if(out)out.textContent="A analisar parser...";
+  const data=await obterResultadoParaDebugV50();
+  let listaApostas=[]; try{listaApostas=apostas?.[jogoAtual]||[]}catch{}
+  const analise=listaApostas.map(aposta=>compararV50(aposta,data));
+  const rel={
+    appVersion:window.APP_VERSION,
+    dataRelatorio:new Date().toISOString(),
+    location:location.href,
+    jogoAtual,
+    dataResultado:data,
+    apostasJogoAtual:listaApostas,
+    parseApostaFunctionPreview:(()=>{try{return typeof parseAposta==="function"?String(parseAposta).slice(0,3000):"parseAposta não existe"}catch(e){return String(e)}})(),
+    analise,
+    conclusaoAutomatica:analise.map(a=>{
+      const origVazio=(a.parsedOriginalTipos?.nums?.length||0)===0&&(a.parsedOriginalTipos?.extras?.length||0)===0;
+      const manualTemDados=(a.parsedManualTipos?.nums?.length||0)>0||(a.parsedManualTipos?.extras?.length||0)>0;
+      return {
+        aposta:a.aposta,
+        parserOriginalVazio:origVazio,
+        parserManualTemDados:manualTemDados,
+        possivelProblema:origVazio&&manualTemDados?"parseAposta devolve vazio":(a.contagemOriginal.nums!==a.contagemOriginal.numsConvertido||a.contagemOriginal.extras!==a.contagemOriginal.extrasConvertido)?"comparação string/number":"parser/comparação coerente",
+        contagemOriginal:a.contagemOriginal,
+        contagemManual:a.contagemManual
+      };
+    })
+  };
+  window.DEBUG_PARSER_V50=rel;
+  try{localStorage.setItem("jsc_debug_parser_v50",safeJsonV50(rel,150000));}catch{}
+  const txt=safeJsonV50(rel,120000);
+  if(out)out.textContent=txt;
+  console.log("DEBUG_PARSER_V50",rel);
+  return rel;
+}
+async function copiarDebugParserV50(){
+  const rel=window.DEBUG_PARSER_V50||await executarDebugParserV50();
+  const txt=safeJsonV50(rel,150000);
+  try{await navigator.clipboard.writeText(txt);alert("Relatório copiado. Cola-o aqui no chat.");}catch{prompt("Copia este relatório e cola no chat:",txt);}
+}
+function iniciarDebugParserV50(){
+  window.executarDebugParserV50=executarDebugParserV50;
+  window.copiarDebugParserV50=copiarDebugParserV50;
+  const b1=document.getElementById("debugParserExecutar"),b2=document.getElementById("debugParserCopiar"),b3=document.getElementById("debugParserFechar");
+  if(b1&&!b1.__v50){b1.__v50=true;b1.addEventListener("click",executarDebugParserV50);}
+  if(b2&&!b2.__v50){b2.__v50=true;b2.addEventListener("click",copiarDebugParserV50);}
+  if(b3&&!b3.__v50){b3.__v50=true;b3.addEventListener("click",()=>{const c=document.getElementById("debugParserCard");if(c)c.hidden=true;});}
+  setTimeout(executarDebugParserV50,1800);
+}
+setTimeout(iniciarDebugParserV50,1000);
 
