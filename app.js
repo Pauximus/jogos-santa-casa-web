@@ -1,4 +1,4 @@
-window.APP_VERSION = "v48-resultados-definitivo";
+window.APP_VERSION = "v49-instrumentacao-verificar";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -4565,4 +4565,157 @@ function renderResultadoCodigo(data){const codigoResultado=(data.codigo||"").rep
 function renderResultadoLotaria(data){const premios=data.premios||[];const numerosPremiados=premios.map(p=>String(p.numero).padStart(5,"0"));const eventos=[];let listaPremios=premios.map(p=>`${p.premio}: ${p.numero}`).join("<br>");let html=renderCabecalhoResultado(data,`<div>${listaPremios||"Prémios não encontrados"}</div>`);if(!apostas[jogoAtual].length)html+=`<div class="result-card warn">Sem números guardados.</div>`;apostas[jogoAtual].forEach((aposta,index)=>{const numero=String(aposta).padStart(5,"0");const pos=numerosPremiados.indexOf(numero);let premiado=pos>=0,premio=premiado?premios[pos].premio:"",valor="";const hp=premioHistV48(data.jogo,numero,data.data)||premioHistV48(data.jogo,aposta,data.data);if(hp){premiado=true;premio=hp.premio||premio||"Prémio";valor=hp.valor||""}if(premiado)eventos.push({jogo:data.jogo,aposta:numero,resultado:numero,sorteio:data.sorteio||"último sorteio",dataSorteio:data.data||"",premio:valor?`${premio} — ${valor}`:premio});html+=`<div class="result-card ${premiado?"ok resultado-premio-final":"bad"}"><strong>${premiado?`🏆 PREMIADO — ${premio}${valor?` — ${valor}`:""}`:"🔴 SEM PRÉMIO"}</strong><br>Número ${index+1}: ${numero}${premiado&&valorTxtV48(valor)?`<div class="resultado-final-valor"><span>💰 Valor</span><strong>${valorTxtV48(valor)}</strong></div>`:""}</div>`});resultado.innerHTML=html;return eventos}
 function limparDebugV48(){document.getElementById("debugResultadosCard")?.remove();document.getElementById("debugValoresCard")?.remove()}
 setTimeout(()=>{try{limparDebugV48()}catch{}try{verificar()}catch{}},900);
+
+
+
+// V49 - Instrumentação da verificação
+const DEBUG_V49_LOG = { obter: [], renderNumeros: [], guardarEventos: [], erros: [] };
+
+function safeJsonV49(obj, max=120000){
+  try{ const t=JSON.stringify(obj,null,2); return t.length>max?t.slice(0,max)+"\n...CORTADO...":t; }catch(e){ return String(obj); }
+}
+function compactV49(obj, depth=0){
+  if(depth>5)return "[max-depth]";
+  if(obj==null||typeof obj!=="object")return obj;
+  if(Array.isArray(obj))return obj.slice(0,30).map(x=>compactV49(x,depth+1));
+  const out={};
+  Object.keys(obj).slice(0,180).forEach(k=>{
+    let b=""; try{b=JSON.stringify(obj[k]||"")}catch{}
+    if(/jogo|sorteio|data|numero|extra|codigo|premio|prémio|valor|aposta|acerto|categoria|evento|resultado|ganh|win|match/i.test(k) ||
+       /premio|prémio|valor|aposta|acerto|categoria|resultado|totoloto|6,81|2\+1/i.test(b)){
+      out[k]=compactV49(obj[k],depth+1);
+    }
+  });
+  return out;
+}
+function histV49(){
+  try{ if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[] }catch{}
+  try{ if(typeof historicoPremiosV42==="function")return historicoPremiosV42()||[] }catch{}
+  try{ if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[] }catch{}
+  try{ if(Array.isArray(historico))return historico }catch{}
+  return [];
+}
+function simularV49(data){
+  const rows=[];
+  try{
+    const jogo=jogoAtual;
+    const numeros=data?.numeros||[];
+    const extras=data?.extras||[];
+    const lista=apostas?.[jogo]||[];
+    lista.forEach((aposta,index)=>{
+      const p=parseAposta(aposta);
+      const acertosNums=(p.nums||[]).filter(n=>numeros.includes(n)).length;
+      const acertosExtras=(p.extras||[]).filter(e=>extras.includes(e)).length;
+      const categoria=`${acertosNums}+${acertosExtras}`;
+      let categoriaTem=null, histPremio=null, histPremioV48=null;
+      try{categoriaTem=categoriaTemPremio(jogo,acertosNums,acertosExtras)}catch(e){categoriaTem="ERRO "+e.message}
+      try{histPremioV48=typeof premioHistoricoParaApostaV48==="function"?premioHistoricoParaApostaV48(data.jogo,aposta,data.data):null}catch(e){histPremioV48="ERRO "+e.message}
+      try{
+        histPremio=histV49().find(h=>
+          String(h.jogo||"").toLowerCase().includes(String(data.jogo||"").toLowerCase().slice(0,4)) &&
+          String(h.aposta||"").replace(/\s+/g," ").trim()===String(aposta||"").replace(/\s+/g," ").trim()
+        ) || null;
+      }catch{}
+      rows.push({
+        index, jogoAtual:jogo, dataJogo:data?.jogo, sorteio:data?.sorteio, data:data?.data,
+        aposta, parsed:p, resultadoNumeros:numeros, resultadoExtras:extras,
+        acertosNums, acertosExtras, categoria,
+        premiosKeys:data?.premios?Object.keys(data.premios):[],
+        premioInfo:data?.premios?data.premios[categoria]:null,
+        premiosObj:compactV49(data?.premios||{}),
+        categoriaTemPremio:categoriaTem,
+        histPremioDireto:compactV49(histPremio),
+        histPremioV48:compactV49(histPremioV48),
+        decisao:!!(data?.premios?.[categoria]||categoriaTem||histPremio||histPremioV48)
+      });
+    });
+  }catch(e){ rows.push({erro:String(e&&e.stack?e.stack:e)}); }
+  return rows;
+}
+function pushV49(tipo,payload){
+  DEBUG_V49_LOG[tipo].push({ts:new Date().toISOString(), payload:compactV49(payload)});
+  if(DEBUG_V49_LOG[tipo].length>40)DEBUG_V49_LOG[tipo].shift();
+  window.DEBUG_V49_LOG=DEBUG_V49_LOG;
+}
+
+try{
+if(typeof obterResultadoAtual==="function"&&!obterResultadoAtual.__v49){
+  const orig=obterResultadoAtual;
+  obterResultadoAtual=async function(...args){
+    pushV49("obter",{fase:"start",jogoAtual});
+    const r=await orig.apply(this,args);
+    pushV49("obter",{fase:"end",jogoAtual,resultado:r,simulacao:simularV49(r)});
+    return r;
+  };
+  obterResultadoAtual.__v49=true;
+}}catch(e){DEBUG_V49_LOG.erros.push({hook:"obterResultadoAtual",erro:String(e)})}
+
+try{
+if(typeof renderResultadoNumerosExtra==="function"&&!renderResultadoNumerosExtra.__v49){
+  const orig=renderResultadoNumerosExtra;
+  renderResultadoNumerosExtra=function(data){
+    const simAntes=simularV49(data);
+    const eventos=orig.call(this,data);
+    pushV49("renderNumeros",{
+      jogoAtual,data,simAntes,eventosDevolvidos:eventos,
+      resultadoTexto:(resultado?.innerText||"").slice(0,6000),
+      resultadoHtml:(resultado?.innerHTML||"").slice(0,9000)
+    });
+    return eventos;
+  };
+  renderResultadoNumerosExtra.__v49=true;
+}}catch(e){DEBUG_V49_LOG.erros.push({hook:"renderResultadoNumerosExtra",erro:String(e)})}
+
+try{
+if(typeof guardarEventosHistorico==="function"&&!guardarEventosHistorico.__v49){
+  const orig=guardarEventosHistorico;
+  guardarEventosHistorico=async function(data,eventos){
+    pushV49("guardarEventos",{fase:"antes",data,eventos,historicoAntes:histV49()});
+    const r=await orig.call(this,data,eventos);
+    pushV49("guardarEventos",{fase:"depois",retorno:r,historicoDepois:histV49()});
+    return r;
+  };
+  guardarEventosHistorico.__v49=true;
+}}catch(e){DEBUG_V49_LOG.erros.push({hook:"guardarEventosHistorico",erro:String(e)})}
+
+async function executarDebugVerificarV49(){
+  const out=document.getElementById("debugVerificarOutput");
+  if(out)out.textContent="A verificar e analisar...";
+  try{ if(typeof verificar==="function") await verificar(); }catch(e){pushV49("erros",{fn:"verificar",erro:String(e&&e.stack?e.stack:e)})}
+  await new Promise(r=>setTimeout(r,700));
+  const rel={
+    appVersion:window.APP_VERSION,
+    data:new Date().toISOString(),
+    location:location.href,
+    jogoAtual,
+    apostasJogoAtual:apostas?.[jogoAtual]||[],
+    ultimoResultadoAtual:compactV49(window.ultimoResultadoAtual||{}),
+    ultimoResultadoBackendRow:compactV49(window.ultimoResultadoBackendRow||{}),
+    historico:compactV49(histV49()),
+    resultadoTextoAtual:(resultado?.innerText||"").slice(0,7000),
+    resultadoHtmlAtual:(resultado?.innerHTML||"").slice(0,10000),
+    log:DEBUG_V49_LOG
+  };
+  window.DEBUG_VERIFICAR_V49=rel;
+  try{localStorage.setItem("jsc_debug_verificar_v49",safeJsonV49(rel,150000))}catch{}
+  const txt=safeJsonV49(rel,120000);
+  if(out)out.textContent=txt;
+  console.log("DEBUG_VERIFICAR_V49",rel);
+  return rel;
+}
+async function copiarDebugVerificarV49(){
+  const rel=window.DEBUG_VERIFICAR_V49||await executarDebugVerificarV49();
+  const txt=safeJsonV49(rel,150000);
+  try{await navigator.clipboard.writeText(txt);alert("Relatório copiado. Cola-o aqui no chat.")}catch{prompt("Copia este relatório e cola no chat:",txt)}
+}
+function iniciarDebugVerificarV49(){
+  window.executarDebugVerificarV49=executarDebugVerificarV49;
+  window.copiarDebugVerificarV49=copiarDebugVerificarV49;
+  const b1=document.getElementById("debugVerificarExecutar"),b2=document.getElementById("debugVerificarCopiar"),b3=document.getElementById("debugVerificarFechar");
+  if(b1&&!b1.__v49){b1.__v49=true;b1.addEventListener("click",executarDebugVerificarV49)}
+  if(b2&&!b2.__v49){b2.__v49=true;b2.addEventListener("click",copiarDebugVerificarV49)}
+  if(b3&&!b3.__v49){b3.__v49=true;b3.addEventListener("click",()=>{const c=document.getElementById("debugVerificarCard");if(c)c.hidden=true})}
+  setTimeout(executarDebugVerificarV49,1800);
+}
+setTimeout(iniciarDebugVerificarV49,1000);
 

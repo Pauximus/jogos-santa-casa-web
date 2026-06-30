@@ -1893,3 +1893,13 @@ section.dashboard + section.dashboard-premium{
 .resultado-final-valor{margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid rgba(34,197,94,.35);border-radius:12px;padding:9px 11px}
 .resultado-final-valor span{color:#166534;font-weight:900;font-size:12px}
 .resultado-final-valor strong{color:#14532d;font-size:18px}
+
+/* V49 - debug verificar */
+.debug-verificar-card{margin-top:16px;border:1px solid #c4b5fd;background:#f5f3ff}
+.debug-verificar-card[hidden]{display:none!important}
+.debug-verificar-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
+.debug-verificar-head h2{margin:0}
+.debug-verificar-head p{margin:3px 0 0;color:#5b21b6;font-size:13px}
+.debug-verificar-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.debug-verificar-head button,.debug-verificar-actions button{border:1px solid #8b5cf6;border-radius:10px;background:#fff;color:#5b21b6;padding:8px 10px;font-weight:900;cursor:pointer}
+#debugVerificarOutput{max-height:460px;overflow:auto;white-space:pre-wrap;background:#111827;color:#e5e7eb;border-radius:12px;padding:12px;font-size:11px;line-height:1.35}
