@@ -1,4 +1,4 @@
-window.APP_VERSION = "v50-debug-parser";
+window.APP_VERSION = "v51-final-refresh-ui";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -4831,4 +4831,168 @@ function iniciarDebugParserV50(){
   setTimeout(executarDebugParserV50,1800);
 }
 setTimeout(iniciarDebugParserV50,1000);
+
+
+
+// V51 - Final: refresh total da UI após atualização de valores/histórico
+let __v51Refreshing = false;
+let __v51LastHistSignature = "";
+
+function historicoV51() {
+  try { if (typeof obterHistoricoArrayV434 === "function") return obterHistoricoArrayV434() || []; } catch {}
+  try { if (typeof historicoPremiosV42 === "function") return historicoPremiosV42() || []; } catch {}
+  try { if (typeof obterHistoricoPremiosV41 === "function") return obterHistoricoPremiosV41() || []; } catch {}
+  try { if (Array.isArray(historico)) return historico; } catch {}
+  return [];
+}
+
+function assinaturaHistoricoV51() {
+  try {
+    return JSON.stringify(historicoV51().map(h => ({
+      jogo: h.jogo,
+      aposta: h.aposta,
+      sorteio: h.sorteio,
+      dataSorteio: h.dataSorteio || h.data,
+      premio: h.premio,
+      valorPremio: h.valorPremio,
+      valor: h.valor,
+      resultado: h.resultado || h.acertos
+    })));
+  } catch {
+    return String(Date.now());
+  }
+}
+
+function limparDebugV51() {
+  ["debugParserCard","debugVerificarCard","debugResultadosCard","debugValoresCard"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+}
+
+function refrescarUICompletaV51(motivo = "refresh") {
+  if (__v51Refreshing) return;
+  __v51Refreshing = true;
+
+  setTimeout(async () => {
+    try {
+      limparDebugV51();
+
+      // 1) Enriquecer histórico com valores, se possível.
+      try { if (typeof atualizarValoresHistoricoCleanV434 === "function") atualizarValoresHistoricoCleanV434(); } catch {}
+      try { if (typeof atualizarValoresPremiosV431 === "function") atualizarValoresPremiosV431(); } catch {}
+      try { if (typeof atualizarValoresPremiosV433 === "function") atualizarValoresPremiosV433(); } catch {}
+
+      // 2) Renderizar blocos dependentes do histórico.
+      try { if (typeof renderHistorico === "function") renderHistorico(); } catch {}
+      try { if (typeof atualizarEstatisticas === "function") atualizarEstatisticas(); } catch {}
+      try { if (typeof atualizarContador === "function") atualizarContador(); } catch {}
+      try { if (typeof atualizarBadgesTabs === "function") atualizarBadgesTabs(); } catch {}
+      try { if (typeof atualizarPremiosPremiumV42 === "function") atualizarPremiosPremiumV42(); } catch {}
+      try { if (typeof atualizarPerfilApostadorV43 === "function") atualizarPerfilApostadorV43(); } catch {}
+
+      // 3) Recalcular o painel Resultados para o jogo atual.
+      // Proteção para não entrar em ciclo infinito.
+      if (typeof verificar === "function" && !window.__v51InsideVerificar) {
+        try {
+          window.__v51InsideVerificar = true;
+          await verificar();
+        } catch (e) {
+          console.warn("V51 verificar refresh falhou:", e);
+        } finally {
+          window.__v51InsideVerificar = false;
+        }
+      }
+
+      // 4) Aplicar melhorias visuais já existentes, caso existam.
+      try { if (typeof atualizarResultadosPremiumDefinitivoV45 === "function") atualizarResultadosPremiumDefinitivoV45(); } catch {}
+      try { if (typeof v46PatchResultados === "function") v46PatchResultados(); } catch {}
+      try { if (typeof atualizarCardsResultadosPremiumV44 === "function") atualizarCardsResultadosPremiumV44(); } catch {}
+
+      // 5) Guardar nova assinatura.
+      __v51LastHistSignature = assinaturaHistoricoV51();
+      console.log("V51 UI refresh:", motivo);
+    } finally {
+      __v51Refreshing = false;
+    }
+  }, 80);
+}
+
+// Hook: quando o histórico é renderizado, atualizar o resto logo a seguir.
+try {
+  if (typeof renderHistorico === "function" && !renderHistorico.__v51Hook) {
+    const __renderHistoricoOriginalV51 = renderHistorico;
+    renderHistorico = function(...args) {
+      const r = __renderHistoricoOriginalV51.apply(this, args);
+      setTimeout(() => {
+        try {
+          const sig = assinaturaHistoricoV51();
+          if (sig !== __v51LastHistSignature) refrescarUICompletaV51("historico alterado");
+        } catch {}
+      }, 180);
+      return r;
+    };
+    renderHistorico.__v51Hook = true;
+  }
+} catch {}
+
+// Hook: quando valores do histórico são enriquecidos, refrescar UI completa.
+try {
+  if (typeof enriquecerHistoricoComValoresV434 === "function" && !enriquecerHistoricoComValoresV434.__v51Hook) {
+    const __enriquecerOriginalV51 = enriquecerHistoricoComValoresV434;
+    enriquecerHistoricoComValoresV434 = function(...args) {
+      const antes = assinaturaHistoricoV51();
+      const r = __enriquecerOriginalV51.apply(this, args);
+      const depois = assinaturaHistoricoV51();
+      if (antes !== depois || r) setTimeout(() => refrescarUICompletaV51("valores enriquecidos"), 120);
+      return r;
+    };
+    enriquecerHistoricoComValoresV434.__v51Hook = true;
+  }
+} catch {}
+
+// Hook: quando cloud carrega histórico, refrescar UI completa.
+try {
+  if (typeof carregarHistoricoCloud === "function" && !carregarHistoricoCloud.__v51Hook) {
+    const __carregarHistoricoCloudOriginalV51 = carregarHistoricoCloud;
+    carregarHistoricoCloud = async function(...args) {
+      const r = await __carregarHistoricoCloudOriginalV51.apply(this, args);
+      setTimeout(() => refrescarUICompletaV51("cloud historico carregado"), 250);
+      return r;
+    };
+    carregarHistoricoCloud.__v51Hook = true;
+  }
+} catch {}
+
+// Hook: quando se guardam eventos, refrescar UI completa.
+try {
+  if (typeof guardarEventosHistorico === "function" && !guardarEventosHistorico.__v51Hook) {
+    const __guardarEventosHistoricoOriginalV51 = guardarEventosHistorico;
+    guardarEventosHistorico = async function(...args) {
+      const r = await __guardarEventosHistoricoOriginalV51.apply(this, args);
+      setTimeout(() => refrescarUICompletaV51("eventos historico guardados"), 250);
+      return r;
+    };
+    guardarEventosHistorico.__v51Hook = true;
+  }
+} catch {}
+
+// Observador leve: se a assinatura do histórico mudar, refresca.
+function iniciarWatcherV51() {
+  limparDebugV51();
+  __v51LastHistSignature = assinaturaHistoricoV51();
+
+  setTimeout(() => refrescarUICompletaV51("arranque"), 900);
+
+  setInterval(() => {
+    try {
+      const atual = assinaturaHistoricoV51();
+      if (atual !== __v51LastHistSignature) {
+        refrescarUICompletaV51("watcher historico mudou");
+      }
+    } catch {}
+  }, 2500);
+}
+
+setTimeout(iniciarWatcherV51, 700);
 

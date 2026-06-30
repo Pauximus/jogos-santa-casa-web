@@ -1913,3 +1913,11 @@ section.dashboard + section.dashboard-premium{
 .debug-parser-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .debug-parser-head button,.debug-parser-actions button{border:1px solid #f59e0b;border-radius:10px;background:#fff;color:#92400e;padding:8px 10px;font-weight:900;cursor:pointer}
 #debugParserOutput{max-height:460px;overflow:auto;white-space:pre-wrap;background:#111827;color:#e5e7eb;border-radius:12px;padding:12px;font-size:11px;line-height:1.35}
+
+/* V51 - final refresh UI */
+.debug-parser-card,
+.debug-verificar-card,
+.debug-resultados-card,
+.debug-valores-card{
+  display:none!important;
+}
