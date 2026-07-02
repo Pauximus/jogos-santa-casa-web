@@ -1,4 +1,4 @@
-window.APP_VERSION = "v59-correcao-premios";
+window.APP_VERSION = "v60-deduplicacao-premios";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -5809,4 +5809,142 @@ function instalarV59(){
 setTimeout(instalarV59,800);
 setTimeout(instalarV59,2200);
 document.addEventListener("click",()=>setTimeout(instalarV59,250));
+
+
+
+// V60 - Deduplicação de prémios/histórico
+function normKeyV60(s){
+  return String(s||"")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function apostaKeyV60(s){
+  return String(s||"")
+    .replace(/\s*\+\s*/g,"+")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function valorV60(item){
+  try{return valorItemSeguroV59?.(item)||0}catch{}
+  try{return valorItemV58?.(item)||0}catch{}
+  return 0;
+}
+function histBaseV60(){
+  try{return histSeguroV59?.()||[]}catch{}
+  try{return histV58?.()||[]}catch{}
+  try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}
+  return [];
+}
+function dedupeKeyV60(item){
+  return [
+    normKeyV60(item?.jogo),
+    normKeyV60(item?.sorteio),
+    normKeyV60(item?.dataSorteio||item?.data),
+    apostaKeyV60(item?.aposta),
+    normKeyV60(item?.resultado||item?.acertos),
+    valorV60(item)
+  ].join("|");
+}
+function deduplicarPremiosV60(lista){
+  const map=new Map();
+  (lista||[]).forEach(item=>{
+    const k=dedupeKeyV60(item);
+    const antigo=map.get(k);
+    if(!antigo){
+      map.set(k,{...item,__duplicadosV60:1,__keyV60:k});
+    }else{
+      antigo.__duplicadosV60=(antigo.__duplicadosV60||1)+1;
+      // preservar o registo mais recente se tiver dataRegisto
+      if(String(item?.dataRegisto||"") > String(antigo?.dataRegisto||"")){
+        map.set(k,{...antigo,...item,__duplicadosV60:antigo.__duplicadosV60,__keyV60:k});
+      }
+    }
+  });
+  return [...map.values()];
+}
+function histDedupeV60(){
+  return deduplicarPremiosV60(histBaseV60());
+}
+
+// Override das fontes usadas pela gestão.
+function histSeguroV59(){
+  return histDedupeV60();
+}
+function histV58(){
+  return histDedupeV60();
+}
+function premioIdSeguroV59(item){
+  return dedupeKeyV60(item);
+}
+function premioIdV58(item){
+  return dedupeKeyV60(item);
+}
+
+// Re-render seguro da gestão com deduplicação.
+function atualizarTudoV60(){
+  try{renderPremiosGestaoV58?.()}catch(e){console.warn("V60 gestão",e)}
+  try{atualizarDashboardVivoV54?.()}catch{}
+  try{atualizarGraficosV54?.()}catch{}
+  try{atualizarNumerosV54?.()}catch{}
+  try{atualizarEstatisticas?.()}catch{}
+  try{atualizarPremiosPremiumV42?.()}catch{}
+  try{atualizarPerfilApostadorV43?.()}catch{}
+
+  const resumo=document.getElementById("premiosGestaoResumoV58");
+  if(resumo){
+    const base=histBaseV60().length;
+    const ded=histDedupeV60().length;
+    resumo.textContent=`${ded} candidato(s) · ${Math.max(0,base-ded)} duplicado(s) ocultado(s)`;
+  }
+}
+
+// Opcional: limpar duplicados no localStorage para o utilizador não voltar a carregá-los.
+function limparDuplicadosHistoricoLocalV60(){
+  const base=histBaseV60();
+  const ded=histDedupeV60();
+  if(base.length===ded.length)return false;
+
+  try{
+    Object.keys(localStorage).forEach(k=>{
+      if(/^historicoJSC/.test(k)){
+        const arr=JSON.parse(localStorage.getItem(k)||"[]");
+        if(Array.isArray(arr) && arr.length){
+          const clean=deduplicarPremiosV60(arr);
+          if(clean.length<arr.length)localStorage.setItem(k,JSON.stringify(clean));
+        }
+      }
+    });
+    return true;
+  }catch(e){
+    console.warn("V60 limpar duplicados",e);
+    return false;
+  }
+}
+
+function instalarV60(){
+  const limpo=limparDuplicadosHistoricoLocalV60();
+  atualizarTudoV60();
+  if(limpo){
+    const aviso=document.getElementById("avisoPremiosV59");
+    if(aviso)aviso.textContent="✅ Duplicados do histórico foram ocultados/limpos. Confirma apenas prémios reais antes de somar.";
+  }
+}
+
+try{
+  if(typeof renderHistorico==="function"&&!renderHistorico.__v60Hook){
+    const o=renderHistorico;
+    renderHistorico=function(...args){
+      const r=o.apply(this,args);
+      setTimeout(atualizarTudoV60,300);
+      return r;
+    };
+    renderHistorico.__v60Hook=true;
+  }
+}catch{}
+
+setTimeout(instalarV60,800);
+setTimeout(instalarV60,2200);
+document.addEventListener("click",()=>setTimeout(atualizarTudoV60,250));
 
