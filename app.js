@@ -1,4 +1,4 @@
-window.APP_VERSION = "v58-premios-notificacoes-fcm-ready";
+window.APP_VERSION = "v59-correcao-premios";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -5656,4 +5656,157 @@ function resetNotifV58(){if(confirm("Limpar memória de notificações enviadas?
 function instalarV58(){document.querySelectorAll("[data-filtro-premios-v58]").forEach(b=>{if(b.__v58)return;b.__v58=true;b.addEventListener("click",()=>{document.querySelectorAll("[data-filtro-premios-v58]").forEach(x=>x.classList.remove("active"));b.classList.add("active");renderPremiosGestaoV58()})});const t=document.getElementById("btnTesteNotifV58");if(t&&!t.__v58){t.__v58=true;t.addEventListener("click",testarNotifV58)}const r=document.getElementById("btnResetNotifV58");if(r&&!r.__v58){r.__v58=true;r.addEventListener("click",resetNotifV58)}renderPremiosGestaoV58();notificarPremiosNovosV58()}
 try{if(typeof renderHistorico==="function"&&!renderHistorico.__v58Hook){const o=renderHistorico;renderHistorico=function(...a){const res=o.apply(this,a);setTimeout(()=>{renderPremiosGestaoV58();notificarPremiosNovosV58()},300);return res};renderHistorico.__v58Hook=true}}catch{}
 setTimeout(instalarV58,1000);setTimeout(instalarV58,2500);document.addEventListener("click",()=>setTimeout(renderPremiosGestaoV58,250));
+
+
+
+// V59 - Correção de Prémios: não confiar cegamente no histórico antigo
+const JSC_PREMIOS_CONFIRMADOS_KEY_V59 = "jsc_premios_confirmados_v59";
+const JSC_PREMIOS_LEVANTADOS_KEY_V59 = "jsc_premios_levantados_v59";
+
+function jsonV59(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch{return f}}
+function saveV59(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function confirmadosV59(){return jsonV59(JSC_PREMIOS_CONFIRMADOS_KEY_V59,{})}
+function levantadosV59(){return jsonV59(JSC_PREMIOS_LEVANTADOS_KEY_V59,{})}
+function setConfirmadoV59(id,val){const st=confirmadosV59();if(val)st[id]={confirmado:true,data:new Date().toISOString()};else delete st[id];saveV59(JSC_PREMIOS_CONFIRMADOS_KEY_V59,st)}
+function setLevantadoV59(id,val){const st=levantadosV59();if(val)st[id]={levantado:true,data:new Date().toISOString()};else delete st[id];saveV59(JSC_PREMIOS_LEVANTADOS_KEY_V59,st)}
+
+function histSeguroV59(){
+  try{return histV58?.()||[]}catch{}
+  try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}
+  return [];
+}
+function valorItemSeguroV59(item){
+  try{return valorItemV58?.(item)||0}catch{}
+  return 0;
+}
+function dinheiroV59(n){
+  try{return dinheiroTxtV58?.(n)||Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}catch{return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}
+}
+function premioIdSeguroV59(item){
+  try{return premioIdV58?.(item)}catch{}
+  return [item?.jogo,item?.sorteio,item?.dataSorteio||item?.data,item?.aposta,item?.resultado||item?.acertos,valorItemSeguroV59(item)].join("|");
+}
+function parseApostaSeguroV59(a){
+  try{return parseApostaV58?.(a)||{nums:[],extras:[]}}catch{return{nums:[],extras:[]}}
+}
+function motivoSeguroV59(item){
+  const txt=String(item?.resultado||item?.acertos||"");
+  if(!txt)return "Prémio por confirmar";
+  return txt;
+}
+
+// Override render da V58 com comportamento seguro
+function renderPremiosGestaoV58(){
+  const lista = histSeguroV59();
+  const conf = confirmadosV59();
+  const lev = levantadosV59();
+  const filtro = document.querySelector("[data-filtro-premios-v58].active")?.dataset?.filtroPremiosV58 || "todos";
+
+  const totalConfirmado = lista.reduce((s,i)=>s+(conf[premioIdSeguroV59(i)]?valorItemSeguroV59(i):0),0);
+  const totalLev = lista.reduce((s,i)=>s+(lev[premioIdSeguroV59(i)]?valorItemSeguroV59(i):0),0);
+  const totalPend = Math.max(0,totalConfirmado-totalLev);
+  const porConfirmar = lista.filter(i=>!conf[premioIdSeguroV59(i)]).length;
+
+  const elResumo=document.getElementById("premiosGestaoResumoV58");
+  if(elResumo)elResumo.textContent=`${lista.length} candidato(s) · ${porConfirmar} por confirmar`;
+  document.getElementById("v58TotalGanho")&&(v58TotalGanho.textContent=dinheiroV59(totalConfirmado));
+  document.getElementById("v58TotalLevantado")&&(v58TotalLevantado.textContent=dinheiroV59(totalLev));
+  document.getElementById("v58TotalPorLevantar")&&(v58TotalPorLevantar.textContent=dinheiroV59(totalPend));
+
+  const el=document.getElementById("premiosListaGestaoV58");
+  if(!el)return;
+
+  let arr=lista.filter(i=>{
+    const id=premioIdSeguroV59(i);
+    const isConf=!!conf[id];
+    const isLev=!!lev[id];
+    if(filtro==="levantados")return isLev;
+    if(filtro==="porLevantar")return isConf&&!isLev;
+    return true;
+  });
+
+  if(!arr.length){
+    el.innerHTML='<div class="empty-v58">Sem prémios neste filtro.</div>';
+    return;
+  }
+
+  el.innerHTML=arr.map(item=>{
+    const id=premioIdSeguroV59(item);
+    const isConf=!!conf[id];
+    const isLev=!!lev[id];
+    const val=valorItemSeguroV59(item);
+    const p=parseApostaSeguroV59(item?.aposta);
+    const nums=p.nums.map(n=>`<span>${n}</span>`).join("");
+    const extras=p.extras.map(n=>`<span class="extra">${n}</span>`).join("");
+    const estado=isLev?"✅ Levantado":isConf?"🟡 Por levantar":"⚠️ Por confirmar";
+    const cls=isLev?"levantado":isConf?"pendente":"por-confirmar";
+    return `<article class="premio-gestao-item-v58 ${cls}">
+      <div class="premio-gestao-top-v58">
+        <div><strong>🏆 ${item.jogo||"Jogo"} — ${dinheiroV59(val)}</strong><small>${item.sorteio||""} · ${item.dataSorteio||item.data||""}</small></div>
+        <span>${estado}</span>
+      </div>
+      <div class="premio-detalhe-v58">
+        <div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:""}</p></div>
+        <div><b>Motivo registado</b><p>${motivoSeguroV59(item)}</p></div>
+        <div><b>Confirmação</b><p>${isConf?"Confirmado pelo utilizador":"Não soma até confirmares"}</p></div>
+      </div>
+      <div class="acoes-premio-v59">
+        <button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${isConf?"Retirar confirmação":"Confirmar prémio"}</button>
+        <button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!isConf?"disabled":""}>${isLev?"Marcar por levantar":"Marcar como levantado"}</button>
+      </div>
+    </article>`;
+  }).join("");
+
+  el.querySelectorAll(".btn-confirmar-v59").forEach(b=>{
+    if(b.__v59)return;b.__v59=true;
+    b.addEventListener("click",()=>{
+      const id=decodeURIComponent(b.dataset.id||"");
+      setConfirmadoV59(id,!confirmadosV59()[id]);
+      if(!confirmadosV59()[id]) setLevantadoV59(id,false);
+      renderPremiosGestaoV58();
+    });
+  });
+  el.querySelectorAll(".btn-levantar-v58").forEach(b=>{
+    if(b.__v59)return;b.__v59=true;
+    b.addEventListener("click",()=>{
+      const id=decodeURIComponent(b.dataset.id||"");
+      if(!confirmadosV59()[id])return;
+      setLevantadoV59(id,!levantadosV59()[id]);
+      renderPremiosGestaoV58();
+    });
+  });
+}
+
+// Notificações: só para prémios confirmados ou novos que não tenham sido sinalizados como suspeitos
+function notificarPremiosNovosV58(){
+  const lista=histSeguroV59();
+  const env=notifEnviadasV58?.()||{};
+  const conf=confirmadosV59();
+  let novas=0;
+  lista.forEach(item=>{
+    const id=premioIdSeguroV59(item);
+    if(env[id])return;
+    // Histórico antigo sem confirmação não notifica.
+    if(!conf[id])return;
+    const val=valorItemSeguroV59(item);
+    try{
+      if(typeof Notification!=="undefined"&&Notification.permission==="granted"){
+        new Notification("🎉 Prémio confirmado!",{body:`${item.jogo||"Jogo"}: ${dinheiroV59(val)}`,tag:`premio-${id}`,renotify:false});
+      }
+    }catch{}
+    try{setNotifEnviadaV58?.(id)}catch{}
+    novas++;
+  });
+  const r=document.getElementById("notifResumoV58");
+  if(r)r.textContent=`Notificações sem repetição. Histórico antigo só notifica após confirmação.`;
+  return novas;
+}
+
+function instalarV59(){
+  renderPremiosGestaoV58();
+  try{notificarPremiosNovosV58()}catch{}
+}
+setTimeout(instalarV59,800);
+setTimeout(instalarV59,2200);
+document.addEventListener("click",()=>setTimeout(instalarV59,250));
 
