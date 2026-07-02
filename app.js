@@ -1,4 +1,4 @@
-window.APP_VERSION = "v60-deduplicacao-premios";
+window.APP_VERSION = "v61-emergency-clean";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -5812,139 +5812,184 @@ document.addEventListener("click",()=>setTimeout(instalarV59,250));
 
 
 
-// V60 - Deduplicação de prémios/histórico
-function normKeyV60(s){
+// V61 - Emergency Clean
+// Corrige o problema da V60 e evita loops/deduplicação pesada.
+// Base: V59 estável.
+
+window.__V61_EMERGENCY_CLEAN = true;
+
+function normV61(s){
   return String(s||"")
     .toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
     .replace(/\s+/g," ")
     .trim();
 }
-function apostaKeyV60(s){
+function apostaNormV61(s){
   return String(s||"")
-    .replace(/\s*\+\s*/g,"+")
+    .replace(/\s*\+\s*/g," + ")
     .replace(/\s+/g," ")
     .trim();
 }
-function valorV60(item){
-  try{return valorItemSeguroV59?.(item)||0}catch{}
-  try{return valorItemV58?.(item)||0}catch{}
+function valorV61(item){
+  try { return valorItemSeguroV59?.(item) || 0; } catch {}
+  try { return valorItemV58?.(item) || 0; } catch {}
   return 0;
 }
-function histBaseV60(){
-  try{return histSeguroV59?.()||[]}catch{}
-  try{return histV58?.()||[]}catch{}
-  try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}
-  return [];
-}
-function dedupeKeyV60(item){
+function keyPremioV61(item){
   return [
-    normKeyV60(item?.jogo),
-    normKeyV60(item?.sorteio),
-    normKeyV60(item?.dataSorteio||item?.data),
-    apostaKeyV60(item?.aposta),
-    normKeyV60(item?.resultado||item?.acertos),
-    valorV60(item)
+    normV61(item?.jogo),
+    normV61(item?.sorteio),
+    normV61(item?.dataSorteio || item?.data),
+    apostaNormV61(item?.aposta),
+    normV61(item?.resultado || item?.acertos),
+    valorV61(item)
   ].join("|");
 }
-function deduplicarPremiosV60(lista){
-  const map=new Map();
-  (lista||[]).forEach(item=>{
-    const k=dedupeKeyV60(item);
-    const antigo=map.get(k);
-    if(!antigo){
-      map.set(k,{...item,__duplicadosV60:1,__keyV60:k});
-    }else{
-      antigo.__duplicadosV60=(antigo.__duplicadosV60||1)+1;
-      // preservar o registo mais recente se tiver dataRegisto
-      if(String(item?.dataRegisto||"") > String(antigo?.dataRegisto||"")){
-        map.set(k,{...antigo,...item,__duplicadosV60:antigo.__duplicadosV60,__keyV60:k});
-      }
-    }
+function histBaseV61(){
+  try { if (typeof obterHistoricoArrayV434 === "function") return obterHistoricoArrayV434() || []; } catch {}
+  try { if (typeof obterHistoricoPremiosV41 === "function") return obterHistoricoPremiosV41() || []; } catch {}
+  try { if (Array.isArray(historico)) return historico; } catch {}
+  return [];
+}
+function dedupeV61(lista){
+  const map = new Map();
+  (lista || []).forEach(item => {
+    const k = keyPremioV61(item);
+    if (!map.has(k)) map.set(k, {...item, __keyV61:k});
   });
   return [...map.values()];
 }
-function histDedupeV60(){
-  return deduplicarPremiosV60(histBaseV60());
+function histSeguroV61(){
+  return dedupeV61(histBaseV61());
 }
 
-// Override das fontes usadas pela gestão.
-function histSeguroV59(){
-  return histDedupeV60();
-}
-function histV58(){
-  return histDedupeV60();
-}
-function premioIdSeguroV59(item){
-  return dedupeKeyV60(item);
-}
-function premioIdV58(item){
-  return dedupeKeyV60(item);
-}
+// Override seguro das fontes da V58/V59.
+function histSeguroV59(){ return histSeguroV61(); }
+function histV58(){ return histSeguroV61(); }
+function premioIdSeguroV59(item){ return keyPremioV61(item); }
+function premioIdV58(item){ return keyPremioV61(item); }
 
-// Re-render seguro da gestão com deduplicação.
-function atualizarTudoV60(){
-  try{renderPremiosGestaoV58?.()}catch(e){console.warn("V60 gestão",e)}
-  try{atualizarDashboardVivoV54?.()}catch{}
-  try{atualizarGraficosV54?.()}catch{}
-  try{atualizarNumerosV54?.()}catch{}
-  try{atualizarEstatisticas?.()}catch{}
-  try{atualizarPremiosPremiumV42?.()}catch{}
-  try{atualizarPerfilApostadorV43?.()}catch{}
-
-  const resumo=document.getElementById("premiosGestaoResumoV58");
-  if(resumo){
-    const base=histBaseV60().length;
-    const ded=histDedupeV60().length;
-    resumo.textContent=`${ded} candidato(s) · ${Math.max(0,base-ded)} duplicado(s) ocultado(s)`;
-  }
-}
-
-// Opcional: limpar duplicados no localStorage para o utilizador não voltar a carregá-los.
-function limparDuplicadosHistoricoLocalV60(){
-  const base=histBaseV60();
-  const ded=histDedupeV60();
-  if(base.length===ded.length)return false;
-
+// Limpeza local uma única vez e sem recursão.
+function limparDuplicadosLocalV61(){
   try{
     Object.keys(localStorage).forEach(k=>{
       if(/^historicoJSC/.test(k)){
-        const arr=JSON.parse(localStorage.getItem(k)||"[]");
+        const arr = JSON.parse(localStorage.getItem(k) || "[]");
         if(Array.isArray(arr) && arr.length){
-          const clean=deduplicarPremiosV60(arr);
-          if(clean.length<arr.length)localStorage.setItem(k,JSON.stringify(clean));
+          const clean = dedupeV61(arr);
+          if(clean.length < arr.length) localStorage.setItem(k, JSON.stringify(clean));
         }
       }
     });
-    return true;
   }catch(e){
-    console.warn("V60 limpar duplicados",e);
-    return false;
+    console.warn("V61 limpeza duplicados falhou:", e);
   }
 }
 
-function instalarV60(){
-  const limpo=limparDuplicadosHistoricoLocalV60();
-  atualizarTudoV60();
-  if(limpo){
-    const aviso=document.getElementById("avisoPremiosV59");
-    if(aviso)aviso.textContent="✅ Duplicados do histórico foram ocultados/limpos. Confirma apenas prémios reais antes de somar.";
+// Render da gestão em modo seguro: nada conta sem confirmação manual.
+function renderPremiosGestaoV58(){
+  const lista = histSeguroV61();
+  const conf = (typeof confirmadosV59 === "function") ? confirmadosV59() : {};
+  const lev = (typeof levantadosV59 === "function") ? levantadosV59() : {};
+  const filtro = document.querySelector("[data-filtro-premios-v58].active")?.dataset?.filtroPremiosV58 || "todos";
+
+  const totalConfirmado = lista.reduce((s,i)=>s+(conf[keyPremioV61(i)]?valorV61(i):0),0);
+  const totalLev = lista.reduce((s,i)=>s+(lev[keyPremioV61(i)]?valorV61(i):0),0);
+  const totalPend = Math.max(0,totalConfirmado-totalLev);
+  const porConfirmar = lista.filter(i=>!conf[keyPremioV61(i)]).length;
+
+  const resumo = document.getElementById("premiosGestaoResumoV58");
+  if(resumo) resumo.textContent = `${lista.length} candidato(s) · ${porConfirmar} por confirmar`;
+  document.getElementById("v58TotalGanho") && (v58TotalGanho.textContent = dinheiroV59 ? dinheiroV59(totalConfirmado) : `${totalConfirmado.toFixed(2)} €`);
+  document.getElementById("v58TotalLevantado") && (v58TotalLevantado.textContent = dinheiroV59 ? dinheiroV59(totalLev) : `${totalLev.toFixed(2)} €`);
+  document.getElementById("v58TotalPorLevantar") && (v58TotalPorLevantar.textContent = dinheiroV59 ? dinheiroV59(totalPend) : `${totalPend.toFixed(2)} €`);
+
+  const el = document.getElementById("premiosListaGestaoV58");
+  if(!el) return;
+
+  let arr = lista.filter(i=>{
+    const id = keyPremioV61(i);
+    const isConf = !!conf[id];
+    const isLev = !!lev[id];
+    if(filtro === "levantados") return isLev;
+    if(filtro === "porLevantar") return isConf && !isLev;
+    return true;
+  });
+
+  if(!arr.length){
+    el.innerHTML = '<div class="empty-v58">Sem prémios neste filtro.</div>';
+    return;
   }
+
+  el.innerHTML = arr.map(item=>{
+    const id = keyPremioV61(item);
+    const isConf = !!conf[id];
+    const isLev = !!lev[id];
+    const val = valorV61(item);
+    let p = {nums:[],extras:[]};
+    try{ p = parseApostaSeguroV59?.(item?.aposta) || parseApostaV58?.(item?.aposta) || p; }catch{}
+    const nums = (p.nums||[]).map(n=>`<span>${n}</span>`).join("");
+    const extras = (p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join("");
+    const estado = isLev ? "✅ Levantado" : isConf ? "🟡 Por levantar" : "⚠️ Por confirmar";
+    const cls = isLev ? "levantado" : isConf ? "pendente" : "por-confirmar";
+
+    return `<article class="premio-gestao-item-v58 ${cls}">
+      <div class="premio-gestao-top-v58">
+        <div>
+          <strong>🏆 ${item.jogo || "Jogo"} — ${dinheiroV59 ? dinheiroV59(val) : val}</strong>
+          <small>${item.sorteio || ""} · ${item.dataSorteio || item.data || ""}</small>
+        </div>
+        <span>${estado}</span>
+      </div>
+      <div class="premio-detalhe-v58">
+        <div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:""}</p></div>
+        <div><b>Motivo registado</b><p>${item.resultado || item.acertos || "Prémio por confirmar"}</p></div>
+        <div><b>Confirmação</b><p>${isConf ? "Confirmado pelo utilizador" : "Não conta até confirmares"}</p></div>
+      </div>
+      <div class="acoes-premio-v59">
+        <button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${isConf ? "Retirar confirmação" : "Confirmar prémio"}</button>
+        <button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!isConf ? "disabled" : ""}>${isLev ? "Marcar por levantar" : "Marcar como levantado"}</button>
+      </div>
+    </article>`;
+  }).join("");
+
+  el.querySelectorAll(".btn-confirmar-v59").forEach(b=>{
+    if(b.__v61) return;
+    b.__v61 = true;
+    b.addEventListener("click",()=>{
+      const id = decodeURIComponent(b.dataset.id || "");
+      if(typeof setConfirmadoV59 === "function") setConfirmadoV59(id, !confirmadosV59()[id]);
+      if(typeof setLevantadoV59 === "function" && !confirmadosV59()[id]) setLevantadoV59(id,false);
+      renderPremiosGestaoV58();
+    });
+  });
+
+  el.querySelectorAll(".btn-levantar-v58").forEach(b=>{
+    if(b.__v61) return;
+    b.__v61 = true;
+    b.addEventListener("click",()=>{
+      const id = decodeURIComponent(b.dataset.id || "");
+      if(typeof confirmadosV59 === "function" && !confirmadosV59()[id]) return;
+      if(typeof setLevantadoV59 === "function") setLevantadoV59(id, !levantadosV59()[id]);
+      renderPremiosGestaoV58();
+    });
+  });
+
+  const aviso = document.getElementById("avisoPremiosV59");
+  if(aviso) aviso.textContent = "⚠️ Histórico antigo tratado como candidato. Só conta depois de carregares em Confirmar prémio.";
 }
 
-try{
-  if(typeof renderHistorico==="function"&&!renderHistorico.__v60Hook){
-    const o=renderHistorico;
-    renderHistorico=function(...args){
-      const r=o.apply(this,args);
-      setTimeout(atualizarTudoV60,300);
-      return r;
-    };
-    renderHistorico.__v60Hook=true;
-  }
-}catch{}
+// Notificações: nunca para candidatos não confirmados.
+function notificarPremiosNovosV58(){
+  return 0;
+}
 
-setTimeout(instalarV60,800);
-setTimeout(instalarV60,2200);
-document.addEventListener("click",()=>setTimeout(atualizarTudoV60,250));
+function instalarV61(){
+  limparDuplicadosLocalV61();
+  try{ renderPremiosGestaoV58(); }catch(e){ console.warn("V61 render gestão:", e); }
+}
+setTimeout(instalarV61, 600);
+setTimeout(instalarV61, 1800);
+document.addEventListener("click", () => setTimeout(instalarV61, 200));
 

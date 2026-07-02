@@ -2198,8 +2198,8 @@ section.dashboard + section.dashboard-premium{
 }
 
 
-/* V60 - deduplicação */
-.premio-gestao-item-v58 [data-dup-v60],
-.duplicado-v60{
-  display:none!important;
+/* V61 - emergência performance */
+.premio-gestao-item-v58.por-confirmar{
+  border-color:#f59e0b!important;
+  background:#fffbeb!important;
 }
