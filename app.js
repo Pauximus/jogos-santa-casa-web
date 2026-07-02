@@ -1,4 +1,4 @@
-window.APP_VERSION = "v61-emergency-clean";
+window.APP_VERSION = "v62-recalcular-totoloto";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -5992,4 +5992,195 @@ function instalarV61(){
 setTimeout(instalarV61, 600);
 setTimeout(instalarV61, 1800);
 document.addEventListener("click", () => setTimeout(instalarV61, 200));
+
+
+
+// V62 - Recalcular Totoloto por chave oficial
+// Corrige histórico contaminado das versões anteriores.
+
+const TOTOOFICIAL_V62 = {
+  "050/2026": { data:"24/06/2026", numeros:[2,9,12,17,34], sorte:9, premios: { "5+1":0, "5+0":19525.07, "4+0":171.87, "3+0":4.14, "2+0":1.90, "0+1":0 } },
+  "051/2026": { data:"27/06/2026", numeros:[7,12,17,22,46], sorte:9, premios: { "5+1":0, "5+0":0, "4+0":312.23, "3+0":4.37, "2+0":1.93, "0+1":0 } },
+  "052/2026": { data:"01/07/2026", numeros:[12,16,35,44,47], sorte:10, premios: { "5+1":0, "5+0":0, "4+0":449.17, "3+0":6.02, "2+0":2.46, "0+1":0 } }
+};
+
+function parseApostaTotolotoV62(txt){
+  const parts = String(txt||"").split("+");
+  return {
+    nums: (parts[0]||"").trim().split(/\s+/).map(Number).filter(Number.isFinite),
+    sorte: Number((parts[1]||"").trim().split(/\s+/)[0])
+  };
+}
+function extrairSorteioV62(s){
+  const m = String(s||"").match(/0?(\d{2,3})\/2026/);
+  return m ? `${String(Number(m[1])).padStart(3,"0")}/2026` : "";
+}
+function avaliarTotolotoV62(apostaTxt, sorteioTxt){
+  const key = extrairSorteioV62(sorteioTxt);
+  const of = TOTOOFICIAL_V62[key];
+  if(!of) return null;
+
+  const ap = parseApostaTotolotoV62(apostaTxt);
+  const acertosNums = ap.nums.filter(n => of.numeros.includes(n));
+  const acertouSorte = ap.sorte === of.sorte;
+  const nums = acertosNums.length;
+
+  let categoria = null;
+  let valor = 0;
+
+  // Regras oficiais visíveis nas tabelas:
+  // 5+NS, 5, 4, 3, 2, Nº da Sorte.
+  if(nums === 5 && acertouSorte) categoria = "5+1";
+  else if(nums === 5) categoria = "5+0";
+  else if(nums === 4) categoria = "4+0";
+  else if(nums === 3) categoria = "3+0";
+  else if(nums === 2) categoria = "2+0";
+  else if(acertouSorte) categoria = "0+1";
+
+  valor = categoria ? (of.premios[categoria] || 0) : 0;
+  const temPremio = !!categoria && (categoria === "0+1" || valor > 0 || nums >= 2);
+
+  return {
+    sorteio:key,
+    data:of.data,
+    chave:of.numeros,
+    sorte:of.sorte,
+    aposta:ap,
+    acertosNums,
+    acertouSorte,
+    nums,
+    categoria,
+    valor,
+    temPremio,
+    resultadoTexto: temPremio
+      ? `${nums} número(s)${acertouSorte ? " + 1 Nº da Sorte" : ""}`
+      : `${nums} número(s)${acertouSorte ? " + 1 Nº da Sorte" : ""} — sem prémio`
+  };
+}
+function isTotolotoV62(item){
+  return /totoloto/i.test(String(item?.jogo||""));
+}
+function recalcHistoricoLocalV62(){
+  let mudou = false;
+  try{
+    Object.keys(localStorage).forEach(k=>{
+      if(!/^historicoJSC/.test(k)) return;
+      const arr = JSON.parse(localStorage.getItem(k)||"[]");
+      if(!Array.isArray(arr)) return;
+
+      const novo = [];
+      const seen = new Set();
+
+      arr.forEach(item=>{
+        if(!isTotolotoV62(item)){
+          const generic = JSON.stringify(item);
+          if(!seen.has(generic)){ seen.add(generic); novo.push(item); }
+          return;
+        }
+
+        const ev = avaliarTotolotoV62(item.aposta, item.sorteio || item.dataSorteio);
+        if(!ev){
+          const generic = JSON.stringify(item);
+          if(!seen.has(generic)){ seen.add(generic); novo.push(item); }
+          return;
+        }
+
+        // Remove falso prémio.
+        if(!ev.temPremio || ev.valor <= 0){
+          mudou = true;
+          return;
+        }
+
+        const clean = {
+          ...item,
+          jogo:"Totoloto",
+          dataSorteio: ev.data,
+          sorteio: `${ev.sorteio} - ${String(item.sorteio||"").toLowerCase().includes("quarta") ? "quarta-feira" : String(item.sorteio||"").toLowerCase().includes("sábado") ? "sábado" : ""}`.trim(),
+          resultado: ev.resultadoTexto,
+          premio: `Prémio — ${ev.valor.toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}`,
+          valorPremio: ev.valor,
+          __recalculadoV62: true
+        };
+        const id = [clean.jogo, ev.sorteio, clean.aposta, clean.resultado, ev.valor].join("|");
+        if(!seen.has(id)){
+          seen.add(id);
+          novo.push(clean);
+        }else{
+          mudou = true;
+        }
+      });
+
+      if(novo.length !== arr.length || JSON.stringify(novo) !== JSON.stringify(arr)){
+        localStorage.setItem(k, JSON.stringify(novo));
+        mudou = true;
+      }
+    });
+  }catch(e){
+    console.warn("V62 recalc local falhou:", e);
+  }
+  return mudou;
+}
+
+// Override valor e ids para Totoloto recalculado.
+function valorItemSeguroV59(item){
+  if(isTotolotoV62(item)){
+    const ev = avaliarTotolotoV62(item.aposta, item.sorteio || item.dataSorteio);
+    if(ev && ev.temPremio && ev.valor > 0) return ev.valor;
+    return 0;
+  }
+  try{return valorItemV58?.(item)||0}catch{}
+  return 0;
+}
+function valorItemV58(item){
+  return valorItemSeguroV59(item);
+}
+function keyRecalcV62(item){
+  if(isTotolotoV62(item)){
+    const ev = avaliarTotolotoV62(item.aposta, item.sorteio || item.dataSorteio);
+    if(ev) return ["totoloto", ev.sorteio, String(item.aposta||""), ev.resultadoTexto, ev.valor].join("|");
+  }
+  return [String(item?.jogo||""),String(item?.sorteio||""),String(item?.dataSorteio||item?.data||""),String(item?.aposta||""),String(item?.resultado||""),valorItemSeguroV59(item)].join("|");
+}
+function premioIdSeguroV59(item){ return keyRecalcV62(item); }
+function premioIdV58(item){ return keyRecalcV62(item); }
+
+function histSeguroV59(){
+  const base = histBaseV61 ? histBaseV61() : [];
+  const out = [];
+  const seen = new Set();
+
+  base.forEach(item=>{
+    if(isTotolotoV62(item)){
+      const ev = avaliarTotolotoV62(item.aposta, item.sorteio || item.dataSorteio);
+      if(ev){
+        if(!ev.temPremio || ev.valor <= 0) return;
+        item = {...item, resultado:ev.resultadoTexto, valorPremio:ev.valor, premio:`Prémio — ${ev.valor.toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}`};
+      }
+    }
+    const id = keyRecalcV62(item);
+    if(!seen.has(id)){
+      seen.add(id);
+      out.push(item);
+    }
+  });
+  return out;
+}
+function histV58(){ return histSeguroV59(); }
+
+function instalarV62(){
+  const mudou = recalcHistoricoLocalV62();
+  try{ renderPremiosGestaoV58?.(); }catch{}
+  try{ renderHistorico?.(); }catch{}
+  try{ atualizarDashboardVivoV54?.(); }catch{}
+  try{ atualizarPremiosPremiumV42?.(); }catch{}
+  try{ atualizarEstatisticas?.(); }catch{}
+
+  const aviso = document.getElementById("avisoTotolotoV62");
+  if(aviso) aviso.textContent = mudou
+    ? "✅ V62: Totoloto recalculado. Falsos prémios/duplicados foram removidos."
+    : "✅ V62: Totoloto recalculado pela chave oficial. Sem alterações necessárias.";
+}
+
+setTimeout(instalarV62, 700);
+setTimeout(instalarV62, 2000);
 
