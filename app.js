@@ -1,4 +1,4 @@
-window.APP_VERSION = "v56-compact-layout";
+window.APP_VERSION = "v57-final-tools";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -5479,4 +5479,137 @@ function aplicarCompactLayoutV56(){
 setTimeout(aplicarCompactLayoutV56, 500);
 setTimeout(aplicarCompactLayoutV56, 1600);
 document.addEventListener("click", () => setTimeout(aplicarCompactLayoutV56, 200));
+
+
+
+// V57 - Final Tools: backup/restauro, cache, sobre e compacto mobile
+function historicoV57(){
+  try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}
+  try{if(typeof historicoPremiosV42==="function")return historicoPremiosV42()||[]}catch{}
+  try{if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[]}catch{}
+  try{if(Array.isArray(historico))return historico}catch{}
+  return [];
+}
+function apostasV57(){
+  try{return JSON.parse(JSON.stringify(apostas||{}))}catch{return{}}
+}
+function estadoV57(){
+  let notif="indisponível";
+  try{notif=Notification?.permission||"indisponível"}catch{}
+  return {
+    appVersion:window.APP_VERSION,
+    data:new Date().toISOString(),
+    url:location.href,
+    userAgent:navigator.userAgent,
+    notificacoes:notif,
+    apostas:apostasV57(),
+    historico:historicoV57(),
+    totais:{
+      jogos:Object.keys(apostasV57()).length,
+      apostas:Object.values(apostasV57()).reduce((s,l)=>s+(Array.isArray(l)?l.length:0),0),
+      premios:historicoV57().length
+    },
+    localStorageKeys:Object.keys(localStorage||{}).filter(k=>/jsc|apostas|historico|premio/i.test(k))
+  };
+}
+function setBadgeV57(txt){
+  const el=document.getElementById("toolsV57Badge");
+  if(el)el.textContent=txt;
+}
+function downloadJSONV57(nome,obj){
+  const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download=nome;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportarBackupV57(){
+  const dados=estadoV57();
+  downloadJSONV57(`backup-jogos-santa-casa-${new Date().toISOString().slice(0,10)}.json`,dados);
+  setBadgeV57("Backup feito");
+}
+async function restaurarBackupV57(file){
+  if(!file)return;
+  const txt=await file.text();
+  const dados=JSON.parse(txt);
+  if(!confirm("Restaurar este backup? Isto substitui os dados locais deste dispositivo."))return;
+
+  const userId=(()=>{try{return user?.id||perfil?.user_id||""}catch{return""}})();
+  const suffix=userId?`_${userId}`:"";
+  try{
+    if(dados.apostas)localStorage.setItem(`apostasJSC${suffix}`,JSON.stringify(dados.apostas));
+    if(dados.historico)localStorage.setItem(`historicoJSC${suffix}`,JSON.stringify(dados.historico));
+  }catch(e){
+    alert("Erro ao restaurar: "+e.message);
+    return;
+  }
+  setBadgeV57("Restaurado");
+  alert("Backup restaurado. A app vai recarregar.");
+  location.reload();
+}
+async function limparCacheV57(){
+  try{
+    if("caches" in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k)));
+    }
+    if(navigator.serviceWorker){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.update().catch(()=>{})));
+    }
+  }catch(e){console.warn("V57 cache",e)}
+  setBadgeV57("Cache limpa");
+  alert("Cache limpa. A página vai recarregar.");
+  location.reload(true);
+}
+function atualizarSobreV57(){
+  const st=estadoV57();
+  const el=document.getElementById("sobreAppV57");
+  if(el)el.textContent=`${st.appVersion} · ${st.totais.apostas} aposta(s) · ${st.totais.premios} prémio(s) · notif: ${st.notificacoes}`;
+}
+async function copiarEstadoV57(){
+  const txt=JSON.stringify(estadoV57(),null,2);
+  try{await navigator.clipboard.writeText(txt);alert("Estado copiado.")}catch{prompt("Copia o estado:",txt)}
+}
+function compactoOnV57(){
+  document.body.classList.add("compact-v56","mobile-compact-v57");
+  localStorage.setItem("jsc_compact_v57","1");
+  setBadgeV57("Compacto ON");
+}
+function compactoOffV57(){
+  document.body.classList.remove("mobile-compact-v57");
+  localStorage.setItem("jsc_compact_v57","0");
+  setBadgeV57("Modo normal");
+}
+function aplicarMobileCompactV57(){
+  const saved=localStorage.getItem("jsc_compact_v57");
+  if(saved==="1" || (saved!== "0" && window.innerWidth<820)){
+    document.body.classList.add("compact-v56","mobile-compact-v57");
+  }
+}
+function iniciarToolsV57(){
+  aplicarMobileCompactV57();
+  atualizarSobreV57();
+  const bBackup=document.getElementById("btnBackupV57");
+  const bRestore=document.getElementById("btnRestoreV57");
+  const input=document.getElementById("inputRestoreV57");
+  const bCache=document.getElementById("btnHardRefreshV57");
+  const bReload=document.getElementById("btnReloadV57");
+  const bSobre=document.getElementById("btnSobreV57");
+  const bCopiar=document.getElementById("btnCopiarEstadoV57");
+  const bOn=document.getElementById("btnCompactOnV57");
+  const bOff=document.getElementById("btnCompactOffV57");
+  if(bBackup&&!bBackup.__v57){bBackup.__v57=true;bBackup.addEventListener("click",exportarBackupV57)}
+  if(bRestore&&!bRestore.__v57){bRestore.__v57=true;bRestore.addEventListener("click",()=>input?.click())}
+  if(input&&!input.__v57){input.__v57=true;input.addEventListener("change",e=>restaurarBackupV57(e.target.files?.[0]))}
+  if(bCache&&!bCache.__v57){bCache.__v57=true;bCache.addEventListener("click",limparCacheV57)}
+  if(bReload&&!bReload.__v57){bReload.__v57=true;bReload.addEventListener("click",()=>location.reload())}
+  if(bSobre&&!bSobre.__v57){bSobre.__v57=true;bSobre.addEventListener("click",()=>{atualizarSobreV57();alert(document.getElementById("sobreAppV57")?.textContent||window.APP_VERSION)})}
+  if(bCopiar&&!bCopiar.__v57){bCopiar.__v57=true;bCopiar.addEventListener("click",copiarEstadoV57)}
+  if(bOn&&!bOn.__v57){bOn.__v57=true;bOn.addEventListener("click",compactoOnV57)}
+  if(bOff&&!bOff.__v57){bOff.__v57=true;bOff.addEventListener("click",compactoOffV57)}
+}
+setTimeout(iniciarToolsV57,800);
+setTimeout(iniciarToolsV57,2000);
+window.addEventListener("resize",aplicarMobileCompactV57);
 

@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=56">
+  <link rel="stylesheet" href="style.css?v=57">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -103,6 +103,56 @@
         </div>
         <div class="dv-frase" id="dvFrase">A analisar o teu histórico...</div>
       </section>
+
+      <section class="card tools-v57-card" id="toolsV57Card">
+        <div class="tools-v57-head">
+          <div>
+            <h2>🛠️ Ferramentas</h2>
+            <p>Backup, atualização, estado da app e manutenção.</p>
+          </div>
+          <span class="tools-v57-badge" id="toolsV57Badge">Pronto</span>
+        </div>
+
+        <div class="tools-v57-grid">
+          <div class="tool-v57">
+            <strong>💾 Backup</strong>
+            <small>Exporta ou restaura apostas e histórico.</small>
+            <div class="tool-v57-actions">
+              <button id="btnBackupV57" type="button">Exportar dados</button>
+              <button id="btnRestoreV57" type="button">Restaurar</button>
+              <input id="inputRestoreV57" type="file" accept="application/json,.json" hidden>
+            </div>
+          </div>
+
+          <div class="tool-v57">
+            <strong>🔄 Atualização</strong>
+            <small>Força limpeza de cache e recarrega a app.</small>
+            <div class="tool-v57-actions">
+              <button id="btnHardRefreshV57" type="button">Limpar cache</button>
+              <button id="btnReloadV57" type="button">Recarregar</button>
+            </div>
+          </div>
+
+          <div class="tool-v57">
+            <strong>ℹ️ Sobre a app</strong>
+            <small id="sobreAppV57">A carregar estado...</small>
+            <div class="tool-v57-actions">
+              <button id="btnSobreV57" type="button">Ver estado</button>
+              <button id="btnCopiarEstadoV57" type="button">Copiar estado</button>
+            </div>
+          </div>
+
+          <div class="tool-v57">
+            <strong>📱 Modo compacto</strong>
+            <small>Otimização automática para telemóvel.</small>
+            <div class="tool-v57-actions">
+              <button id="btnCompactOnV57" type="button">Compacto ON</button>
+              <button id="btnCompactOffV57" type="button">Normal</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
 <section class="dashboard card" id="dashboardBox">
         <div class="dashboard-title">
           <div>
@@ -434,7 +484,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=56"></script>
+  <script src="app.js?v=57"></script>
 
       <div id="notifModal" class="notif-modal" hidden>
         <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>
