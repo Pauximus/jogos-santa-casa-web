@@ -1,4 +1,4 @@
-window.APP_VERSION = "v63-totoloto-render-fix";
+window.APP_VERSION = "v64-gestao-segura-global";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -6221,4 +6221,111 @@ function renderPremiosGestaoV58(){
 function notificarPremiosNovosV58(){return 0}
 function instalarV63(){limparLocalV63();try{renderPremiosGestaoV58()}catch(e){console.warn('V63 gestão',e)}try{atualizarDashboardVivoV54?.()}catch{}try{atualizarPremiosPremiumV42?.()}catch{}try{atualizarEstatisticas?.()}catch{}}
 setTimeout(instalarV63,700);setTimeout(instalarV63,2000);document.addEventListener('click',()=>setTimeout(instalarV63,250));
+
+
+
+// V64 - Gestão Segura Global
+window.__V64_GESTAO_SEGURA_GLOBAL = true;
+
+function normGlobalV64(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim()}
+function apostaGlobalV64(s){return String(s||"").replace(/\s*\+\s*/g," + ").replace(/\s+/g," ").trim()}
+function baseHistoricoV64(){
+  try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}
+  try{if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[]}catch{}
+  try{if(Array.isArray(historico))return historico}catch{}
+  return []
+}
+function valorOriginalGlobalV64(item){
+  if(/totoloto/i.test(String(item?.jogo||"")) && typeof avaliarTotolotoV62==="function"){
+    const ev=avaliarTotolotoV62(item.aposta,item.sorteio||item.dataSorteio);
+    if(ev&&ev.temPremio&&ev.valor>0)return ev.valor;
+    if(ev)return 0;
+  }
+  const n=Number(item?.valorPremio||item?.valor||0);
+  if(Number.isFinite(n)&&n>0)return n;
+  return 0;
+}
+function idGlobalPremioV64(item){
+  let extra="";
+  if(/totoloto/i.test(String(item?.jogo||"")) && typeof avaliarTotolotoV62==="function"){
+    const ev=avaliarTotolotoV62(item.aposta,item.sorteio||item.dataSorteio);
+    if(ev)extra=`${ev.sorteio}|${ev.resultadoTexto}|${ev.valor}`;
+  }
+  return [normGlobalV64(item?.jogo),normGlobalV64(item?.sorteio),normGlobalV64(item?.dataSorteio||item?.data),apostaGlobalV64(item?.aposta),normGlobalV64(item?.resultado||item?.acertos),valorOriginalGlobalV64(item),extra].join("|");
+}
+function historicoFiltradoGlobalV64(){
+  const out=[], seen=new Set();
+  baseHistoricoV64().forEach(item=>{
+    let clean=item;
+    if(/totoloto/i.test(String(item?.jogo||"")) && typeof avaliarTotolotoV62==="function"){
+      const ev=avaliarTotolotoV62(item.aposta,item.sorteio||item.dataSorteio);
+      if(ev){
+        if(!ev.temPremio||ev.valor<=0)return;
+        clean={...item,jogo:"Totoloto",dataSorteio:ev.data,resultado:ev.resultadoTexto,premio:`Prémio — ${ev.valor.toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}`,valorPremio:ev.valor,__recalculadoV64:true};
+      }
+    }
+    const id=idGlobalPremioV64(clean);
+    if(!seen.has(id)){seen.add(id);out.push(clean)}
+  });
+  return out;
+}
+
+function histSeguroV59(){return historicoFiltradoGlobalV64()}
+function histV58(){return historicoFiltradoGlobalV64()}
+function histSeguroV61(){return historicoFiltradoGlobalV64()}
+function histTotolotoFiltradoV63(){return historicoFiltradoGlobalV64()}
+function premioIdSeguroV59(item){return idGlobalPremioV64(item)}
+function premioIdV58(item){return idGlobalPremioV64(item)}
+function valorCandidatoV64(item){return valorOriginalGlobalV64(item)}
+function valorConfirmadoV64(item){
+  const conf=(typeof confirmadosV59==="function")?confirmadosV59():{};
+  return conf[idGlobalPremioV64(item)]?valorOriginalGlobalV64(item):0;
+}
+function moedaV64(n){
+  try{return dinheiroV59(n)}catch{return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}
+}
+
+function renderPremiosGestaoV58(){
+  const lista=historicoFiltradoGlobalV64();
+  const conf=(typeof confirmadosV59==="function")?confirmadosV59():{};
+  const lev=(typeof levantadosV59==="function")?levantadosV59():{};
+  const filtro=document.querySelector("[data-filtro-premios-v58].active")?.dataset?.filtroPremiosV58||"todos";
+  const total=lista.reduce((s,i)=>s+valorConfirmadoV64(i),0);
+  const totalLev=lista.reduce((s,i)=>s+(lev[idGlobalPremioV64(i)]?valorOriginalGlobalV64(i):0),0);
+  const porConfirmar=lista.filter(i=>!conf[idGlobalPremioV64(i)]).length;
+  if(document.getElementById("premiosGestaoResumoV58"))premiosGestaoResumoV58.textContent=`${lista.length} candidato(s) · ${porConfirmar} por confirmar`;
+  if(document.getElementById("v58TotalGanho"))v58TotalGanho.textContent=moedaV64(total);
+  if(document.getElementById("v58TotalLevantado"))v58TotalLevantado.textContent=moedaV64(totalLev);
+  if(document.getElementById("v58TotalPorLevantar"))v58TotalPorLevantar.textContent=moedaV64(Math.max(0,total-totalLev));
+  const el=document.getElementById("premiosListaGestaoV58"); if(!el)return;
+  const arr=lista.filter(i=>{const id=idGlobalPremioV64(i),c=!!conf[id],l=!!lev[id];return filtro==="levantados"?l:filtro==="porLevantar"?c&&!l:true});
+  if(!arr.length){el.innerHTML='<div class="empty-v58">Sem prémios neste filtro.</div>';return}
+  el.innerHTML=arr.map(item=>{
+    const id=idGlobalPremioV64(item), c=!!conf[id], l=!!lev[id], val=valorCandidatoV64(item);
+    let p={nums:[],extras:[]}; try{p=parseApostaSeguroV59?.(item.aposta)||parseApostaV58?.(item.aposta)||p}catch{}
+    const nums=(p.nums||[]).map(n=>`<span>${n}</span>`).join("");
+    const extras=(p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join("");
+    return `<article class="premio-gestao-item-v58 ${l?"levantado":c?"pendente":"por-confirmar"}">
+      <div class="premio-gestao-top-v58"><div><strong>🏆 ${item.jogo||"Jogo"} — ${moedaV64(val)}</strong><small>${item.sorteio||""} · ${item.dataSorteio||item.data||""}</small></div><span>${l?"✅ Levantado":c?"🟡 Por levantar":"⚠️ Por confirmar"}</span></div>
+      <div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:""}</p></div><div><b>Motivo registado</b><p>${item.resultado||item.acertos||"Prémio candidato"}</p></div><div><b>Estado</b><p>${c?"Confirmado pelo utilizador":"Não conta até confirmares"}</p></div></div>
+      <div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${c?"Retirar confirmação":"Confirmar prémio"}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!c?"disabled":""}>${l?"Marcar por levantar":"Marcar como levantado"}</button></div>
+    </article>`
+  }).join("");
+  el.querySelectorAll(".btn-confirmar-v59").forEach(btn=>{if(btn.__v64)return;btn.__v64=true;btn.addEventListener("click",()=>{const id=decodeURIComponent(btn.dataset.id||"");if(typeof setConfirmadoV59==="function")setConfirmadoV59(id,!confirmadosV59()[id]);if(typeof setLevantadoV59==="function"&&!confirmadosV59()[id])setLevantadoV59(id,false);renderPremiosGestaoV58();atualizarResumosSegurosV64()})});
+  el.querySelectorAll(".btn-levantar-v58").forEach(btn=>{if(btn.__v64)return;btn.__v64=true;btn.addEventListener("click",()=>{const id=decodeURIComponent(btn.dataset.id||"");if(typeof confirmadosV59==="function"&&!confirmadosV59()[id])return;if(typeof setLevantadoV59==="function")setLevantadoV59(id,!levantadosV59()[id]);renderPremiosGestaoV58();atualizarResumosSegurosV64()})});
+}
+
+function atualizarResumosSegurosV64(){
+  const lista=historicoFiltradoGlobalV64(), conf=(typeof confirmadosV59==="function")?confirmadosV59():{};
+  const total=lista.reduce((s,i)=>s+(conf[idGlobalPremioV64(i)]?valorOriginalGlobalV64(i):0),0);
+  const qtd=lista.filter(i=>conf[idGlobalPremioV64(i)]).length;
+  if(document.getElementById("dvTotalGanho"))dvTotalGanho.textContent=moedaV64(total);
+  if(document.getElementById("dvSequencia"))dvSequencia.textContent=`${qtd} confirmado(s)`;
+  if(document.getElementById("dvFrase"))dvFrase.textContent=`Tens ${lista.length} candidato(s), ${qtd} confirmado(s) e total confirmado de ${moedaV64(total)}.`;
+}
+
+function notificarPremiosNovosV58(){return 0}
+function limparAvisosTecnicosV64(){const a=document.getElementById("avisoTotolotoV62");if(a)a.remove()}
+function instalarV64(){limparAvisosTecnicosV64();try{renderPremiosGestaoV58()}catch(e){console.warn("V64 gestão",e)}try{atualizarResumosSegurosV64()}catch{}}
+setTimeout(instalarV64,700);setTimeout(instalarV64,2000);document.addEventListener("click",()=>setTimeout(instalarV64,250));
 
