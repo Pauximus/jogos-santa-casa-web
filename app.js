@@ -1,4 +1,4 @@
-window.APP_VERSION = "v64-gestao-segura-global";
+window.APP_VERSION = "v65-resultados-acertos";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -6328,4 +6328,131 @@ function notificarPremiosNovosV58(){return 0}
 function limparAvisosTecnicosV64(){const a=document.getElementById("avisoTotolotoV62");if(a)a.remove()}
 function instalarV64(){limparAvisosTecnicosV64();try{renderPremiosGestaoV58()}catch(e){console.warn("V64 gestão",e)}try{atualizarResumosSegurosV64()}catch{}}
 setTimeout(instalarV64,700);setTimeout(instalarV64,2000);document.addEventListener("click",()=>setTimeout(instalarV64,250));
+
+
+
+// V65 - Resultados com acertos destacados + remove aviso antigo
+
+function removerAvisoPremiosV65(){
+  const aviso = document.getElementById("avisoPremiosV59");
+  if(aviso) aviso.remove();
+}
+
+function parseNumerosLinhaV65(txt){
+  const m = String(txt||"").match(/Resultado:\s*\[([^\]]+)\]\s*\+\s*\[([^\]]+)\]/i);
+  if(!m) return null;
+  return {
+    nums: m[1].split(/[,\s]+/).map(Number).filter(Number.isFinite),
+    extras: m[2].split(/[,\s]+/).map(Number).filter(Number.isFinite)
+  };
+}
+
+function parseApostaLinhaV65(txt){
+  const m = String(txt||"").match(/Aposta\s*\d*\s*:\s*([0-9\s]+)(?:\+\s*([0-9\s]+))?/i);
+  if(!m) return {nums:[], extras:[]};
+  return {
+    nums: (m[1]||"").trim().split(/\s+/).map(Number).filter(Number.isFinite),
+    extras: (m[2]||"").trim().split(/\s+/).map(Number).filter(Number.isFinite)
+  };
+}
+
+function bolasHtmlV65(aposta, resultado){
+  const nums = (aposta.nums||[]).map(n => {
+    const hit = resultado?.nums?.includes(n);
+    return `<span class="bola-v65 ${hit?'hit':'miss'}">${n}</span>`;
+  }).join("");
+  const extras = (aposta.extras||[]).map(n => {
+    const hit = resultado?.extras?.includes(n);
+    return `<span class="bola-v65 extra ${hit?'hit':'miss'}">${n}</span>`;
+  }).join("");
+  return `${nums}${extras ? '<i class="plus-v65">+</i>' + extras : ''}`;
+}
+
+function destacarResultadosV65(){
+  removerAvisoPremiosV65();
+
+  const resultadosCards = Array.from(document.querySelectorAll(".result-card, .result-card.bad, .result-card.good, .result-card.warn"));
+  resultadosCards.forEach(card => {
+    if(card.__v65Done) return;
+
+    const parentText = card.closest("section,.card,div")?.innerText || document.body.innerText || "";
+    const resultado = parseNumerosLinhaV65(parentText);
+    if(!resultado) return;
+
+    const txt = card.innerText || "";
+    const aposta = parseApostaLinhaV65(txt);
+    if(!aposta.nums.length && !aposta.extras.length) return;
+
+    const numsHit = aposta.nums.filter(n => resultado.nums.includes(n));
+    const extrasHit = aposta.extras.filter(n => resultado.extras.includes(n));
+
+    const destaque = document.createElement("div");
+    destaque.className = "destaque-acertos-v65";
+    destaque.innerHTML = `
+      <div class="linha-bolas-v65">
+        <b>A tua chave:</b>
+        <span class="bolas-wrap-v65">${bolasHtmlV65(aposta, resultado)}</span>
+      </div>
+      <div class="resumo-acertos-v65">
+        ${numsHit.length || extrasHit.length
+          ? `Acertaste: <strong>${[...numsHit, ...extrasHit].join(", ")}</strong>`
+          : `Sem números acertados`}
+      </div>
+    `;
+
+    const meta = Array.from(card.querySelectorAll("br")).pop();
+    card.appendChild(destaque);
+    card.__v65Done = true;
+  });
+}
+
+function melhorarResultadoAtualV65(){
+  const sections = Array.from(document.querySelectorAll("section,.card,div"));
+  sections.forEach(sec => {
+    if(sec.__v65ResultadoHeader) return;
+    const txt = sec.innerText || "";
+    if(!/Resultado:\s*\[/.test(txt)) return;
+
+    const resultado = parseNumerosLinhaV65(txt);
+    if(!resultado) return;
+
+    const title = Array.from(sec.querySelectorAll("strong,h3,h2")).find(x => /EUROMILHÕES|TOTOLOTO|EURODREAMS|MILHÃO|LOTO/i.test(x.textContent||""));
+    if(!title) return;
+
+    const header = document.createElement("div");
+    header.className = "chave-vencedora-v65";
+    header.innerHTML = `
+      <b>Chave vencedora</b>
+      <div class="bolas-wrap-v65">
+        ${(resultado.nums||[]).map(n=>`<span class="bola-v65 winner">${n}</span>`).join("")}
+        ${(resultado.extras||[]).length ? '<i class="plus-v65">+</i>' + resultado.extras.map(n=>`<span class="bola-v65 extra winner">${n}</span>`).join("") : ""}
+      </div>
+    `;
+    title.parentElement?.insertBefore(header, title.nextSibling);
+    sec.__v65ResultadoHeader = true;
+  });
+}
+
+function instalarV65(){
+  removerAvisoPremiosV65();
+  destacarResultadosV65();
+  melhorarResultadoAtualV65();
+}
+
+try{
+  if(typeof verificarApostas === "function" && !verificarApostas.__v65Hook){
+    const old = verificarApostas;
+    verificarApostas = function(...args){
+      const r = old.apply(this,args);
+      setTimeout(instalarV65,300);
+      setTimeout(instalarV65,900);
+      return r;
+    };
+    verificarApostas.__v65Hook = true;
+  }
+}catch{}
+
+setTimeout(instalarV65,700);
+setTimeout(instalarV65,1800);
+document.addEventListener("click",()=>setTimeout(instalarV65,250));
 

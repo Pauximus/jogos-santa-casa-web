@@ -2217,3 +2217,88 @@ section.dashboard + section.dashboard-premium{
 }
 
 #avisoTotolotoV62{display:none!important}
+
+
+/* V65 - acertos destacados */
+#avisoPremiosV59{display:none!important}
+.chave-vencedora-v65{
+  margin:10px 0;
+  padding:10px;
+  border:1px solid #dbeafe;
+  background:#eff6ff;
+  border-radius:12px;
+}
+.chave-vencedora-v65 b{
+  display:block;
+  color:#1e3a8a;
+  margin-bottom:6px;
+}
+.destaque-acertos-v65{
+  margin-top:10px;
+  padding:9px;
+  border:1px solid rgba(15,23,42,.08);
+  background:rgba(255,255,255,.72);
+  border-radius:12px;
+}
+.linha-bolas-v65{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.linha-bolas-v65 b{
+  font-size:12px;
+  color:#334155;
+}
+.bolas-wrap-v65{
+  display:inline-flex;
+  gap:5px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.bola-v65{
+  width:28px;
+  height:28px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#fff;
+  border:2px solid #cbd5e1;
+  color:#334155;
+  font-weight:1000;
+  font-size:12px;
+}
+.bola-v65.extra{
+  background:#fffbeb;
+  border-color:#f59e0b;
+}
+.bola-v65.hit{
+  background:#dcfce7;
+  border-color:#16a34a;
+  color:#166534;
+  box-shadow:0 0 0 3px rgba(22,163,74,.16);
+}
+.bola-v65.winner{
+  background:#f8fafc;
+  border-color:#0f172a;
+  color:#0f172a;
+}
+.bola-v65.winner.hit{
+  background:#dcfce7;
+  border-color:#16a34a;
+}
+.plus-v65{
+  font-style:normal;
+  font-weight:1000;
+  color:#64748b;
+}
+.resumo-acertos-v65{
+  margin-top:6px;
+  color:#334155;
+  font-weight:800;
+  font-size:12px;
+}
+.resumo-acertos-v65 strong{
+  color:#166534;
+}
