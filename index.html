@@ -6,7 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
   <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=57">
+  <link rel="stylesheet" href="style.css?v=58">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -152,6 +152,36 @@
           </div>
         </div>
       </section>
+
+      <section class="card premios-gestao-v58-card" id="premiosGestaoV58Card">
+        <div class="v58-head">
+          <div><h2>💰 Gestão de Prémios</h2><p>Marca prémios levantados e vê o que falta reclamar.</p></div>
+          <span class="v58-pill" id="premiosGestaoResumoV58">—</span>
+        </div>
+        <div class="premios-finance-v58">
+          <div><span>Total ganho</span><strong id="v58TotalGanho">—</strong></div>
+          <div><span>Já levantado</span><strong id="v58TotalLevantado">—</strong></div>
+          <div><span>Por levantar</span><strong id="v58TotalPorLevantar">—</strong></div>
+        </div>
+        <div class="premios-filtros-v58">
+          <button type="button" data-filtro-premios-v58="todos" class="active">Todos</button>
+          <button type="button" data-filtro-premios-v58="porLevantar">Por levantar</button>
+          <button type="button" data-filtro-premios-v58="levantados">Levantados</button>
+        </div>
+        <div id="premiosListaGestaoV58" class="premios-lista-gestao-v58"></div>
+      </section>
+      <section class="card notificacoes-fcm-v58-card" id="notificacoesFcmV58Card">
+        <div class="v58-head">
+          <div><h2>🔔 Notificações Inteligentes</h2><p>Cada prémio só notifica uma vez. Push real preparado para Firebase.</p></div>
+          <span class="v58-pill" id="fcmEstadoV58">FCM ready</span>
+        </div>
+        <div class="fcm-grid-v58">
+          <div><strong>✅ Sem repetições</strong><small id="notifResumoV58">Cada prémio só gera 1 notificação neste dispositivo.</small></div>
+          <div><strong>📲 App fechada</strong><small id="pushResumoV58">Precisa de Firebase + backend para push real.</small></div>
+          <div><strong>🧪 Testes</strong><small>Valida notificações locais.</small><div class="fcm-actions-v58"><button id="btnTesteNotifV58" type="button">Testar</button><button id="btnResetNotifV58" type="button">Reset</button></div></div>
+        </div>
+      </section>
+
 
 <section class="dashboard card" id="dashboardBox">
         <div class="dashboard-title">
@@ -484,7 +514,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=57"></script>
+  <script src="app.js?v=58"></script>
 
       <div id="notifModal" class="notif-modal" hidden>
         <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>

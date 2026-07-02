@@ -1,4 +1,4 @@
-window.APP_VERSION = "v57-final-tools";
+window.APP_VERSION = "v58-premios-notificacoes-fcm-ready";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -5612,4 +5612,48 @@ function iniciarToolsV57(){
 setTimeout(iniciarToolsV57,800);
 setTimeout(iniciarToolsV57,2000);
 window.addEventListener("resize",aplicarMobileCompactV57);
+
+
+
+// V58 - Gestão de Prémios + Notificações inteligentes + FCM Ready
+const JSC_PREMIOS_LEVANTADOS_KEY_V58="jsc_premios_levantados_v58";
+const JSC_NOTIFS_ENVIADAS_KEY_V58="jsc_notificacoes_premios_enviadas_v58";
+function histV58(){try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}try{if(typeof historicoPremiosV42==="function")return historicoPremiosV42()||[]}catch{}try{if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[]}catch{}try{if(Array.isArray(historico))return historico}catch{}return[]}
+function dinheiroNumV58(v){if(v==null)return 0;if(typeof v==="number"&&Number.isFinite(v))return v;const s=String(v).replace(/\s/g,"").replace("€","").replace(/\./g,"").replace(",",".");const n=Number(s.replace(/[^\d.-]/g,""));return Number.isFinite(n)?n:0}
+function dinheiroTxtV58(n){return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}
+function valorItemV58(item){for(const c of [item?.valorPremio,item?.valor,item?.premioValor,item?.premio]){const n=dinheiroNumV58(c);if(n>0)return n}try{const n=dinheiroNumV58(calcularValorHistoricoV434?.(item));if(n>0)return n}catch{}return 0}
+function normV58(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim()}
+function premioIdV58(item){return [normV58(item?.jogo),normV58(item?.sorteio),normV58(item?.dataSorteio||item?.data),normV58(item?.aposta),normV58(item?.resultado||item?.acertos),valorItemV58(item)].join("|")}
+function loadJsonV58(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch{return f}}
+function saveJsonV58(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function levantadosV58(){return loadJsonV58(JSC_PREMIOS_LEVANTADOS_KEY_V58,{})}
+function setLevantadoV58(id,val){const st=levantadosV58();if(val)st[id]={levantado:true,data:new Date().toISOString()};else delete st[id];saveJsonV58(JSC_PREMIOS_LEVANTADOS_KEY_V58,st)}
+function notifEnviadasV58(){return loadJsonV58(JSC_NOTIFS_ENVIADAS_KEY_V58,{})}
+function setNotifEnviadaV58(id){const st=notifEnviadasV58();st[id]={enviada:true,data:new Date().toISOString()};saveJsonV58(JSC_NOTIFS_ENVIADAS_KEY_V58,st)}
+function parseApostaV58(a){const p=String(a||"").split("+");return{nums:(p[0]||"").trim().split(/\s+/).map(Number).filter(Number.isFinite),extras:(p[1]||"").trim().split(/\s+/).map(Number).filter(Number.isFinite)}}
+function explicarPremioV58(item){const p=parseApostaV58(item?.aposta);const resumo=String(item?.resultado||item?.acertos||"Prémio encontrado");return{nums:p.nums,extras:p.extras,resumo}}
+function renderPremiosGestaoV58(){
+ const lista=histV58(), lev=levantadosV58(), filtro=document.querySelector("[data-filtro-premios-v58].active")?.dataset?.filtroPremiosV58||"todos";
+ const total=lista.reduce((s,i)=>s+valorItemV58(i),0), totalLev=lista.reduce((s,i)=>s+(lev[premioIdV58(i)]?valorItemV58(i):0),0), pend=total-totalLev;
+ document.getElementById("premiosGestaoResumoV58")&&(premiosGestaoResumoV58.textContent=`${lista.length} prémio(s)`);
+ document.getElementById("v58TotalGanho")&&(v58TotalGanho.textContent=dinheiroTxtV58(total));
+ document.getElementById("v58TotalLevantado")&&(v58TotalLevantado.textContent=dinheiroTxtV58(totalLev));
+ document.getElementById("v58TotalPorLevantar")&&(v58TotalPorLevantar.textContent=dinheiroTxtV58(pend));
+ const el=document.getElementById("premiosListaGestaoV58"); if(!el)return;
+ const arr=lista.filter(i=>{const l=!!lev[premioIdV58(i)];return filtro==="levantados"?l:filtro==="porLevantar"?!l:true});
+ if(!arr.length){el.innerHTML='<div class="empty-v58">Sem prémios neste filtro.</div>';return}
+ el.innerHTML=arr.map(item=>{const id=premioIdV58(item), l=!!lev[id], val=valorItemV58(item), ex=explicarPremioV58(item);
+ const nums=ex.nums.map(n=>`<span>${n}</span>`).join(""), extras=ex.extras.map(n=>`<span class="extra">${n}</span>`).join("");
+ return `<article class="premio-gestao-item-v58 ${l?"levantado":"pendente"}">
+ <div class="premio-gestao-top-v58"><div><strong>🏆 ${item.jogo||"Jogo"} — ${dinheiroTxtV58(val)}</strong><small>${item.sorteio||""} · ${item.dataSorteio||item.data||""}</small></div><span>${l?"✅ Levantado":"🟡 Por levantar"}</span></div>
+ <div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:""}</p></div><div><b>Motivo do prémio</b><p>${ex.resumo}</p></div><div><b>Estado</b><p>${l?"Prémio já levantado":"Ainda por levantar"}</p></div></div>
+ <button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}">${l?"Marcar por levantar":"Marcar como levantado"}</button></article>`}).join("");
+ el.querySelectorAll(".btn-levantar-v58").forEach(b=>{if(b.__v58)return;b.__v58=true;b.addEventListener("click",()=>{const id=decodeURIComponent(b.dataset.id||"");setLevantadoV58(id,!levantadosV58()[id]);renderPremiosGestaoV58()})});
+}
+function notificarPremiosNovosV58(){const lista=histV58(), env=notifEnviadasV58();let novas=0;lista.forEach(item=>{const id=premioIdV58(item);if(env[id])return;const val=valorItemV58(item);if(!val&&!item?.premio)return;try{if(typeof Notification!=="undefined"&&Notification.permission==="granted"){new Notification("🎉 Prémio encontrado!",{body:`${item.jogo||"Jogo"}: ${val?dinheiroTxtV58(val):(item.premio||"Prémio")}`,tag:`premio-${id}`,renotify:false})}}catch{}setNotifEnviadaV58(id);novas++});const r=document.getElementById("notifResumoV58");if(r)r.textContent=`${Object.keys(notifEnviadasV58()).length} prémio(s) já notificado(s) neste dispositivo.`;return novas}
+async function testarNotifV58(){try{if(typeof Notification==="undefined"){alert("Este browser não suporta notificações.");return}let p=Notification.permission;if(p==="default")p=await Notification.requestPermission();if(p!=="granted"){alert("Notificações não autorizadas.");return}new Notification("🍀 Teste Jogos Santa Casa",{body:"As notificações locais estão a funcionar.",tag:"teste-v58"})}catch(e){alert("Erro: "+e.message)}}
+function resetNotifV58(){if(confirm("Limpar memória de notificações enviadas?")){localStorage.removeItem(JSC_NOTIFS_ENVIADAS_KEY_V58);notificarPremiosNovosV58()}}
+function instalarV58(){document.querySelectorAll("[data-filtro-premios-v58]").forEach(b=>{if(b.__v58)return;b.__v58=true;b.addEventListener("click",()=>{document.querySelectorAll("[data-filtro-premios-v58]").forEach(x=>x.classList.remove("active"));b.classList.add("active");renderPremiosGestaoV58()})});const t=document.getElementById("btnTesteNotifV58");if(t&&!t.__v58){t.__v58=true;t.addEventListener("click",testarNotifV58)}const r=document.getElementById("btnResetNotifV58");if(r&&!r.__v58){r.__v58=true;r.addEventListener("click",resetNotifV58)}renderPremiosGestaoV58();notificarPremiosNovosV58()}
+try{if(typeof renderHistorico==="function"&&!renderHistorico.__v58Hook){const o=renderHistorico;renderHistorico=function(...a){const res=o.apply(this,a);setTimeout(()=>{renderPremiosGestaoV58();notificarPremiosNovosV58()},300);return res};renderHistorico.__v58Hook=true}}catch{}
+setTimeout(instalarV58,1000);setTimeout(instalarV58,2500);document.addEventListener("click",()=>setTimeout(renderPremiosGestaoV58,250));
 

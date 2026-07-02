@@ -72,5 +72,6 @@
     }
   ],
   "prefer_related_applications": false,
-  "version": "v38-auto-update"
+  "version": "v38-auto-update",
+  "gcm_sender_id": "103953800507"
 }

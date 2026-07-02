@@ -1,4 +1,4 @@
-const CACHE_NAME = "jogos-santa-casa-v57";
+const CACHE_NAME = "jogos-santa-casa-v58";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -105,4 +105,22 @@ self.addEventListener("push", (event) => {
     data: { url: data.url || "./", tipo },
     actions: data.actions || [{ action: "abrir", title: "Abrir app" }]
   }));
+});
+
+// V58_PUSH_HANDLER - Web Push/FCM ready
+self.addEventListener("push", event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data ? event.data.text() : "" }; }
+  event.waitUntil(self.registration.showNotification(data.title || "🍀 Jogos Santa Casa", {
+    body: data.body || "Tens novidades nos teus resultados.",
+    icon: data.icon || "./icon-192.png",
+    badge: data.badge || "./icon-192.png",
+    tag: data.tag || "jogos-santa-casa",
+    renotify: false,
+    data: data.url || "./"
+  }));
+});
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  event.waitUntil(clients.openWindow(event.notification.data || "./"));
 });
