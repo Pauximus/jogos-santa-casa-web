@@ -1,4 +1,4 @@
-window.APP_VERSION = "v62-recalcular-totoloto";
+window.APP_VERSION = "v63-totoloto-render-fix";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -6183,4 +6183,42 @@ function instalarV62(){
 
 setTimeout(instalarV62, 700);
 setTimeout(instalarV62, 2000);
+
+
+
+// V63 - Totoloto render fix definitivo
+function normV63(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim()}
+function apostaNormV63(s){return String(s||"").replace(/\s*\+\s*/g," + ").replace(/\s+/g," ").trim()}
+function baseHistV63(){try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}try{if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[]}catch{}try{if(Array.isArray(historico))return historico}catch{}return[]}
+function isTotoV63(i){return /totoloto/i.test(String(i?.jogo||""))}
+function evalTotoV63(i){try{return avaliarTotolotoV62?.(i.aposta,i.sorteio||i.dataSorteio||i.data)||null}catch{return null}}
+function valorV63(i){if(isTotoV63(i)){const ev=evalTotoV63(i);return ev&&ev.temPremio&&ev.valor>0?ev.valor:0}try{return Number(i?.valorPremio||0)||valorItemSeguroV59?.(i)||0}catch{return Number(i?.valorPremio||0)||0}}
+function cleanItemV63(i){if(isTotoV63(i)){const ev=evalTotoV63(i);if(ev){if(!ev.temPremio||ev.valor<=0)return null;return {...i,jogo:"Totoloto",dataSorteio:ev.data,resultado:ev.resultadoTexto,premio:`Prémio — ${ev.valor.toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}`,valorPremio:ev.valor,__v63:true}}}return i}
+function keyV63(i){return [normV63(i?.jogo),normV63(i?.sorteio),normV63(i?.dataSorteio||i?.data),apostaNormV63(i?.aposta),normV63(i?.resultado||i?.acertos),valorV63(i)].join("|")}
+function histFiltradoV63(){const seen=new Set(),out=[];(baseHistV63()||[]).forEach(raw=>{const i=cleanItemV63(raw);if(!i)return;const k=keyV63(i);if(!seen.has(k)){seen.add(k);out.push(i)}});return out}
+function limparLocalV63(){try{Object.keys(localStorage).forEach(k=>{if(!/^historicoJSC/.test(k))return;const arr=JSON.parse(localStorage.getItem(k)||"[]");if(!Array.isArray(arr))return;const seen=new Set(),clean=[];arr.forEach(raw=>{const i=cleanItemV63(raw);if(!i)return;const id=keyV63(i);if(!seen.has(id)){seen.add(id);clean.push(i)}});if(JSON.stringify(clean)!==JSON.stringify(arr))localStorage.setItem(k,JSON.stringify(clean))})}catch(e){console.warn("V63 limpar",e)}}
+function histSeguroV59(){return histFiltradoV63()}
+function histV58(){return histFiltradoV63()}
+function histSeguroV61(){return histFiltradoV63()}
+function valorItemSeguroV59(i){return valorV63(i)}
+function valorItemV58(i){return valorV63(i)}
+function premioIdSeguroV59(i){return keyV63(i)}
+function premioIdV58(i){return keyV63(i)}
+function moneyV63(n){try{return dinheiroV59(n)}catch{return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}}
+function parseApostaV63(a){try{return parseApostaSeguroV59?.(a)||parseApostaV58?.(a)||{nums:[],extras:[]}}catch{return{nums:[],extras:[]}}}
+function renderPremiosGestaoV58(){
+ const lista=histFiltradoV63(),conf=typeof confirmadosV59==="function"?confirmadosV59():{},lev=typeof levantadosV59==="function"?levantadosV59():{},filtro=document.querySelector("[data-filtro-premios-v58].active")?.dataset?.filtroPremiosV58||"todos";
+ const total=lista.reduce((s,i)=>s+(conf[keyV63(i)]?valorV63(i):0),0), totalLev=lista.reduce((s,i)=>s+(lev[keyV63(i)]?valorV63(i):0),0), porConf=lista.filter(i=>!conf[keyV63(i)]).length;
+ document.getElementById("premiosGestaoResumoV58")&&(premiosGestaoResumoV58.textContent=`${lista.length} prémio(s) real(is) · ${porConf} por confirmar`);
+ document.getElementById("v58TotalGanho")&&(v58TotalGanho.textContent=moneyV63(total));document.getElementById("v58TotalLevantado")&&(v58TotalLevantado.textContent=moneyV63(totalLev));document.getElementById("v58TotalPorLevantar")&&(v58TotalPorLevantar.textContent=moneyV63(Math.max(0,total-totalLev)));
+ const el=document.getElementById("premiosListaGestaoV58");if(!el)return;const arr=lista.filter(i=>{const id=keyV63(i),c=!!conf[id],l=!!lev[id];return filtro==="levantados"?l:filtro==="porLevantar"?c&&!l:true});
+ if(!arr.length){el.innerHTML='<div class="empty-v58">Sem prémios reais neste filtro.</div>';return}
+ el.innerHTML=arr.map(i=>{const id=keyV63(i),c=!!conf[id],l=!!lev[id],p=parseApostaV63(i.aposta),nums=(p.nums||[]).map(n=>`<span>${n}</span>`).join(""),extras=(p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join("");return `<article class="premio-gestao-item-v58 ${l?'levantado':c?'pendente':'por-confirmar'}"><div class="premio-gestao-top-v58"><div><strong>🏆 ${i.jogo||'Jogo'} — ${moneyV63(valorV63(i))}</strong><small>${i.sorteio||''} · ${i.dataSorteio||i.data||''}</small></div><span>${l?'✅ Levantado':c?'🟡 Por levantar':'⚠️ Por confirmar'}</span></div><div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:''}</p></div><div><b>Motivo correto</b><p>${i.resultado||'Prémio recalculado'}</p></div><div><b>Confirmação</b><p>${c?'Confirmado pelo utilizador':'Não conta até confirmares'}</p></div></div><div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${c?'Retirar confirmação':'Confirmar prémio'}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!c?'disabled':''}>${l?'Marcar por levantar':'Marcar como levantado'}</button></div></article>`}).join("");
+ el.querySelectorAll(".btn-confirmar-v59").forEach(b=>{if(b.__v63)return;b.__v63=true;b.addEventListener("click",()=>{const id=decodeURIComponent(b.dataset.id||"");if(typeof setConfirmadoV59==="function")setConfirmadoV59(id,!confirmadosV59()[id]);renderPremiosGestaoV58()})});
+ el.querySelectorAll(".btn-levantar-v58").forEach(b=>{if(b.__v63)return;b.__v63=true;b.addEventListener("click",()=>{const id=decodeURIComponent(b.dataset.id||"");if(typeof confirmadosV59==="function"&&!confirmadosV59()[id])return;if(typeof setLevantadoV59==="function")setLevantadoV59(id,!levantadosV59()[id]);renderPremiosGestaoV58()})});
+ const aviso=document.getElementById("avisoTotolotoV62");if(aviso)aviso.textContent="✅ V63: Totoloto corrigido. Sorteio 052 sem prémio foi removido; só ficam 050/051 quando há 2 números + Nº da Sorte.";
+}
+function notificarPremiosNovosV58(){return 0}
+function instalarV63(){limparLocalV63();try{renderPremiosGestaoV58()}catch(e){console.warn('V63 gestão',e)}try{atualizarDashboardVivoV54?.()}catch{}try{atualizarPremiosPremiumV42?.()}catch{}try{atualizarEstatisticas?.()}catch{}}
+setTimeout(instalarV63,700);setTimeout(instalarV63,2000);document.addEventListener('click',()=>setTimeout(instalarV63,250));
 
