@@ -12,6 +12,7 @@ on:
           - test
           - scheduled
           - reminder
+          - soon
           - results
       message:
         description: "Mensagem do teste (opcional)"
@@ -20,8 +21,9 @@ on:
   schedule:
     # UTC. No verão em Portugal, Lisboa está UTC+1.
     # Terça/sexta = EuroMilhões. Quarta/sábado = Totoloto.
-    # Corre de 30 em 30 minutos entre 18:00 e 22:30 UTC.
-    - cron: "*/30 18-22 * * 2,3,5,6"
+    # Scheduler inteligente. Corre em janelas úteis para lembretes e resultados.
+    # Em modo scheduled, o script decide se deve enviar algo ou ficar idle.
+    - cron: "*/30 17-23 * * 2,3,5,6"
 
 jobs:
   push-engine:

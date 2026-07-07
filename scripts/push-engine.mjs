@@ -1,12 +1,7 @@
 import webpush from 'web-push';
 
-const required = [
-  'SUPABASE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'VAPID_PUBLIC_KEY',
-  'VAPID_PRIVATE_KEY'
-];
-
+const APP_VERSION = 'v68-scheduler-inteligente';
+const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'];
 for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env: ${key}`);
 }
@@ -14,161 +9,157 @@ for (const key of required) {
 const SUPABASE_URL = process.env.SUPABASE_URL.replace(/\/$/, '');
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+async function supabaseRequest(path, options = {}) {
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+  const headers = {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    Prefer: 'return=minimal',
+    ...(options.headers || {})
+  };
+
+  const res = await fetch(url, { ...options, headers });
+  const text = await res.text();
+
+  if (!res.ok) {
+    let parsed;
+    try { parsed = text ? JSON.parse(text) : null; } catch { parsed = text; }
+    const err = new Error(`Supabase REST error ${res.status}: ${text || res.statusText}`);
+    err.status = res.status;
+    err.body = parsed;
+    err.code = parsed?.code;
+    throw err;
+  }
+
+  if (!text) return null;
+  try { return JSON.parse(text); } catch { return text; }
+}
+
+
+async function createRunLog(mode) {
+  const payload = {
+    mode,
+    status: 'running',
+    started_at: new Date().toISOString(),
+    app_version: APP_VERSION
+  };
+  const data = await supabaseRequest('push_engine_runs?select=id', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(payload)
+  });
+  return Array.isArray(data) && data[0] ? data[0].id : null;
+}
+
+async function finishRunLog(id, patch) {
+  if (!id) return;
+  try {
+    await supabaseRequest(`push_engine_runs?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ...patch, finished_at: new Date().toISOString() })
+    });
+  } catch (e) {
+    console.warn('Could not update push_engine_runs:', e.message || e);
+  }
+}
+
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT || 'mailto:pauximus@gmail.com',
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 );
 
-async function sb(path, options = {}) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: options.prefer || 'return=minimal',
-      ...(options.headers || {})
-    }
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    const err = new Error(`Supabase ${res.status}: ${text}`);
-    err.status = res.status;
-    err.body = text;
-    throw err;
-  }
-
-  if (res.status === 204) return null;
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
-}
-
 function lisbonParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Lisbon',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).formatToParts(date).reduce((a, p) => {
-    a[p.type] = p.value;
-    return a;
-  }, {});
-
-  return {
-    ...parts,
-    isoDate: `${parts.year}-${parts.month}-${parts.day}`,
-    hour: Number(parts.hour),
-    minute: Number(parts.minute)
-  };
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(date).reduce((a, p) => (a[p.type] = p.value, a), {});
+  return { ...parts, isoDate: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour), minute: Number(parts.minute) };
 }
 
-function buildNotification() {
-  const p = lisbonParts();
-  const mode = process.env.PUSH_MODE || 'auto';
-  const id = process.env.PUSH_TEST_ID || `${p.isoDate}-${p.hour}${String(p.minute).padStart(2, '0')}`;
+function gameForToday(parts) {
+  const wd = parts.weekday.toLowerCase();
+  if (wd.startsWith('tue') || wd.startsWith('fri')) return { id: 'euromilhoes', name: 'EuroMilhões' };
+  if (wd.startsWith('wed') || wd.startsWith('sat')) return { id: 'totoloto', name: 'Totoloto' };
+  return null;
+}
 
-  if (mode === 'test') {
+function buildNotification(mode = process.env.PUSH_MODE || 'scheduled', now = new Date()) {
+  const p = lisbonParts(now);
+  const forceTest = process.env.PUSH_FORCE_TEST === '1' || mode === 'test';
+
+  if (forceTest) {
+    const testId = process.env.PUSH_TEST_ID || `${p.isoDate}-${p.hour}${String(p.minute).padStart(2, '0')}-${Date.now()}`;
     return {
-      mode,
       game: 'teste',
-      draw_number: `teste-${Date.now()}`,
+      draw_number: `teste-${testId}`,
       notification_type: 'teste_push',
       payload: {
         title: '🧪 Teste Push — Assistente Jogos Santa Casa',
-        body: 'Se recebeste isto, o Push Engine está a funcionar com a app fechada.',
+        body: process.env.PUSH_TEST_MESSAGE || `Teste V68 OK. Push Engine ativo com a app fechada.`,
         tipo: 'teste',
-        tag: `jsc-teste-${Date.now()}`,
-        url: './'
+        tag: `jsc-teste-${testId}`,
+        url: './',
+        version: APP_VERSION
       }
     };
   }
 
-  if (mode === 'reminder') {
+  const game = gameForToday(p);
+  if (!game) return null;
+
+  const explicitReminder = mode === 'reminder';
+  const explicitResults = mode === 'results';
+  const explicitSoon = mode === 'soon';
+  const reminderWindow = p.hour >= 18 && p.hour <= 21;
+  const resultsWindow = p.hour >= 22 || p.hour <= 1;
+
+  if (explicitSoon) {
     return {
-      mode,
-      game: 'euromilhoes',
-      draw_number: `reminder-${id}`,
-      notification_type: 'lembrete_sorteio',
+      game: game.id,
+      draw_number: p.isoDate,
+      notification_type: 'lembrete_30_min',
       payload: {
-        title: '🎰 Hoje há sorteio',
-        body: 'Não te esqueças de confirmar ou registar as tuas apostas.',
-        tipo: 'lembrete',
-        tag: `jsc-reminder-${id}`,
-        url: './'
+        title: `⏰ Falta pouco — ${game.name}`,
+        body: 'Se ainda não registaste as apostas, esta é a altura ideal.',
+        tipo: 'sorteio',
+        tag: `jsc-${game.id}-30min-${p.isoDate}`,
+        url: './',
+        version: APP_VERSION
       }
     };
   }
 
-  if (mode === 'soon') {
+  if (explicitResults || (mode === 'scheduled' && resultsWindow)) {
     return {
-      mode,
-      game: 'euromilhoes',
-      draw_number: `soon-${id}`,
-      notification_type: 'sorteio_breve',
+      game: game.id,
+      draw_number: p.isoDate,
+      notification_type: 'resultado_disponivel',
       payload: {
-        title: '⏰ Sorteio em breve',
-        body: 'Falta pouco para o sorteio. Confirma se tens as apostas registadas.',
-        tipo: 'sorteio_breve',
-        tag: `jsc-soon-${id}`,
-        url: './'
+        title: `🎉 Resultados disponíveis — ${game.name}`,
+        body: `Já podes abrir o Assistente Jogos Santa Casa e analisar as tuas apostas de hoje.`,
+        tipo: 'resultado',
+        tag: `jsc-${game.id}-resultado-${p.isoDate}`,
+        url: './',
+        version: APP_VERSION
       }
     };
   }
 
-  if (mode === 'results') {
+  if (explicitReminder || (mode === 'scheduled' && reminderWindow)) {
     return {
-      mode,
-      game: 'euromilhoes',
-      draw_number: `results-${id}`,
-      notification_type: 'resultados_disponiveis',
-      payload: {
-        title: '📢 Resultados disponíveis',
-        body: 'Já podes abrir a app para verificar as tuas apostas.',
-        tipo: 'resultados',
-        tag: `jsc-results-${id}`,
-        url: './'
-      }
-    };
-  }
-
-  const wd = p.weekday.toLowerCase();
-  const isEuro = wd.startsWith('tue') || wd.startsWith('fri');
-  const isTotoloto = wd.startsWith('wed') || wd.startsWith('sat');
-
-  if (isEuro && p.hour >= 18 && p.hour <= 21) {
-    return {
-      mode: 'auto',
-      game: 'euromilhoes',
+      game: game.id,
       draw_number: p.isoDate,
       notification_type: 'lembrete_sorteio',
       payload: {
-        title: '🎰 Hoje há EuroMilhões',
+        title: `🍀 Hoje há ${game.name}`,
         body: 'Não te esqueças de confirmar ou registar as tuas apostas.',
-        tipo: 'lembrete',
-        tag: `jsc-euromilhoes-${p.isoDate}`,
-        url: './'
-      }
-    };
-  }
-
-  if (isTotoloto && p.hour >= 18 && p.hour <= 21) {
-    return {
-      mode: 'auto',
-      game: 'totoloto',
-      draw_number: p.isoDate,
-      notification_type: 'lembrete_sorteio',
-      payload: {
-        title: '🎰 Hoje há Totoloto',
-        body: 'Não te esqueças de confirmar ou registar as tuas apostas.',
-        tipo: 'lembrete',
-        tag: `jsc-totoloto-${p.isoDate}`,
-        url: './'
+        tipo: 'sorteio',
+        tag: `jsc-${game.id}-lembrete-${p.isoDate}`,
+        url: './',
+        version: APP_VERSION
       }
     };
   }
@@ -176,42 +167,16 @@ function buildNotification() {
   return null;
 }
 
-async function createRun(notification) {
-  const rows = await sb('push_engine_runs', {
-    method: 'POST',
-    prefer: 'return=representation',
-    body: JSON.stringify({
-      run_id: process.env.GITHUB_RUN_ID || `local-${Date.now()}`,
-      mode: notification?.mode || process.env.PUSH_MODE || 'auto',
-      status: 'running',
-      notification_type: notification?.notification_type || null,
-      title: notification?.payload?.title || null
-    })
-  });
-
-  return rows?.[0]?.id || null;
-}
-
-async function updateRun(id, values) {
-  if (!id) return;
-  await sb(`push_engine_runs?id=eq.${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      ...values,
-      finished_at: new Date().toISOString()
-    })
-  });
-}
-
 async function getSubscriptions() {
-  return await sb('push_subscriptions?select=id,profile_id,device_id,endpoint,p256dh,auth,enabled&enabled=eq.true&limit=1000', {
-    method: 'GET'
+  return await supabaseRequest('push_subscriptions?select=id,profile_id,device_id,endpoint,p256dh,auth,enabled&enabled=eq.true&limit=1000', {
+    method: 'GET',
+    headers: { Accept: 'application/json' }
   }) || [];
 }
 
 async function logBeforeSend(sub, notification) {
   try {
-    await sb('notification_log', {
+    await supabaseRequest('notification_log', {
       method: 'POST',
       body: JSON.stringify({
         profile_id: sub.profile_id,
@@ -223,113 +188,115 @@ async function logBeforeSend(sub, notification) {
         body: notification.payload.body
       })
     });
-
     return true;
-  } catch (err) {
-    if (err.status === 409 || String(err.body || '').includes('duplicate key')) return false;
-    throw err;
+  } catch (error) {
+    if (error.code === '23505') return false;
+    throw error;
   }
 }
 
 async function disableSubscription(sub, reason) {
   console.log(`Disabling subscription ${sub.id}: ${reason}`);
-  await sb(`push_subscriptions?id=eq.${sub.id}`, {
+  await supabaseRequest(`push_subscriptions?id=eq.${encodeURIComponent(sub.id)}`, {
     method: 'PATCH',
-    body: JSON.stringify({
-      enabled: false,
-      updated_at: new Date().toISOString()
-    })
+    body: JSON.stringify({ enabled: false, updated_at: new Date().toISOString() })
   });
 }
 
 async function sendToSubscription(sub, notification) {
   const shouldSend = await logBeforeSend(sub, notification);
-
   if (!shouldSend) {
-    console.log(`Skipped duplicate for ${sub.profile_id} / ${notification.game} / ${notification.draw_number}`);
+    console.log(`Skipped duplicate for ${sub.profile_id} / ${notification.game} / ${notification.draw_number} / ${notification.notification_type}`);
     return { skipped: true };
   }
 
   const pushSub = {
     endpoint: sub.endpoint,
-    keys: {
-      p256dh: sub.p256dh,
-      auth: sub.auth
-    }
+    keys: { p256dh: sub.p256dh, auth: sub.auth }
   };
 
   try {
-    await webpush.sendNotification(
-      pushSub,
-      JSON.stringify(notification.payload),
-      { TTL: 60 * 60 * 6 }
-    );
-
+    await webpush.sendNotification(pushSub, JSON.stringify(notification.payload), { TTL: 60 * 60 * 6 });
     return { sent: true };
   } catch (err) {
     if (err.statusCode === 404 || err.statusCode === 410) {
       await disableSubscription(sub, `expired ${err.statusCode}`);
       return { disabled: true };
     }
-
     console.error('Push failed:', err.statusCode, err.body || err.message);
     throw err;
   }
 }
 
 async function main() {
-  const notification = buildNotification();
-  const runId = await createRun(notification);
+  console.log(`Assistente Jogos Santa Casa — ${APP_VERSION}`);
+  const mode = process.env.PUSH_MODE || 'scheduled';
+  const runId = await createRunLog(mode);
+  let notification = null;
+  let subscriptions = [];
+  const stats = { sent: 0, skipped: 0, disabled: 0, failed: 0 };
 
-  if (!notification) {
-    console.log('No notification scheduled for this run.');
-    await updateRun(runId, {
-      status: 'skipped',
-      message: 'No notification scheduled for this run.'
-    });
-    return;
-  }
+  try {
+    notification = buildNotification(mode);
 
-  const subscriptions = await getSubscriptions();
-
-  console.log(`Notification: ${notification.payload.title}`);
-  console.log(`Mode: ${notification.mode}`);
-  console.log(`Enabled subscriptions: ${subscriptions.length}`);
-
-  const stats = {
-    sent: 0,
-    skipped: 0,
-    disabled: 0,
-    failed: 0
-  };
-
-  for (const sub of subscriptions) {
-    try {
-      const result = await sendToSubscription(sub, notification);
-      if (result.sent) stats.sent++;
-      else if (result.skipped) stats.skipped++;
-      else if (result.disabled) stats.disabled++;
-    } catch {
-      stats.failed++;
+    if (!notification) {
+      console.log(`No notification scheduled for this run. mode=${mode}`);
+      await finishRunLog(runId, { status: 'idle', message: `Sem notificação agendada para mode=${mode}` });
+      return;
     }
+
+    subscriptions = await getSubscriptions();
+    console.log(`Notification: ${notification.payload.title}`);
+    console.log(`Type: ${notification.notification_type} | Game: ${notification.game} | Draw: ${notification.draw_number}`);
+    console.log(`Enabled subscriptions: ${subscriptions.length}`);
+
+    if (!subscriptions.length) {
+      console.log('No enabled push subscriptions. Abre a app, permite notificações e clica em Registar Push Cloud.');
+    }
+
+    for (const sub of subscriptions) {
+      try {
+        const result = await sendToSubscription(sub, notification);
+        if (result.sent) stats.sent++;
+        else if (result.skipped) stats.skipped++;
+        else if (result.disabled) stats.disabled++;
+      } catch (e) {
+        stats.failed++;
+        console.error(`Failed subscription ${sub.id}:`, e.message || e);
+      }
+    }
+
+    console.log('Push Engine stats:', stats);
+    await finishRunLog(runId, {
+      status: stats.failed > 0 ? 'partial_failure' : 'success',
+      game: notification.game,
+      draw_number: notification.draw_number,
+      notification_type: notification.notification_type,
+      notification_title: notification.payload.title,
+      subscriptions_count: subscriptions.length,
+      sent: stats.sent,
+      skipped: stats.skipped,
+      disabled: stats.disabled,
+      failed: stats.failed,
+      message: stats.failed > 0 ? 'Algumas subscrições falharam.' : 'Execução concluída.'
+    });
+    if (stats.failed > 0) process.exitCode = 1;
+  } catch (err) {
+    await finishRunLog(runId, {
+      status: 'error',
+      message: err.message || String(err),
+      subscriptions_count: subscriptions.length,
+      sent: stats.sent,
+      skipped: stats.skipped,
+      disabled: stats.disabled,
+      failed: stats.failed || 1,
+      notification_title: notification?.payload?.title || null
+    });
+    throw err;
   }
-
-  console.log('Push Engine stats:', stats);
-
-  await updateRun(runId, {
-    status: stats.failed > 0 ? 'failed' : 'success',
-    enabled_subscriptions: subscriptions.length,
-    sent: stats.sent,
-    skipped: stats.skipped,
-    disabled: stats.disabled,
-    failed: stats.failed,
-    message: `sent=${stats.sent}, skipped=${stats.skipped}, disabled=${stats.disabled}, failed=${stats.failed}`
-  });
-
-  if (stats.failed > 0) process.exitCode = 1;
 }
 
-main().catch(async err => {
+main().catch(err => {
   console.error(err);
   process.exit(1);
 });

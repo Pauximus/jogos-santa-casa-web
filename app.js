@@ -1,4 +1,4 @@
-window.APP_VERSION = "v68-notificacoes-inteligentes";
+window.APP_VERSION = "v68.1-update-fix";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -9,6 +9,7 @@ const SUPABASE_APOSTAS = "apostas_guardadas";
 const SUPABASE_V67_PROFILES = "profiles";
 const SUPABASE_V67_DEVICES = "devices";
 const SUPABASE_V67_PUSH_SUBSCRIPTIONS = "push_subscriptions";
+const SUPABASE_V68_PUSH_ENGINE_RUNS = "push_engine_runs";
 const V67_1_VAPID_PUBLIC_KEY = "BLIiD2ChRw0XwhWFES1hjpu7qwUfItr5fEjBxcLMKTSatPAS-1OkhQSjTgKA4q3gafiY2Dhxi6UX9wpFd_jQwp4";
 const V67_2_PUSH_ENGINE = true;
 const V67_3_GITHUB_ACTIONS_PUSH = true;
@@ -2532,26 +2533,51 @@ setInterval(() => {
 }, 60000);
 
 
-// V38 Auto Update
-const VERSAO_ATUAL="v68-notificacoes-inteligentes";
-async function verificarNovaVersao(){
- try{
-   const r=await fetch('manifest.json?ts='+Date.now(),{cache:'no-store'});
-   const m=await r.json();
-   const nova=m.version||VERSAO_ATUAL;
-   if(nova!==VERSAO_ATUAL){
-      if(confirm(`Existe uma nova versão (${nova}). Atualizar agora?`)){
-         if('serviceWorker' in navigator){
-           const regs=await navigator.serviceWorker.getRegistrations();
-           for(const reg of regs){try{await reg.update();}catch(e){}}
-         }
-         location.reload(true);
-      }
-   }
- }catch(e){}
+// V68.1 - Auto Update robusto, sem loop infinito
+const VERSAO_ATUAL = "v68.1-update-fix";
+async function limparCachesAppV681() {
+  try {
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter(k => String(k).startsWith("jogos-santa-casa-")).map(k => caches.delete(k)));
+    }
+  } catch (e) {}
 }
-setInterval(verificarNovaVersao,300000);
-setTimeout(verificarNovaVersao,5000);
+async function verificarNovaVersao() {
+  try {
+    const r = await fetch(`manifest.json?ts=${Date.now()}`, { cache: "no-store" });
+    const m = await r.json();
+    const nova = m.version || VERSAO_ATUAL;
+    if (!nova || nova === VERSAO_ATUAL) {
+      try { localStorage.removeItem("jsc_update_prompt_version"); } catch (e) {}
+      return;
+    }
+
+    const jaPerguntou = (() => {
+      try { return localStorage.getItem("jsc_update_prompt_version") === nova; } catch (e) { return false; }
+    })();
+    if (jaPerguntou) return;
+
+    if (confirm(`Existe uma nova versão (${nova}). Atualizar agora?`)) {
+      try { localStorage.setItem("jsc_update_prompt_version", nova); } catch (e) {}
+      await limparCachesAppV681();
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          try {
+            if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+            await reg.update();
+          } catch (e) {}
+        }
+      }
+      window.location.replace(`${location.pathname}?v=${encodeURIComponent(nova)}&t=${Date.now()}${location.hash || ""}`);
+    } else {
+      try { localStorage.setItem("jsc_update_prompt_version", nova); } catch (e) {}
+    }
+  } catch (e) {}
+}
+setInterval(verificarNovaVersao, 300000);
+setTimeout(verificarNovaVersao, 5000);
 
 
 // V39 - Estatísticas inteligentes
@@ -6588,7 +6614,12 @@ let v67CloudState = {
   lastSync: null,
   pushReady: false,
   pushEndpoint: null,
-  pushStatus: "—"
+  pushStatus: "—",
+  engineStatus: "A preparar",
+  engineLastRun: "—",
+  engineNextRun: "—",
+  engineLastNotification: "—",
+  engineDevices: "—"
 };
 
 function v67Uuid() {
@@ -6637,7 +6668,11 @@ function v67RenderCloudCard() {
   set("v67CloudLastSync", v67CloudState.lastSync || "—");
   set("v67CloudVersion", window.APP_VERSION || "—");
   const engine = document.getElementById("v672PushEngineStatus");
-  if (engine) engine.textContent = v67CloudState.pushReady ? "Preparado" : "A aguardar Push";
+  if (engine) engine.textContent = v67CloudState.engineStatus || (v67CloudState.pushReady ? "Preparado" : "A aguardar Push");
+  set("v68PushEngineLastRun", v67CloudState.engineLastRun || "—");
+  set("v68PushEngineNextRun", v67CloudState.engineNextRun || "—");
+  set("v68PushEngineLastNotification", v67CloudState.engineLastNotification || "—");
+  set("v68PushEngineDevices", v67CloudState.engineDevices || "—");
   set("v671PushCloudStatus", v67CloudState.pushStatus || (pushReady ? "Registado" : "Por registar"));
   const dot = document.getElementById("v67CloudDot");
   if (dot) dot.className = ready ? "v67-dot ok" : "v67-dot warn";
@@ -6671,6 +6706,60 @@ async function v67RegisterDevice() {
   const { error } = await supabaseClient.from(SUPABASE_V67_DEVICES).upsert(payload, { onConflict: "id" });
   if (error) throw error;
   return true;
+}
+
+
+function v68FormatarDataHora(valor) {
+  if (!valor) return "—";
+  try {
+    return new Date(valor).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" });
+  } catch { return "—"; }
+}
+
+function v68ProximaExecucaoPushEngine() {
+  const agora = new Date();
+  const prox = new Date(agora);
+  const min = prox.getMinutes();
+  prox.setSeconds(0, 0);
+  prox.setMinutes(min < 30 ? 30 : 60);
+  return prox.toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" });
+}
+
+async function v68CarregarEstadoPushEngine() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from(SUPABASE_V68_PUSH_ENGINE_RUNS)
+      .select("id, mode, status, started_at, finished_at, notification_title, sent, skipped, disabled, failed, subscriptions_count")
+      .order("started_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const run = (data || [])[0];
+    if (!run) {
+      v67CloudSetStatus(v67CloudState.status, {
+        engineStatus: v67CloudState.pushReady ? "Sem execuções" : "A aguardar Push",
+        engineLastRun: "—",
+        engineNextRun: v68ProximaExecucaoPushEngine(),
+        engineLastNotification: "—",
+        engineDevices: "—"
+      });
+      return;
+    }
+    const ok = run.status === "success";
+    v67CloudSetStatus(v67CloudState.status, {
+      engineStatus: ok ? "Online" : (run.status || "Executado"),
+      engineLastRun: v68FormatarDataHora(run.finished_at || run.started_at),
+      engineNextRun: v68ProximaExecucaoPushEngine(),
+      engineLastNotification: run.notification_title || "Sem notificação",
+      engineDevices: `${run.subscriptions_count ?? 0} subscrição(ões) / ${run.sent ?? 0} enviada(s)`
+    });
+  } catch (e) {
+    console.warn("V68 estado Push Engine indisponível:", e);
+    v67CloudSetStatus(v67CloudState.status, {
+      engineStatus: "Sem monitor",
+      engineNextRun: v68ProximaExecucaoPushEngine()
+    });
+  }
 }
 
 

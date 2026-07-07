@@ -1,10 +1,10 @@
-const CACHE_NAME = "jogos-santa-casa-v67-3";
+const CACHE_NAME = "jogos-santa-casa-v68-1";
 const APP_SHELL = [
   "./",
   "index.html",
-  "style.css?v=67.3",
-  "app.js?v=67.3",
-  "manifest.webmanifest?v=67.3",
+  "style.css?v=68.1",
+  "app.js?v=68.1",
+  "manifest.webmanifest?v=68.1",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/maskable-512.png",

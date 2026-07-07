@@ -72,6 +72,6 @@
     }
   ],
   "prefer_related_applications": false,
-  "version": "v67.1-push-notifications",
+  "version": "v68.1-update-fix",
   "gcm_sender_id": "103953800507"
 }
