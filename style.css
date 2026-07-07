@@ -2302,3 +2302,16 @@ section.dashboard + section.dashboard-premium{
 .resumo-acertos-v65 strong{
   color:#166534;
 }
+
+
+/* V66 - resultados inteligentes */
+.result-meta-v66{margin-bottom:10px;line-height:1.45;color:#344054}
+.chave-vencedora-v66{margin:10px 0 12px;padding:12px;border:1px solid #dbeafe;background:#eff6ff;border-radius:14px}
+.mini-label-v66{font-size:12px;font-weight:1000;color:#1e3a8a;margin-bottom:7px;text-transform:uppercase;letter-spacing:.02em}
+.resultado-inteligente-v66{position:relative;overflow:hidden}
+.aposta-label-v66{margin-top:7px;font-weight:900;color:#334155}
+.linha-v66{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}.linha-v66>span{font-size:12px;font-weight:1000;color:#475569}
+.bolas-wrap-v66{display:inline-flex;gap:5px;flex-wrap:wrap;align-items:center}.bola-v66{width:30px;height:30px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:2px solid #cbd5e1;color:#334155;font-weight:1000;font-size:12px}.bola-v66.extra{background:#fffbeb;border-color:#f59e0b}.bola-v66.hit{background:#dcfce7;border-color:#16a34a;color:#166534;box-shadow:0 0 0 3px rgba(22,163,74,.16)}.plus-v66{font-style:normal;font-weight:1000;color:#64748b}
+.acertos-grid-v66{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.acertos-grid-v66>div{background:rgba(255,255,255,.72);border:1px solid rgba(15,23,42,.08);border-radius:12px;padding:9px}.acertos-grid-v66 b{display:block;font-size:12px;color:#0f172a}.acertos-grid-v66 p{margin:4px 0 0;color:#334155;font-weight:800}.acertos-grid-v66 small{font-weight:700;color:#64748b}
+.progresso-v66{margin-top:10px}.progresso-info-v66{display:flex;justify-content:space-between;font-size:12px;font-weight:900;color:#334155;margin-bottom:5px}.barra-v66{height:8px;background:rgba(148,163,184,.25);border-radius:999px;overflow:hidden}.barra-v66 span{display:block;height:100%;background:#16a34a;border-radius:999px}.quase-premio-v66{margin-top:10px;padding:9px;border-radius:12px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-weight:800}.premios-lista-v66{padding:8px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0}
+@media(max-width:560px){.acertos-grid-v66{grid-template-columns:1fr}.bola-v66{width:28px;height:28px}}

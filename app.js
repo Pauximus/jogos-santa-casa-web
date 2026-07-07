@@ -1,4 +1,4 @@
-window.APP_VERSION = "v65-resultados-acertos";
+window.APP_VERSION = "v66-resultados-inteligentes";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -6456,3 +6456,109 @@ setTimeout(instalarV65,700);
 setTimeout(instalarV65,1800);
 document.addEventListener("click",()=>setTimeout(instalarV65,250));
 
+
+
+// V66 - Resultados inteligentes completos
+function escV66(v){return String(v ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));}
+function nomeExtraV66(data){return data?.extra_nome || jogos?.[jogoAtual]?.extraLabel || "extra";}
+function arrNumsV66(v){return converterParaArray(v).map(Number).filter(Number.isFinite);}
+function bolasV66(lista, acertados=[], tipo="num"){
+  const hits = new Set((acertados||[]).map(Number));
+  return (lista||[]).map(n=>`<span class="bola-v66 ${tipo==='extra'?'extra':''} ${hits.has(Number(n))?'hit':''}">${escV66(n)}</span>`).join("");
+}
+function chaveVencedoraV66(numeros, extras){
+  return `<div class="chave-vencedora-v66"><div class="mini-label-v66">Chave vencedora</div><div class="bolas-wrap-v66">${bolasV66(numeros,numeros)}${extras?.length?`<i class="plus-v66">+</i>${bolasV66(extras,extras,'extra')}`:""}</div></div>`;
+}
+function progressoV66(acertos,total){
+  const pct = total ? Math.round((acertos/total)*100) : 0;
+  return `<div class="progresso-v66"><div class="progresso-info-v66"><span>Progresso dos acertos</span><b>${acertos}/${total}</b></div><div class="barra-v66"><span style="width:${pct}%"></span></div></div>`;
+}
+function quasePremioV66(jogo, n, e, premiado){
+  if(premiado) return "";
+  const regras={euromilhoes:[[2,1],[1,2],[2,0]], totoloto:[[2,0]], eurodreams:[[2,0],[1,1]]};
+  const perto=(regras[jogo]||[]).some(([rn,re])=>n>=rn&&e>=re);
+  if(!perto) return "";
+  return `<div class="quase-premio-v66">🎯 <b>Quase prémios</b><br>Ficaste perto: ${n} número(s) + ${e} ${escV66(nomeExtraV66(window.ultimoResultadoAtual))}(s).</div>`;
+}
+function renderCabecalhoResultado(data, conteudo) {
+  const numeros = arrNumsV66(data.numeros);
+  const extras = arrNumsV66(data.extras);
+  const chave = numeros.length ? chaveVencedoraV66(numeros, extras) : "";
+  return `
+    <div class="result-title">${escV66((data.jogo||jogos[jogoAtual]?.nome||jogoAtual).toUpperCase())}</div>
+    <div class="result-meta-v66">
+      <div><b>Sorteio:</b> ${escV66(data.sorteio || "último sorteio")}</div>
+      <div><b>Data:</b> ${escV66(data.data || "")}</div>
+      ${chave || conteudo || ""}
+    </div>`;
+}
+function renderResultadoNumerosExtra(data) {
+  const numeros = arrNumsV66(data.numeros);
+  const extras = arrNumsV66(data.extras);
+  const eventos = [];
+  let html = renderCabecalhoResultado(data, "");
+  if (!apostas[jogoAtual].length) html += `<div class="result-card warn">Sem apostas guardadas.</div>`;
+  apostas[jogoAtual].forEach((aposta, index) => {
+    const { nums, extras: apostaExtras } = parseAposta(aposta);
+    const numsOk = nums.filter(n => numeros.includes(n));
+    const extrasOk = apostaExtras.filter(e => extras.includes(e));
+    const acertosNums = numsOk.length;
+    const acertosExtras = extrasOk.length;
+    const totalAcertos = acertosNums + acertosExtras;
+    const totalPossivel = (nums?.length||0) + (apostaExtras?.length||0);
+    const categoria = `${acertosNums}+${acertosExtras}`;
+    const premioInfo = data.premios ? data.premios[categoria] : null;
+    const premiado = !!premioInfo || categoriaTemPremio(jogoAtual, acertosNums, acertosExtras);
+    let icone="🔴", titulo="SEM PRÉMIO", classe="bad", premio="", valor="";
+    if (premiado) { premio = premioInfo?.premio || "Prémio"; valor = premioInfo?.valor || "valor a consultar"; icone="🏆"; titulo=`PREMIADO — ${premio} — ${valor}`; classe="ok"; }
+    else if (totalAcertos) { icone="🟡"; titulo="COM ACERTOS — sem prémio"; classe="warn"; }
+    if (premiado) eventos.push({jogo:data.jogo, aposta, resultado:`${acertosNums} número(s) + ${acertosExtras} ${nomeExtraV66(data)}(s)`, sorteio:data.sorteio||"último sorteio", dataSorteio:data.data||"", premio:`${premio} — ${valor}`});
+    const faltaramNums = numeros.filter(n=>!nums.includes(n));
+    const faltaramExtras = extras.filter(e=>!apostaExtras.includes(e));
+    html += `<div class="result-card ${classe} resultado-inteligente-v66">
+      <strong>${icone} ${escV66(titulo)}</strong>
+      <div class="aposta-label-v66">Aposta ${index + 1}</div>
+      <div class="linha-v66"><span>A tua chave</span><div class="bolas-wrap-v66">${bolasV66(nums, numsOk)}${apostaExtras.length?`<i class="plus-v66">+</i>${bolasV66(apostaExtras, extrasOk, 'extra')}`:""}</div></div>
+      <div class="acertos-grid-v66">
+        <div><b>Acertaste</b><p>${totalAcertos?`${[...numsOk, ...extrasOk].map(escV66).join(", ")} <small>(${acertosNums} número(s) + ${acertosExtras} ${escV66(nomeExtraV66(data))}(s))</small>`:"Nenhum número desta vez"}</p></div>
+        <div><b>Faltaram</b><p>${[...faltaramNums, ...faltaramExtras].length?[...faltaramNums, ...faltaramExtras].map(escV66).join(", "):"Nada a faltar"}</p></div>
+      </div>
+      ${progressoV66(totalAcertos,totalPossivel)}
+      ${quasePremioV66(jogoAtual, acertosNums, acertosExtras, premiado)}
+    </div>`;
+  });
+  resultado.innerHTML = html;
+  return eventos;
+}
+function renderResultadoCodigo(data) {
+  const codigoResultado = (data.codigo || "").replace(/\s+/g, "").toUpperCase();
+  const eventos = [];
+  let html = renderCabecalhoResultado(data, `<div><b>Código vencedor:</b> ${escV66(codigoResultado || "não encontrado")}</div>`);
+  if (!apostas[jogoAtual].length) html += `<div class="result-card warn">Sem códigos guardados.</div>`;
+  apostas[jogoAtual].forEach((aposta, index) => {
+    const codigo = aposta.replace(/\s+/g, "").toUpperCase();
+    const premiado = codigo && codigo === codigoResultado;
+    if (premiado) eventos.push({jogo:data.jogo, aposta, resultado:codigoResultado, sorteio:data.sorteio||"último sorteio", dataSorteio:data.data||"", premio:"M1lhão — valor a consultar"});
+    html += `<div class="result-card ${premiado ? "ok" : "bad"} resultado-inteligente-v66"><strong>${premiado ? "🏆 PREMIADO" : "🔴 SEM PRÉMIO"}</strong><div class="aposta-label-v66">Código ${index + 1}: ${escV66(aposta)}</div>${progressoV66(premiado?1:0,1)}</div>`;
+  });
+  resultado.innerHTML = html; return eventos;
+}
+function renderResultadoLotaria(data) {
+  const premios = data.premios || [];
+  const numerosPremiados = premios.map(p => String(p.numero).padStart(5, "0"));
+  const eventos = [];
+  let listaPremios = premios.map(p => `<div><b>${escV66(p.premio)}:</b> ${escV66(p.numero)}</div>`).join("");
+  let html = renderCabecalhoResultado(data, `<div class="premios-lista-v66">${listaPremios || "Prémios não encontrados"}</div>`);
+  if (!apostas[jogoAtual].length) html += `<div class="result-card warn">Sem números guardados.</div>`;
+  apostas[jogoAtual].forEach((aposta, index) => {
+    const numero = String(aposta).padStart(5, "0");
+    const pos = numerosPremiados.indexOf(numero);
+    const premiado = pos >= 0;
+    const premio = premiado ? premios[pos].premio : "";
+    if (premiado) eventos.push({jogo:data.jogo, aposta:numero, resultado:numero, sorteio:data.sorteio||"último sorteio", dataSorteio:data.data||"", premio});
+    html += `<div class="result-card ${premiado ? "ok" : "bad"} resultado-inteligente-v66"><strong>${premiado ? `🏆 PREMIADO — ${escV66(premio)}` : "🔴 SEM PRÉMIO"}</strong><div class="aposta-label-v66">Número ${index + 1}: ${escV66(numero)}</div>${progressoV66(premiado?1:0,1)}</div>`;
+  });
+  resultado.innerHTML = html; return eventos;
+}
+function instalarV66(){ removerAvisoPremiosV65?.(); document.querySelectorAll('#avisoPremiosV59,#avisoTotolotoV62,.aviso-totoloto-v62').forEach(e=>e.remove()); }
+setTimeout(instalarV66,500); setTimeout(instalarV66,1500); document.addEventListener('click',()=>setTimeout(instalarV66,200));
