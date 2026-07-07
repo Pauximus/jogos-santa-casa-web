@@ -1,4 +1,4 @@
-window.APP_VERSION = "v67-cloud-foundation";
+window.APP_VERSION = "v67-cloud-foundation-fix1";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -804,8 +804,9 @@ function normalizarAposta() {
     return document.getElementById("numeroLotaria").value.replace(/\D/g, "").padStart(5, "0");
   }
 
-  const nums = [...document.querySelectorAll(".num")].map(i => i.value.trim());
-  const extras = [...document.querySelectorAll(".extra")].map(i => i.value.trim());
+  const formScope = camposDiv || document;
+  const nums = [...formScope.querySelectorAll("input.num")].map(i => String(i.value || "").trim());
+  const extras = [...formScope.querySelectorAll("input.extra")].map(i => String(i.value || "").trim());
 
   if (nums.some(v => !v) || extras.some(v => !v)) {
     alert("Preenche todos os campos.");
@@ -6634,7 +6635,7 @@ async function v67EnsureProfile() {
     display_name: aliasUtilizador || currentUser.email || "Utilizador",
     updated_at: new Date().toISOString()
   };
-  const { error } = await supabaseClient.from(SUPABASE_V67_PROFILES).upsert(payload, { onConflict: "id" });
+  const { error } = await supabaseClient.from(SUPABASE_V67_PROFILES).upsert(payload, { onConflict: "id", ignoreDuplicates: false });
   if (error) throw error;
   return true;
 }
