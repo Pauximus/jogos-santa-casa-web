@@ -1,4 +1,4 @@
-window.APP_VERSION = "v66-resultados-inteligentes";
+window.APP_VERSION = "v67-cloud-foundation";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -6,6 +6,8 @@ const SUPABASE_URL = "https://whnokdkqobtgyywqmrju.supabase.co";
 const SUPABASE_KEY = "sb_publishable_t1ONYEGH_h11uFDENsINJw_RqlNxcpc";
 const SUPABASE_HISTORICO = "historico_premios";
 const SUPABASE_APOSTAS = "apostas_guardadas";
+const SUPABASE_V67_PROFILES = "profiles";
+const SUPABASE_V67_DEVICES = "devices";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let logoutEmCurso = false;
@@ -459,6 +461,7 @@ async function mostrarAppAutenticada() {
   userInfo.textContent = `Olá, ${currentUser.email}`;
   carregarAliasCloud();
   syncInfo.textContent = "Sincronização automática ativa.";
+  setTimeout(() => { try { v67CloudInit(); } catch(e) { console.warn("V67 cloud init falhou:", e); } }, 50);
 
   if (!interfaceCriada) {
     criarInterface();
@@ -6562,3 +6565,145 @@ function renderResultadoLotaria(data) {
 }
 function instalarV66(){ removerAvisoPremiosV65?.(); document.querySelectorAll('#avisoPremiosV59,#avisoTotolotoV62,.aviso-totoloto-v62').forEach(e=>e.remove()); }
 setTimeout(instalarV66,500); setTimeout(instalarV66,1500); document.addEventListener('click',()=>setTimeout(instalarV66,200));
+
+
+// V67.0 - Cloud Foundation / Multiutilizador / Dispositivo
+const V67_DEVICE_KEY = "jsc_v67_device_id";
+let v67CloudState = {
+  status: "A iniciar...",
+  deviceId: null,
+  deviceName: "—",
+  profileReady: false,
+  deviceReady: false,
+  lastSync: null
+};
+
+function v67Uuid() {
+  if (crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    const v = c === "x" ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function v67GetDeviceId() {
+  let id = localStorage.getItem(V67_DEVICE_KEY);
+  if (!id) {
+    id = v67Uuid();
+    localStorage.setItem(V67_DEVICE_KEY, id);
+  }
+  return id;
+}
+
+function v67DetectDeviceName() {
+  const ua = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+  if (/Android/i.test(ua)) return "Android / PWA";
+  if (/iPhone/i.test(ua)) return "iPhone / PWA";
+  if (/iPad/i.test(ua)) return "iPad / PWA";
+  if (/Windows/i.test(ua) || /Win/i.test(platform)) return "Windows / Browser";
+  if (/Mac/i.test(platform)) return "Mac / Browser";
+  return isMobile ? "Telemóvel / PWA" : "Computador / Browser";
+}
+
+function v67CloudSetStatus(status, extra = {}) {
+  v67CloudState = { ...v67CloudState, status, ...extra };
+  v67RenderCloudCard();
+}
+
+function v67RenderCloudCard() {
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  const ready = v67CloudState.profileReady && v67CloudState.deviceReady;
+  set("v67CloudBadge", ready ? "Cloud ativa" : "Cloud preparada");
+  set("v67CloudStatus", v67CloudState.status || "—");
+  set("v67CloudAccount", currentUser?.email || "—");
+  set("v67CloudDevice", v67CloudState.deviceName || "—");
+  set("v67CloudLastSync", v67CloudState.lastSync || "—");
+  set("v67CloudVersion", window.APP_VERSION || "—");
+  const dot = document.getElementById("v67CloudDot");
+  if (dot) dot.className = ready ? "v67-dot ok" : "v67-dot warn";
+}
+
+async function v67EnsureProfile() {
+  if (!currentUser) return false;
+  const payload = {
+    id: currentUser.id,
+    email: currentUser.email || null,
+    display_name: aliasUtilizador || currentUser.email || "Utilizador",
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await supabaseClient.from(SUPABASE_V67_PROFILES).upsert(payload, { onConflict: "id" });
+  if (error) throw error;
+  return true;
+}
+
+async function v67RegisterDevice() {
+  if (!currentUser) return false;
+  const deviceId = v67GetDeviceId();
+  const deviceName = v67DetectDeviceName();
+  v67CloudSetStatus("A registar dispositivo...", { deviceId, deviceName });
+  const payload = {
+    id: deviceId,
+    profile_id: currentUser.id,
+    device_name: deviceName,
+    user_agent: navigator.userAgent || "",
+    last_seen_at: new Date().toISOString()
+  };
+  const { error } = await supabaseClient.from(SUPABASE_V67_DEVICES).upsert(payload, { onConflict: "id" });
+  if (error) throw error;
+  return true;
+}
+
+async function v67CloudInit() {
+  if (!currentUser || !supabaseClient) return;
+  v67CloudSetStatus("A ligar ao Supabase...", { deviceName: v67DetectDeviceName() });
+  try {
+    await v67EnsureProfile();
+    v67CloudSetStatus("Perfil cloud criado/atualizado.", { profileReady: true });
+    await v67RegisterDevice();
+    v67CloudSetStatus("Sincronizado", {
+      profileReady: true,
+      deviceReady: true,
+      lastSync: agoraPt()
+    });
+  } catch (err) {
+    console.warn("V67 Cloud Foundation indisponível:", err);
+    v67CloudSetStatus("Cloud parcial: " + (err.message || "erro desconhecido"), {
+      profileReady: false,
+      deviceReady: false,
+      lastSync: agoraPt()
+    });
+  }
+}
+
+function v67BindCloudButtons() {
+  const btn = document.getElementById("v67CloudSyncBtn");
+  if (btn && !btn.dataset.v67bound) {
+    btn.dataset.v67bound = "1";
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      const old = btn.textContent;
+      btn.textContent = "A ligar...";
+      await v67CloudInit();
+      btn.textContent = old;
+      btn.disabled = false;
+    });
+  }
+  const btnDevice = document.getElementById("v67CloudDeviceBtn");
+  if (btnDevice && !btnDevice.dataset.v67bound) {
+    btnDevice.dataset.v67bound = "1";
+    btnDevice.addEventListener("click", async () => {
+      localStorage.removeItem(V67_DEVICE_KEY);
+      await v67CloudInit();
+    });
+  }
+}
+
+setTimeout(() => {
+  try {
+    v67BindCloudButtons();
+    v67RenderCloudCard();
+  } catch(e) { console.warn(e); }
+}, 250);

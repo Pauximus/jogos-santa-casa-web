@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Verificador Jogos Santa Casa</title>
-  <link rel="manifest" href="manifest.webmanifest?v=26.1">
-  <link rel="stylesheet" href="style.css?v=65">
+  <link rel="manifest" href="manifest.webmanifest?v=67">
+  <link rel="stylesheet" href="style.css?v=67">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -102,6 +102,30 @@
           <div class="dv-main"><span>🎯 Próxima ação</span><strong id="dvProximaAcao">—</strong><small id="dvProximaAcaoMeta">—</small></div>
         </div>
         <div class="dv-frase" id="dvFrase">A analisar o teu histórico...</div>
+      </section>
+
+
+
+      <section class="card cloud-v67-card" id="cloudV67Card">
+        <div class="v67-cloud-head">
+          <div>
+            <h2>☁️ Cloud Foundation</h2>
+            <p>Conta, dispositivo e sincronização preparados para notificações reais.</p>
+          </div>
+          <span id="v67CloudBadge" class="v67-cloud-pill"><i id="v67CloudDot" class="v67-dot warn"></i> Cloud preparada</span>
+        </div>
+        <div class="v67-cloud-grid">
+          <div><span>Estado</span><strong id="v67CloudStatus">A iniciar...</strong></div>
+          <div><span>Conta</span><strong id="v67CloudAccount">—</strong></div>
+          <div><span>Dispositivo</span><strong id="v67CloudDevice">—</strong></div>
+          <div><span>Última sincronização</span><strong id="v67CloudLastSync">—</strong></div>
+          <div><span>Versão</span><strong id="v67CloudVersion">v67-cloud-foundation</strong></div>
+        </div>
+        <div class="v67-cloud-actions">
+          <button id="v67CloudSyncBtn" type="button">Sincronizar cloud</button>
+          <button id="v67CloudDeviceBtn" type="button">Novo ID dispositivo</button>
+        </div>
+        <div class="v67-cloud-note">V67.0 cria/atualiza o perfil cloud e regista este dispositivo no Supabase. A V67.1 usa esta base para Push Notifications.</div>
       </section>
 
       <section class="card tools-v57-card" id="toolsV57Card">
@@ -514,7 +538,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=65"></script>
+  <script src="app.js?v=67"></script>
 
       <div id="notifModal" class="notif-modal" hidden>
         <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>
