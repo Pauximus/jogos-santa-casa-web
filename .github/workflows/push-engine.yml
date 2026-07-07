@@ -11,6 +11,8 @@ on:
         options:
           - test
           - scheduled
+          - reminder
+          - results
       message:
         description: "Mensagem do teste (opcional)"
         required: false

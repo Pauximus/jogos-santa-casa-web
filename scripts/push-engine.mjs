@@ -1,5 +1,6 @@
 import webpush from 'web-push';
 
+const APP_VERSION = 'v68-notificacoes-inteligentes';
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'];
 for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env: ${key}`);
@@ -50,58 +51,70 @@ function lisbonParts(date = new Date()) {
   return { ...parts, isoDate: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour), minute: Number(parts.minute) };
 }
 
-function scheduledNotification(now = new Date()) {
+function gameForToday(parts) {
+  const wd = parts.weekday.toLowerCase();
+  if (wd.startsWith('tue') || wd.startsWith('fri')) return { id: 'euromilhoes', name: 'EuroMilhões' };
+  if (wd.startsWith('wed') || wd.startsWith('sat')) return { id: 'totoloto', name: 'Totoloto' };
+  return null;
+}
+
+function buildNotification(mode = process.env.PUSH_MODE || 'scheduled', now = new Date()) {
   const p = lisbonParts(now);
-  const force = process.env.PUSH_FORCE_TEST === '1' || process.env.PUSH_MODE === 'test';
-  if (force) {
+  const forceTest = process.env.PUSH_FORCE_TEST === '1' || mode === 'test';
+
+  if (forceTest) {
+    const testId = process.env.PUSH_TEST_ID || `${p.isoDate}-${p.hour}${String(p.minute).padStart(2, '0')}-${Date.now()}`;
     return {
       game: 'teste',
-      draw_number: `teste-${process.env.PUSH_TEST_ID || `${p.isoDate}-${p.hour}${String(p.minute).padStart(2, '0')}-${Date.now()}`}`,
+      draw_number: `teste-${testId}`,
       notification_type: 'teste_push',
       payload: {
         title: '🧪 Teste Push — Assistente Jogos Santa Casa',
-        body: process.env.PUSH_TEST_MESSAGE || 'Se recebeste isto, o GitHub Actions + Push Engine está a funcionar com a app fechada.',
+        body: process.env.PUSH_TEST_MESSAGE || `Teste V68 OK. Push Engine ativo com a app fechada.`,
         tipo: 'teste',
-        tag: `jsc-teste-${process.env.PUSH_TEST_ID || p.isoDate}`,
-        url: './'
+        tag: `jsc-teste-${testId}`,
+        url: './',
+        version: APP_VERSION
       }
     };
   }
 
-  // V67.4: motor automático via GitHub Actions sem WebSocket/Reatime.
-  // Nesta fase envia lembretes automáticos e testes reais.
-  // A comparação de prémios fica para a fase seguinte, quando ligarmos a recolha automática dos resultados oficiais.
-  const wd = p.weekday.toLowerCase();
-  const hour = p.hour;
-  const isEuro = wd.startsWith('tue') || wd.startsWith('fri');
-  const isTotoloto = wd.startsWith('wed') || wd.startsWith('sat');
+  const game = gameForToday(p);
+  if (!game) return null;
 
-  if (isEuro && hour >= 18 && hour <= 21) {
+  const explicitReminder = mode === 'reminder';
+  const explicitResults = mode === 'results';
+  const reminderWindow = p.hour >= 18 && p.hour <= 21;
+  const resultsWindow = p.hour >= 22 || p.hour <= 1;
+
+  if (explicitResults || (mode === 'scheduled' && resultsWindow)) {
     return {
-      game: 'euromilhoes',
+      game: game.id,
       draw_number: p.isoDate,
-      notification_type: 'lembrete_sorteio',
+      notification_type: 'resultado_disponivel',
       payload: {
-        title: '🍀 Hoje há EuroMilhões',
-        body: 'Não te esqueças de confirmar ou registar as tuas apostas.',
-        tipo: 'sorteio',
-        tag: `jsc-euromilhoes-${p.isoDate}`,
-        url: './'
+        title: `🎉 Resultados disponíveis — ${game.name}`,
+        body: `Já podes abrir o Assistente Jogos Santa Casa e analisar as tuas apostas de hoje.`,
+        tipo: 'resultado',
+        tag: `jsc-${game.id}-resultado-${p.isoDate}`,
+        url: './',
+        version: APP_VERSION
       }
     };
   }
 
-  if (isTotoloto && hour >= 18 && hour <= 21) {
+  if (explicitReminder || (mode === 'scheduled' && reminderWindow)) {
     return {
-      game: 'totoloto',
+      game: game.id,
       draw_number: p.isoDate,
       notification_type: 'lembrete_sorteio',
       payload: {
-        title: '🍀 Hoje há Totoloto',
+        title: `🍀 Hoje há ${game.name}`,
         body: 'Não te esqueças de confirmar ou registar as tuas apostas.',
         tipo: 'sorteio',
-        tag: `jsc-totoloto-${p.isoDate}`,
-        url: './'
+        tag: `jsc-${game.id}-lembrete-${p.isoDate}`,
+        url: './',
+        version: APP_VERSION
       }
     };
   }
@@ -132,7 +145,6 @@ async function logBeforeSend(sub, notification) {
     });
     return true;
   } catch (error) {
-    // 23505 = unique violation. Evita repetir a mesma notificação.
     if (error.code === '23505') return false;
     throw error;
   }
@@ -149,7 +161,7 @@ async function disableSubscription(sub, reason) {
 async function sendToSubscription(sub, notification) {
   const shouldSend = await logBeforeSend(sub, notification);
   if (!shouldSend) {
-    console.log(`Skipped duplicate for ${sub.profile_id} / ${notification.game} / ${notification.draw_number}`);
+    console.log(`Skipped duplicate for ${sub.profile_id} / ${notification.game} / ${notification.draw_number} / ${notification.notification_type}`);
     return { skipped: true };
   }
 
@@ -172,14 +184,18 @@ async function sendToSubscription(sub, notification) {
 }
 
 async function main() {
-  const notification = scheduledNotification();
+  console.log(`Assistente Jogos Santa Casa — ${APP_VERSION}`);
+  const mode = process.env.PUSH_MODE || 'scheduled';
+  const notification = buildNotification(mode);
+
   if (!notification) {
-    console.log('No notification scheduled for this run.');
+    console.log(`No notification scheduled for this run. mode=${mode}`);
     return;
   }
 
   const subscriptions = await getSubscriptions();
   console.log(`Notification: ${notification.payload.title}`);
+  console.log(`Type: ${notification.notification_type} | Game: ${notification.game} | Draw: ${notification.draw_number}`);
   console.log(`Enabled subscriptions: ${subscriptions.length}`);
 
   if (!subscriptions.length) {
@@ -198,6 +214,7 @@ async function main() {
       console.error(`Failed subscription ${sub.id}:`, e.message || e);
     }
   }
+
   console.log('Push Engine stats:', stats);
   if (stats.failed > 0) process.exitCode = 1;
 }

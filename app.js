@@ -1,4 +1,4 @@
-window.APP_VERSION = "v67.4-github-actions-compatibility";
+window.APP_VERSION = "v68-notificacoes-inteligentes";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -2533,7 +2533,7 @@ setInterval(() => {
 
 
 // V38 Auto Update
-const VERSAO_ATUAL="v67.1-push-notifications";
+const VERSAO_ATUAL="v68-notificacoes-inteligentes";
 async function verificarNovaVersao(){
  try{
    const r=await fetch('manifest.json?ts='+Date.now(),{cache:'no-store'});
