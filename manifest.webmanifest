@@ -1,9 +1,9 @@
 {
-  "name": "Verificador Jogos Santa Casa",
-  "short_name": "Resultados",
-  "description": "App instalável para verificar apostas, resultados e prémios com sincronização cloud.",
+  "name": "Assistente Jogos Santa Casa",
+  "short_name": "Assistente",
+  "description": "Assistente instalável para acompanhar apostas, resultados, prémios, cloud e notificações dos Jogos Santa Casa.",
   "id": "/jogos-santa-casa-web/",
-  "start_url": "/jogos-santa-casa-web/?source=pwa&v=26.1",
+  "start_url": "/jogos-santa-casa-web/?source=pwa&v=67.1",
   "scope": "/jogos-santa-casa-web/",
   "display": "standalone",
   "display_override": [
@@ -72,5 +72,5 @@
     }
   ],
   "prefer_related_applications": false,
-  "version": "v38-auto-update"
+  "version": "v67.1-push-notifications"
 }

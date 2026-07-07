@@ -1,10 +1,10 @@
-const CACHE_NAME = "jogos-santa-casa-v67";
+const CACHE_NAME = "jogos-santa-casa-v67-2";
 const APP_SHELL = [
   "./",
   "index.html",
-  "style.css?v=26.1",
-  "app.js?v=26.1",
-  "manifest.webmanifest?v=26.1",
+  "style.css?v=67.2",
+  "app.js?v=67.2",
+  "manifest.webmanifest?v=67.2",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/maskable-512.png",
@@ -35,7 +35,6 @@ self.addEventListener("message", event => {
 self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET") return;
-
   const url = new URL(request.url);
   const isSameOrigin = url.origin === self.location.origin;
 
@@ -53,7 +52,6 @@ self.addEventListener("fetch", event => {
   }
 
   if (!isSameOrigin) return;
-
   event.respondWith(
     caches.match(request).then(cached => {
       const network = fetch(request)
@@ -70,36 +68,19 @@ self.addEventListener("fetch", event => {
   );
 });
 
-
-
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  let targetUrl = event.notification?.data?.url || "./";
-  if (event.action === "ver_premio") targetUrl = "./#secHistorico";
-  if (event.action === "ver_resultados") targetUrl = "./#secResultados";
-  if (event.action === "abrir") targetUrl = event.notification?.data?.url || "./";
-  event.waitUntil((async () => {
-    const windowClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
-    for (const client of windowClients) {
-      if ("navigate" in client) await client.navigate(targetUrl);
-      if ("focus" in client) return client.focus();
-    }
-    return clients.openWindow(targetUrl);
-  })());
-});
-
-self.addEventListener("push", (event) => {
+self.addEventListener("push", event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; }
-  catch (e) { data = { title: "Jogos Santa Casa", body: event.data ? event.data.text() : "Nova atualização disponível." }; }
+  catch (e) { data = { title: "🍀 Assistente Jogos Santa Casa", body: event.data ? event.data.text() : "Nova atualização disponível." }; }
+
   const tipo = data.tipo || "geral";
-  const vibrate = tipo === "premio" ? [280,90,280,90,420] : tipo === "sorteio" ? [150,80,150] : [120,70,120];
-  event.waitUntil(self.registration.showNotification(data.title || "Jogos Santa Casa", {
-    body: data.body || "Toca para abrir o verificador.",
-    icon: data.icon || "./icon-192.png",
-    badge: data.badge || "./icon-192.png",
-    tag: data.tag || `jsc-${tipo}-${Date.now()}`,
-    renotify: false,
+  const vibrate = tipo === "premio" ? [280, 90, 280, 90, 420] : tipo === "sorteio" ? [150, 80, 150] : [120, 70, 120];
+  event.waitUntil(self.registration.showNotification(data.title || "🍀 Assistente Jogos Santa Casa", {
+    body: data.body || "Tens novidades nos teus resultados.",
+    icon: data.icon || "./icons/icon-192.png",
+    badge: data.badge || "./icons/icon-192.png",
+    tag: data.tag || `jsc-${tipo}`,
+    renotify: tipo === "premio",
     vibrate,
     requireInteraction: tipo === "premio",
     data: { url: data.url || "./", tipo },
@@ -107,20 +88,19 @@ self.addEventListener("push", (event) => {
   }));
 });
 
-// V58_PUSH_HANDLER - Web Push/FCM ready
-self.addEventListener("push", event => {
-  let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data ? event.data.text() : "" }; }
-  event.waitUntil(self.registration.showNotification(data.title || "🍀 Jogos Santa Casa", {
-    body: data.body || "Tens novidades nos teus resultados.",
-    icon: data.icon || "./icon-192.png",
-    badge: data.badge || "./icon-192.png",
-    tag: data.tag || "jogos-santa-casa",
-    renotify: false,
-    data: data.url || "./"
-  }));
-});
 self.addEventListener("notificationclick", event => {
   event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data || "./"));
+  let targetUrl = event.notification?.data?.url || "./";
+  if (event.action === "ver_premio") targetUrl = "./#secHistorico";
+  if (event.action === "ver_resultados") targetUrl = "./#secResultados";
+  event.waitUntil((async () => {
+    const windowClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windowClients) {
+      try {
+        if ("navigate" in client) await client.navigate(targetUrl);
+        if ("focus" in client) return client.focus();
+      } catch (e) {}
+    }
+    return clients.openWindow(targetUrl);
+  })());
 });

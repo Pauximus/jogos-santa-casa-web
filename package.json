@@ -1,0 +1,13 @@
+{
+  "name": "assistente-jogos-santa-casa-web",
+  "private": true,
+  "version": "67.2.0",
+  "type": "module",
+  "scripts": {
+    "push:engine": "node scripts/push-engine.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "web-push": "^3.6.7"
+  }
+}

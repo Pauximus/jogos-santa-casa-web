@@ -1,0 +1,44 @@
+name: Push Engine
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Modo de teste"
+        required: false
+        default: "test"
+        type: choice
+        options:
+          - test
+          - scheduled
+  schedule:
+    # Horários em UTC. No verão em Portugal é +1h.
+    # Corre de 30 em 30 minutos entre 18:00 e 22:30 UTC.
+    - cron: "*/30 18-22 * * 2,3,5,6"
+
+jobs:
+  push-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Push Engine
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          PUSH_MODE: ${{ github.event.inputs.mode || 'scheduled' }}
+          PUSH_FORCE_TEST: ${{ github.event.inputs.mode == 'test' && '1' || '0' }}
+        run: npm run push:engine

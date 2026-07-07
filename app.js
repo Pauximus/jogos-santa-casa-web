@@ -1,4 +1,4 @@
-window.APP_VERSION = "v67-cloud-foundation-fix1";
+window.APP_VERSION = "v67.2-push-engine";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -8,6 +8,9 @@ const SUPABASE_HISTORICO = "historico_premios";
 const SUPABASE_APOSTAS = "apostas_guardadas";
 const SUPABASE_V67_PROFILES = "profiles";
 const SUPABASE_V67_DEVICES = "devices";
+const SUPABASE_V67_PUSH_SUBSCRIPTIONS = "push_subscriptions";
+const V67_1_VAPID_PUBLIC_KEY = "BGxzuP70QWWo7jcjFniwPnP4Xnalbkuo9AlYa-fb2Aijt59QOxzJIwnSJjiSFzFabUYVWjRJjjs04FBfLzvyDCQ";
+const V67_2_PUSH_ENGINE = true;
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let logoutEmCurso = false;
@@ -1393,7 +1396,7 @@ function gerarTextoPartilhaHistorico() {
   const taxa = totalApostas ? Math.round((totalPremios / totalApostas) * 100) : 0;
 
   const linhas = [
-    "🍀 Verificador Jogos Santa Casa",
+    "🍀 Assistente Jogos Santa Casa",
     "",
     `Utilizador: ${obterNomeRelatorio()}`,
     `Data: ${new Date().toLocaleString("pt-PT")}`,
@@ -1450,7 +1453,7 @@ function gerarPdfHistoricoBlobOuDoc() {
   function footer() {
     doc.setFontSize(8);
     doc.setTextColor(120);
-    doc.text("Gerado por Verificador Jogos Santa Casa", margin, pageH - 8);
+    doc.text("Gerado por Assistente Jogos Santa Casa", margin, pageH - 8);
     doc.setTextColor(0);
   }
 
@@ -2069,6 +2072,8 @@ function atualizarCartaoNotificacoesV35(msg = "") {
     btnHeader.classList.toggle("ativo", ativo);
   }
 
+  try { v671AtualizarModalPushCloud(); } catch(e) {}
+
   if (msgEl && msg) {
     msgEl.textContent = msg;
     msgEl.classList.add("visivel");
@@ -2107,8 +2112,8 @@ async function enviarNotificacaoTesteV35() {
   const reg = await obterServiceWorkerV35();
   const options = {
     body: "As notificações estão configuradas com sucesso.",
-    icon: "./icon-192.png",
-    badge: "./icon-192.png",
+    icon: "./icons/icon-192.png",
+    badge: "./icons/icon-192.png",
     tag: "jsc-teste",
     data: { url: "./" }
   };
@@ -2352,8 +2357,8 @@ async function enviarNotificacaoV37(titulo, body, tag = "jsc-notificacao") {
   const reg = await obterServiceWorkerV37();
   const options = {
     body,
-    icon: "./icon-192.png",
-    badge: "./icon-192.png",
+    icon: "./icons/icon-192.png",
+    badge: "./icons/icon-192.png",
     tag,
     renotify: true,
     data: { url: "./" }
@@ -2375,7 +2380,7 @@ async function enviarNotificacaoTesteV37() {
     atualizarMiniNotificacoesV37("Primeiro ativa as notificações.");
     return;
   }
-  const ok = await enviarNotificacaoV37("🍀 Jogos Santa Casa", "Teste enviado com sucesso. As notificações estão prontas.", "jsc-teste");
+  const ok = await enviarNotificacaoV37("🍀 Assistente Jogos Santa Casa", "Teste local enviado com sucesso. As notificações estão prontas.", "jsc-teste");
   atualizarMiniNotificacoesV37(ok ? "Notificação de teste enviada." : "Não foi possível enviar a notificação.");
 }
 
@@ -2394,6 +2399,7 @@ async function ativarNotificacoesV37() {
     atualizarBannerNotificacoesV36?.();
     atualizarMiniNotificacoesV37("Notificações ativadas neste dispositivo.");
     await enviarNotificacaoV37("Notificações ativas 🍀", "Vais receber alertas de prémios, novos resultados e sorteios.", "jsc-ativas");
+    try { await v671RegistarPushCloud(); } catch(e) { console.warn("Push Cloud não registado automaticamente:", e); v671AtualizarModalPushCloud("Notificações locais ativas. Push Cloud precisa de novo teste/registo."); }
   } else {
     localStorage.setItem("jsc_notificacoes", "0");
     atualizarMiniNotificacoesV37(permissao === "denied"
@@ -2501,6 +2507,7 @@ function iniciarNotificacoesCleanV37() {
   const fecharBg = document.getElementById("notifModalFecharBg");
   const ativar = document.getElementById("notifModalAtivar");
   const teste = document.getElementById("notifModalTeste");
+  const registarPush = document.getElementById("notifModalRegistarPush");
   const header = document.getElementById("ativarNotificacoesBtn");
 
   if (mini && !mini.__v37) { mini.__v37 = true; mini.addEventListener("click", abrirModalNotificacoesV37); }
@@ -2508,6 +2515,7 @@ function iniciarNotificacoesCleanV37() {
   if (fecharBg && !fecharBg.__v37) { fecharBg.__v37 = true; fecharBg.addEventListener("click", fecharModalNotificacoesV37); }
   if (ativar && !ativar.__v37) { ativar.__v37 = true; ativar.addEventListener("click", ativarNotificacoesV37); }
   if (teste && !teste.__v37) { teste.__v37 = true; teste.addEventListener("click", enviarNotificacaoTesteV37); }
+  if (registarPush && !registarPush.__v671) { registarPush.__v671 = true; registarPush.addEventListener("click", async () => { try { await v671RegistarPushCloud(); } catch(e) { console.warn(e); v671AtualizarModalPushCloud("Erro ao registar Push Cloud: " + (e.message || e)); } }); }
   if (header && !header.__v37) { header.__v37 = true; header.addEventListener("click", ativarNotificacoesV37); }
 
   atualizarMiniNotificacoesV37();
@@ -2524,7 +2532,7 @@ setInterval(() => {
 
 
 // V38 Auto Update
-const VERSAO_ATUAL="v38-auto-update";
+const VERSAO_ATUAL="v67.1-push-notifications";
 async function verificarNovaVersao(){
  try{
    const r=await fetch('manifest.json?ts='+Date.now(),{cache:'no-store'});
@@ -6568,7 +6576,7 @@ function instalarV66(){ removerAvisoPremiosV65?.(); document.querySelectorAll('#
 setTimeout(instalarV66,500); setTimeout(instalarV66,1500); document.addEventListener('click',()=>setTimeout(instalarV66,200));
 
 
-// V67.0 - Cloud Foundation / Multiutilizador / Dispositivo
+// V67.1 - Cloud & Push / Multiutilizador / Dispositivo / Push Subscriptions
 const V67_DEVICE_KEY = "jsc_v67_device_id";
 let v67CloudState = {
   status: "A iniciar...",
@@ -6576,7 +6584,10 @@ let v67CloudState = {
   deviceName: "—",
   profileReady: false,
   deviceReady: false,
-  lastSync: null
+  lastSync: null,
+  pushReady: false,
+  pushEndpoint: null,
+  pushStatus: "—"
 };
 
 function v67Uuid() {
@@ -6617,12 +6628,16 @@ function v67CloudSetStatus(status, extra = {}) {
 function v67RenderCloudCard() {
   const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
   const ready = v67CloudState.profileReady && v67CloudState.deviceReady;
-  set("v67CloudBadge", ready ? "Cloud ativa" : "Cloud preparada");
+  const pushReady = !!v67CloudState.pushReady;
+  set("v67CloudBadge", ready ? (pushReady ? "Cloud + Push ativo" : "Cloud ativa") : "Cloud preparada");
   set("v67CloudStatus", v67CloudState.status || "—");
   set("v67CloudAccount", currentUser?.email || "—");
   set("v67CloudDevice", v67CloudState.deviceName || "—");
   set("v67CloudLastSync", v67CloudState.lastSync || "—");
   set("v67CloudVersion", window.APP_VERSION || "—");
+  const engine = document.getElementById("v672PushEngineStatus");
+  if (engine) engine.textContent = v67CloudState.pushReady ? "Preparado" : "A aguardar Push";
+  set("v671PushCloudStatus", v67CloudState.pushStatus || (pushReady ? "Registado" : "Por registar"));
   const dot = document.getElementById("v67CloudDot");
   if (dot) dot.className = ready ? "v67-dot ok" : "v67-dot warn";
 }
@@ -6657,6 +6672,132 @@ async function v67RegisterDevice() {
   return true;
 }
 
+
+function v671Base64UrlToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function v671SubscriptionToPayload(subscription) {
+  const json = subscription.toJSON ? subscription.toJSON() : {};
+  return {
+    endpoint: subscription.endpoint,
+    p256dh: json?.keys?.p256dh || "",
+    auth: json?.keys?.auth || ""
+  };
+}
+
+function v671ShortEndpoint(endpoint) {
+  if (!endpoint) return "—";
+  const s = String(endpoint);
+  if (s.length <= 34) return s;
+  return s.slice(0, 18) + "…" + s.slice(-12);
+}
+
+function v671AtualizarModalPushCloud(msg = "") {
+  const pushEl = document.getElementById("notifModalPushCloud");
+  const endpointEl = document.getElementById("notifModalEndpoint");
+  if (pushEl) pushEl.textContent = v67CloudState.pushStatus || (v67CloudState.pushReady ? "Registado" : "Por registar");
+  if (endpointEl) endpointEl.textContent = v671ShortEndpoint(v67CloudState.pushEndpoint);
+  const status = document.getElementById("v671PushCloudStatus");
+  if (status) status.textContent = v67CloudState.pushStatus || (v67CloudState.pushReady ? "Registado" : "Por registar");
+  if (msg) atualizarMiniNotificacoesV37?.(msg);
+}
+
+async function v671ObterPushSubscriptionAtual() {
+  const reg = await obterServiceWorkerV37();
+  if (!reg || !reg.pushManager) return null;
+  return await reg.pushManager.getSubscription();
+}
+
+async function v671RegistarPushCloud() {
+  if (!currentUser) {
+    v67CloudSetStatus("Inicia sessão para registar Push.", { pushReady: false, pushStatus: "Sem sessão" });
+    v671AtualizarModalPushCloud("Inicia sessão para registar Push Cloud.");
+    return false;
+  }
+  if (!notifSuportadasV37()) {
+    v67CloudSetStatus("Este browser não suporta Push.", { pushReady: false, pushStatus: "Sem suporte" });
+    v671AtualizarModalPushCloud("Este browser não suporta Push Notifications.");
+    return false;
+  }
+  if (Notification.permission !== "granted") {
+    const permissao = await Notification.requestPermission();
+    if (permissao !== "granted") {
+      v67CloudSetStatus("Push não autorizado.", { pushReady: false, pushStatus: "Sem permissão" });
+      v671AtualizarModalPushCloud("Tens de permitir notificações primeiro.");
+      return false;
+    }
+    localStorage.setItem("jsc_notificacoes", "1");
+  }
+
+  await v67EnsureProfile();
+  await v67RegisterDevice();
+
+  const reg = await obterServiceWorkerV37();
+  if (!reg || !reg.pushManager) throw new Error("Service Worker/PushManager indisponível.");
+
+  let subscription = await reg.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: v671Base64UrlToUint8Array(V67_1_VAPID_PUBLIC_KEY)
+    });
+  }
+
+  const sub = v671SubscriptionToPayload(subscription);
+  if (!sub.endpoint || !sub.p256dh || !sub.auth) throw new Error("Subscription incompleta.");
+
+  const payload = {
+    profile_id: currentUser.id,
+    device_id: v67GetDeviceId(),
+    endpoint: sub.endpoint,
+    p256dh: sub.p256dh,
+    auth: sub.auth,
+    enabled: true,
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await supabaseClient.from(SUPABASE_V67_PUSH_SUBSCRIPTIONS).upsert(payload, { onConflict: "endpoint" });
+  if (error) throw error;
+
+  v67CloudSetStatus("Push Cloud registado", {
+    profileReady: true,
+    deviceReady: true,
+    pushReady: true,
+    pushEndpoint: sub.endpoint,
+    pushStatus: "Registado",
+    lastSync: agoraPt()
+  });
+  localStorage.setItem("jsc_push_cloud_registado", "1");
+  localStorage.setItem("jsc_push_endpoint", sub.endpoint);
+  v671AtualizarModalPushCloud("Push Cloud registado neste dispositivo. O GitHub Actions já pode enviar Push com a app fechada.");
+  return true;
+}
+
+async function v671SincronizarEstadoPushCloudSilencioso() {
+  try {
+    const sub = await v671ObterPushSubscriptionAtual();
+    if (sub) {
+      v67CloudState.pushReady = localStorage.getItem("jsc_push_cloud_registado") === "1";
+      v67CloudState.pushEndpoint = sub.endpoint;
+      v67CloudState.pushStatus = v67CloudState.pushReady ? "Registado" : "Local ativo";
+    } else {
+      v67CloudState.pushReady = false;
+      v67CloudState.pushEndpoint = null;
+      v67CloudState.pushStatus = estadoNotificacoesV37() === "granted" ? "Por registar" : "Desativado";
+    }
+    v67RenderCloudCard();
+    v671AtualizarModalPushCloud();
+  } catch (e) {
+    v67CloudState.pushStatus = "Erro Push";
+    v67RenderCloudCard();
+  }
+}
+
 async function v67CloudInit() {
   if (!currentUser || !supabaseClient) return;
   v67CloudSetStatus("A ligar ao Supabase...", { deviceName: v67DetectDeviceName() });
@@ -6669,6 +6810,7 @@ async function v67CloudInit() {
       deviceReady: true,
       lastSync: agoraPt()
     });
+    await v671SincronizarEstadoPushCloudSilencioso();
   } catch (err) {
     console.warn("V67 Cloud Foundation indisponível:", err);
     v67CloudSetStatus("Cloud parcial: " + (err.message || "erro desconhecido"), {
@@ -6690,6 +6832,18 @@ function v67BindCloudButtons() {
       await v67CloudInit();
       btn.textContent = old;
       btn.disabled = false;
+    });
+  }
+  const btnPush = document.getElementById("v671PushRegisterBtn");
+  if (btnPush && !btnPush.dataset.v671bound) {
+    btnPush.dataset.v671bound = "1";
+    btnPush.addEventListener("click", async () => {
+      btnPush.disabled = true;
+      const old = btnPush.textContent;
+      btnPush.textContent = "A registar...";
+      try { await v671RegistarPushCloud(); } catch(e) { console.warn(e); v671AtualizarModalPushCloud("Erro ao registar Push Cloud: " + (e.message || e)); }
+      btnPush.textContent = old;
+      btnPush.disabled = false;
     });
   }
   const btnDevice = document.getElementById("v67CloudDeviceBtn");
