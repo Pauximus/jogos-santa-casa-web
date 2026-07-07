@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'];
@@ -6,9 +5,35 @@ for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env: ${key}`);
 }
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false }
-});
+const SUPABASE_URL = process.env.SUPABASE_URL.replace(/\/$/, '');
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+async function supabaseRequest(path, options = {}) {
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+  const headers = {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    Prefer: 'return=minimal',
+    ...(options.headers || {})
+  };
+
+  const res = await fetch(url, { ...options, headers });
+  const text = await res.text();
+
+  if (!res.ok) {
+    let parsed;
+    try { parsed = text ? JSON.parse(text) : null; } catch { parsed = text; }
+    const err = new Error(`Supabase REST error ${res.status}: ${text || res.statusText}`);
+    err.status = res.status;
+    err.body = parsed;
+    err.code = parsed?.code;
+    throw err;
+  }
+
+  if (!text) return null;
+  try { return JSON.parse(text); } catch { return text; }
+}
 
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT || 'mailto:pauximus@gmail.com',
@@ -43,7 +68,7 @@ function scheduledNotification(now = new Date()) {
     };
   }
 
-  // V67.3: motor automático via GitHub Actions.
+  // V67.4: motor automático via GitHub Actions sem WebSocket/Reatime.
   // Nesta fase envia lembretes automáticos e testes reais.
   // A comparação de prémios fica para a fase seguinte, quando ligarmos a recolha automática dos resultados oficiais.
   const wd = p.weekday.toLowerCase();
@@ -85,35 +110,40 @@ function scheduledNotification(now = new Date()) {
 }
 
 async function getSubscriptions() {
-  const { data, error } = await supabase
-    .from('push_subscriptions')
-    .select('id, profile_id, device_id, endpoint, p256dh, auth, enabled')
-    .eq('enabled', true)
-    .limit(1000);
-  if (error) throw error;
-  return data || [];
+  return await supabaseRequest('push_subscriptions?select=id,profile_id,device_id,endpoint,p256dh,auth,enabled&enabled=eq.true&limit=1000', {
+    method: 'GET',
+    headers: { Accept: 'application/json' }
+  }) || [];
 }
 
 async function logBeforeSend(sub, notification) {
-  const { error } = await supabase.from('notification_log').insert({
-    profile_id: sub.profile_id,
-    device_id: sub.device_id,
-    game: notification.game,
-    draw_number: notification.draw_number,
-    notification_type: notification.notification_type,
-    title: notification.payload.title,
-    body: notification.payload.body
-  });
-
-  if (!error) return true;
-  // 23505 = unique violation. Evita repetir a mesma notificação.
-  if (error.code === '23505') return false;
-  throw error;
+  try {
+    await supabaseRequest('notification_log', {
+      method: 'POST',
+      body: JSON.stringify({
+        profile_id: sub.profile_id,
+        device_id: sub.device_id,
+        game: notification.game,
+        draw_number: notification.draw_number,
+        notification_type: notification.notification_type,
+        title: notification.payload.title,
+        body: notification.payload.body
+      })
+    });
+    return true;
+  } catch (error) {
+    // 23505 = unique violation. Evita repetir a mesma notificação.
+    if (error.code === '23505') return false;
+    throw error;
+  }
 }
 
 async function disableSubscription(sub, reason) {
   console.log(`Disabling subscription ${sub.id}: ${reason}`);
-  await supabase.from('push_subscriptions').update({ enabled: false, updated_at: new Date().toISOString() }).eq('id', sub.id);
+  await supabaseRequest(`push_subscriptions?id=eq.${encodeURIComponent(sub.id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled: false, updated_at: new Date().toISOString() })
+  });
 }
 
 async function sendToSubscription(sub, notification) {
@@ -165,6 +195,7 @@ async function main() {
       else if (result.disabled) stats.disabled++;
     } catch (e) {
       stats.failed++;
+      console.error(`Failed subscription ${sub.id}:`, e.message || e);
     }
   }
   console.log('Push Engine stats:', stats);

@@ -1,4 +1,4 @@
-window.APP_VERSION = "v67.3-github-actions-push";
+window.APP_VERSION = "v67.4-github-actions-compatibility";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
