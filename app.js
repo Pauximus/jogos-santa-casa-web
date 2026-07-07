@@ -1,4 +1,4 @@
-window.APP_VERSION = "v67.2-push-engine";
+window.APP_VERSION = "v67.3-github-actions-push";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -9,8 +9,9 @@ const SUPABASE_APOSTAS = "apostas_guardadas";
 const SUPABASE_V67_PROFILES = "profiles";
 const SUPABASE_V67_DEVICES = "devices";
 const SUPABASE_V67_PUSH_SUBSCRIPTIONS = "push_subscriptions";
-const V67_1_VAPID_PUBLIC_KEY = "BGxzuP70QWWo7jcjFniwPnP4Xnalbkuo9AlYa-fb2Aijt59QOxzJIwnSJjiSFzFabUYVWjRJjjs04FBfLzvyDCQ";
+const V67_1_VAPID_PUBLIC_KEY = "BLIiD2ChRw0XwhWFES1hjpu7qwUfItr5fEjBxcLMKTSatPAS-1OkhQSjTgKA4q3gafiY2Dhxi6UX9wpFd_jQwp4";
 const V67_2_PUSH_ENGINE = true;
+const V67_3_GITHUB_ACTIONS_PUSH = true;
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let logoutEmCurso = false;

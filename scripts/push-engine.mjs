@@ -31,20 +31,21 @@ function scheduledNotification(now = new Date()) {
   if (force) {
     return {
       game: 'teste',
-      draw_number: `teste-${p.isoDate}-${p.hour}${String(p.minute).padStart(2, '0')}`,
+      draw_number: `teste-${process.env.PUSH_TEST_ID || `${p.isoDate}-${p.hour}${String(p.minute).padStart(2, '0')}-${Date.now()}`}`,
       notification_type: 'teste_push',
       payload: {
         title: '🧪 Teste Push — Assistente Jogos Santa Casa',
-        body: 'Se recebeste isto, o Push Engine está a funcionar com a app fechada.',
+        body: process.env.PUSH_TEST_MESSAGE || 'Se recebeste isto, o GitHub Actions + Push Engine está a funcionar com a app fechada.',
         tipo: 'teste',
-        tag: `jsc-teste-${p.isoDate}`,
+        tag: `jsc-teste-${process.env.PUSH_TEST_ID || p.isoDate}`,
         url: './'
       }
     };
   }
 
-  // Lembretes simples. A comparação automática de prémios fica pronta para a próxima fase,
-  // quando ligarmos a recolha automática dos resultados oficiais.
+  // V67.3: motor automático via GitHub Actions.
+  // Nesta fase envia lembretes automáticos e testes reais.
+  // A comparação de prémios fica para a fase seguinte, quando ligarmos a recolha automática dos resultados oficiais.
   const wd = p.weekday.toLowerCase();
   const hour = p.hour;
   const isEuro = wd.startsWith('tue') || wd.startsWith('fri');
@@ -150,6 +151,10 @@ async function main() {
   const subscriptions = await getSubscriptions();
   console.log(`Notification: ${notification.payload.title}`);
   console.log(`Enabled subscriptions: ${subscriptions.length}`);
+
+  if (!subscriptions.length) {
+    console.log('No enabled push subscriptions. Abre a app, permite notificações e clica em Registar Push Cloud.');
+  }
 
   const stats = { sent: 0, skipped: 0, disabled: 0, failed: 0 };
   for (const sub of subscriptions) {

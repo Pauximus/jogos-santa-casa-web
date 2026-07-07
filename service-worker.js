@@ -1,10 +1,10 @@
-const CACHE_NAME = "jogos-santa-casa-v67-2";
+const CACHE_NAME = "jogos-santa-casa-v67-3";
 const APP_SHELL = [
   "./",
   "index.html",
-  "style.css?v=67.2",
-  "app.js?v=67.2",
-  "manifest.webmanifest?v=67.2",
+  "style.css?v=67.3",
+  "app.js?v=67.3",
+  "manifest.webmanifest?v=67.3",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/maskable-512.png",
@@ -71,12 +71,12 @@ self.addEventListener("fetch", event => {
 self.addEventListener("push", event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; }
-  catch (e) { data = { title: "🍀 Assistente Jogos Santa Casa", body: event.data ? event.data.text() : "Nova atualização disponível." }; }
+  catch (e) { data = { title: "🍀 Assistente Jogos Santa Casa", body: event.data ? event.data.text() : "Nova notificação disponível." }; }
 
   const tipo = data.tipo || "geral";
   const vibrate = tipo === "premio" ? [280, 90, 280, 90, 420] : tipo === "sorteio" ? [150, 80, 150] : [120, 70, 120];
   event.waitUntil(self.registration.showNotification(data.title || "🍀 Assistente Jogos Santa Casa", {
-    body: data.body || "Tens novidades nos teus resultados.",
+    body: data.body || "Tens uma nova notificação do Assistente Jogos Santa Casa.",
     icon: data.icon || "./icons/icon-192.png",
     badge: data.badge || "./icons/icon-192.png",
     tag: data.tag || `jsc-${tipo}`,

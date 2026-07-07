@@ -4,15 +4,20 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "Modo de teste"
-        required: false
+        description: "Modo de execução"
+        required: true
         default: "test"
         type: choice
         options:
           - test
           - scheduled
+      message:
+        description: "Mensagem do teste (opcional)"
+        required: false
+        default: ""
   schedule:
-    # Horários em UTC. No verão em Portugal é +1h.
+    # UTC. No verão em Portugal, Lisboa está UTC+1.
+    # Terça/sexta = EuroMilhões. Quarta/sábado = Totoloto.
     # Corre de 30 em 30 minutos entre 18:00 e 22:30 UTC.
     - cron: "*/30 18-22 * * 2,3,5,6"
 
@@ -41,4 +46,6 @@ jobs:
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           PUSH_MODE: ${{ github.event.inputs.mode || 'scheduled' }}
           PUSH_FORCE_TEST: ${{ github.event.inputs.mode == 'test' && '1' || '0' }}
+          PUSH_TEST_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          PUSH_TEST_MESSAGE: ${{ github.event.inputs.message }}
         run: npm run push:engine
