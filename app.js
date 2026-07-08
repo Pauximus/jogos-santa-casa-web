@@ -1,4 +1,4 @@
-window.APP_VERSION = "v72.1-estatisticas-por-jogo";
+window.APP_VERSION = "v72.2-importacao-global-resultados";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";

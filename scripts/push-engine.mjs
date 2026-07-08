@@ -1,6 +1,6 @@
 import webpush from 'web-push';
 
-const APP_VERSION = 'v70.1-premios-automaticos-estavel';
+const APP_VERSION = 'v72.2-importacao-global-resultados';
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'];
 for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env: ${key}`);
@@ -243,6 +243,14 @@ async function obterResultadoGuardado(game, drawNumber = null) {
   path += '&order=draw_date.desc,updated_at.desc&limit=1';
   const rows = await supabaseRequest(path, { method: 'GET', headers: { Accept: 'application/json' } }) || [];
   return rows[0] || null;
+}
+
+async function obterResultadosRecentesGuardados(limit = 10) {
+  const rows = await supabaseRequest(
+    `draw_results?select=*&order=updated_at.desc,draw_date.desc&limit=${Number(limit) || 10}`,
+    { method: 'GET', headers: { Accept: 'application/json' } }
+  ) || [];
+  return rows;
 }
 
 async function carregarApostasServidor(game) {
@@ -524,16 +532,19 @@ async function main() {
     notification = buildNotification(mode);
 
     if (notification?.notification_type === 'resultado_disponivel') {
-      console.log('A importar resultados oficiais para draw_results...');
-      importStats = await importarResultadosOficiais(notification.game);
+      console.log('A importar resultados oficiais para draw_results (todos os jogos disponíveis)...');
+      // V72.2: backfill/importação global. Não filtramos pelo jogo do dia,
+      // para alimentar o Centro de Estatísticas Premium com todos os jogos que o backend disponibiliza.
+      importStats = await importarResultadosOficiais(null);
       console.log('Resultados oficiais:', importStats);
       if (importStats.guardados > 0 && importStats.ultimo) {
-        notification.draw_number = importStats.ultimo.draw_number;
-        notification.payload.title = `📢 Resultados disponíveis — ${nomeJogo(importStats.ultimo.game)}`;
+        notification.game = 'todos';
+        notification.draw_number = `global-${new Date().toISOString().slice(0,10)}`;
+        notification.payload.title = `📢 Resultados oficiais atualizados`;
         notification.payload.body = importStats.novos || importStats.atualizados
-          ? `Resultado oficial importado para a cloud. Abre a app para analisar as tuas apostas.`
-          : `Resultado já estava na cloud. Abre a app para consultar.`;
-        notification.payload.tag = `jsc-${importStats.ultimo.game}-resultado-${importStats.ultimo.draw_number}`;
+          ? `${importStats.guardados} resultado(s) importado(s) para a cloud. Abre a app para atualizar as estatísticas.`
+          : `${importStats.guardados} resultado(s) já estavam na cloud. Estatísticas atualizadas.`;
+        notification.payload.tag = `jsc-resultados-global-${new Date().toISOString().slice(0,10)}`;
       }
     }
 
@@ -542,10 +553,30 @@ async function main() {
     let notificacoesPremio = [];
 
     if (notification?.notification_type === 'resultado_disponivel') {
-      resultadoPremios = await obterResultadoGuardado(notification.game, notification.draw_number);
-      if (resultadoPremios) {
-        console.log('A calcular prémios automáticos...');
-        premiosStats = await calcularPremiosAutomaticos(resultadoPremios);
+      const resultadosParaPremios = notification.game === 'todos'
+        ? await obterResultadosRecentesGuardados(20)
+        : [await obterResultadoGuardado(notification.game, notification.draw_number)].filter(Boolean);
+
+      if (resultadosParaPremios.length) {
+        console.log(`A calcular prémios automáticos para ${resultadosParaPremios.length} resultado(s)...`);
+        premiosStats = { analisadas: 0, premiadas: 0, novos: 0, totalValor: 0, porPerfil: new Map() };
+
+        for (const resPremios of resultadosParaPremios) {
+          const parcial = await calcularPremiosAutomaticos(resPremios);
+          premiosStats.analisadas += parcial.analisadas;
+          premiosStats.premiadas += parcial.premiadas;
+          premiosStats.novos += parcial.novos;
+          premiosStats.totalValor += parcial.totalValor || 0;
+          for (const [perfil, resumo] of parcial.porPerfil.entries()) {
+            const atual = premiosStats.porPerfil.get(perfil) || { profile_id: perfil, premios: 0, valor: 0, exemplos: [] };
+            atual.premios += resumo.premios || 0;
+            atual.valor += resumo.valor || 0;
+            atual.exemplos.push(...(resumo.exemplos || []).slice(0, Math.max(0, 3 - atual.exemplos.length)));
+            premiosStats.porPerfil.set(perfil, atual);
+          }
+          resultadoPremios = resultadoPremios || resPremios;
+        }
+
         console.log('Prémios automáticos:', {
           analisadas: premiosStats.analisadas,
           premiadas: premiosStats.premiadas,
