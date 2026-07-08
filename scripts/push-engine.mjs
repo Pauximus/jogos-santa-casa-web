@@ -1,6 +1,6 @@
 import webpush from 'web-push';
 
-const APP_VERSION = 'v69-resultados-oficiais';
+const APP_VERSION = 'v70-premios-automaticos';
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'];
 for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env: ${key}`);
@@ -182,6 +182,161 @@ async function importarResultadosOficiais(gamePreferido = null) {
   }
 
   return stats;
+}
+
+
+
+function categoriaTemPremioServidor(jogo, n, e) {
+  const map = {
+    euromilhoes: new Set(['5+2','5+1','5+0','4+2','4+1','3+2','4+0','2+2','3+1','3+0','1+2','2+1','2+0']),
+    totoloto: new Set(['5+1','5+0','4+1','4+0','3+1','3+0','2+1']),
+    eurodreams: new Set(['6+1','6+0','5+1','5+0','4+1','4+0','3+1','2+1'])
+  };
+  return map[jogo]?.has(`${n}+${e}`) || false;
+}
+
+function parseApostaServidor(aposta) {
+  const [numsTxt = '', extrasTxt = ''] = String(aposta || '').split('+');
+  return {
+    nums: numsTxt.trim().split(/[\s,;|-]+/).map(Number).filter(Number.isFinite),
+    extras: extrasTxt.trim().split(/[\s,;|-]+/).map(Number).filter(Number.isFinite)
+  };
+}
+
+function obterPremioInfoServidor(resultado, categoria) {
+  const info = resultado?.official_prize_info || {};
+  const premios = info?.premios || info?.raw?.premios || {};
+  if (!premios) return null;
+  if (Array.isArray(premios)) return premios.find(p => String(p.categoria || p.chave || p.tipo || '').trim() === categoria) || null;
+  return premios[categoria] || premios[String(categoria)] || null;
+}
+
+function valorPremioTexto(info) {
+  if (!info) return 'valor a consultar';
+  if (typeof info === 'string') return info;
+  return info.valor || info.value || info.premio_valor || info.amount || 'valor a consultar';
+}
+
+function nomePremioTexto(info, categoria) {
+  if (!info) return `Prémio ${categoria}`;
+  if (typeof info === 'string') return `Prémio ${categoria}`;
+  return info.premio || info.nome || info.rank || `Prémio ${categoria}`;
+}
+
+function valorNumericoPremio(texto) {
+  const m = String(texto || '').match(/(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)/);
+  if (!m) return 0;
+  return Number(m[1].replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+async function obterResultadoGuardado(game, drawNumber = null) {
+  let path = `draw_results?select=*&game=eq.${encodeURIComponent(game)}`;
+  if (drawNumber) path += `&draw_number=eq.${encodeURIComponent(drawNumber)}`;
+  path += '&order=draw_date.desc,updated_at.desc&limit=1';
+  const rows = await supabaseRequest(path, { method: 'GET', headers: { Accept: 'application/json' } }) || [];
+  return rows[0] || null;
+}
+
+async function carregarApostasServidor(game) {
+  return await supabaseRequest(
+    `apostas_guardadas?select=id,user_id,jogo,aposta,data_registo&jogo=eq.${encodeURIComponent(game)}&limit=5000`,
+    { method: 'GET', headers: { Accept: 'application/json' } }
+  ) || [];
+}
+
+async function premioHistoricoExiste(ev) {
+  const rows = await supabaseRequest(
+    `historico_premios?select=id&user_id=eq.${encodeURIComponent(ev.user_id)}&jogo=eq.${encodeURIComponent(ev.jogo)}&aposta=eq.${encodeURIComponent(ev.aposta)}&sorteio=eq.${encodeURIComponent(ev.sorteio)}&premio=eq.${encodeURIComponent(ev.premio)}&limit=1`,
+    { method: 'GET', headers: { Accept: 'application/json' } }
+  ) || [];
+  return rows.length > 0;
+}
+
+async function guardarPremioHistoricoServidor(ev) {
+  if (await premioHistoricoExiste(ev)) return false;
+  await supabaseRequest('historico_premios', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_id: ev.user_id,
+      jogo: ev.jogo,
+      aposta: ev.aposta,
+      premio: ev.premio,
+      sorteio: ev.sorteio,
+      acertos: ev.acertos,
+      data_sorteio: ev.data_sorteio || null
+    })
+  });
+  return true;
+}
+
+async function calcularPremiosAutomaticos(resultado) {
+  const stats = { analisadas: 0, premiadas: 0, novos: 0, totalValor: 0, porPerfil: new Map() };
+  if (!resultado?.game || !Array.isArray(resultado.numbers)) return stats;
+
+  const apostas = await carregarApostasServidor(resultado.game);
+  const numeros = arrayNumeros(resultado.numbers);
+  const extras = arrayNumeros(resultado.stars);
+
+  for (const row of apostas) {
+    stats.analisadas++;
+    const parsed = parseApostaServidor(row.aposta);
+    const n = parsed.nums.filter(x => numeros.includes(Number(x))).length;
+    const e = parsed.extras.filter(x => extras.includes(Number(x))).length;
+    const categoria = `${n}+${e}`;
+    const info = obterPremioInfoServidor(resultado, categoria);
+    const premiado = !!info || categoriaTemPremioServidor(resultado.game, n, e);
+    if (!premiado) continue;
+
+    const nomePremio = nomePremioTexto(info, categoria);
+    const valorTxt = valorPremioTexto(info);
+    const premio = `${nomePremio} — ${valorTxt}`;
+    const ev = {
+      user_id: row.user_id,
+      jogo: nomeJogo(resultado.game),
+      aposta: row.aposta,
+      premio,
+      sorteio: resultado.draw_number || 'último sorteio',
+      acertos: `${n} número(s) + ${e} extra(s)`,
+      data_sorteio: resultado.draw_date || null,
+      valor: valorNumericoPremio(valorTxt)
+    };
+
+    stats.premiadas++;
+    const novo = await guardarPremioHistoricoServidor(ev);
+    if (novo) {
+      stats.novos++;
+      stats.totalValor += ev.valor || 0;
+      const atual = stats.porPerfil.get(row.user_id) || { profile_id: row.user_id, premios: 0, valor: 0, exemplos: [] };
+      atual.premios++;
+      atual.valor += ev.valor || 0;
+      if (atual.exemplos.length < 3) atual.exemplos.push({ aposta: row.aposta, premio, acertos: ev.acertos });
+      stats.porPerfil.set(row.user_id, atual);
+    }
+  }
+
+  return stats;
+}
+
+function criarNotificacaoPremio(resultado, resumoPerfil) {
+  const valorTxt = resumoPerfil.valor > 0
+    ? resumoPerfil.valor.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
+    : 'valor a consultar';
+  const plural = resumoPerfil.premios === 1 ? 'prémio' : 'prémios';
+  const exemplo = resumoPerfil.exemplos?.[0];
+  return {
+    game: resultado.game,
+    draw_number: resultado.draw_number,
+    notification_type: 'premio_encontrado',
+    target_profile_id: resumoPerfil.profile_id,
+    payload: {
+      title: `🏆 Encontrámos ${resumoPerfil.premios} ${plural}!`,
+      body: exemplo ? `${nomeJogo(resultado.game)}: ${exemplo.acertos}. Total: ${valorTxt}.` : `${nomeJogo(resultado.game)}: total ${valorTxt}.`,
+      tipo: 'premio',
+      tag: `jsc-${resultado.game}-premio-${resultado.draw_number}-${resumoPerfil.profile_id}`,
+      url: './#historico',
+      version: APP_VERSION
+    }
+  };
 }
 
 webpush.setVapidDetails(
@@ -374,6 +529,25 @@ async function main() {
       }
     }
 
+    let premiosStats = null;
+    let resultadoPremios = null;
+    let notificacoesPremio = [];
+
+    if (notification?.notification_type === 'resultado_disponivel') {
+      resultadoPremios = await obterResultadoGuardado(notification.game, notification.draw_number);
+      if (resultadoPremios) {
+        console.log('A calcular prémios automáticos...');
+        premiosStats = await calcularPremiosAutomaticos(resultadoPremios);
+        console.log('Prémios automáticos:', {
+          analisadas: premiosStats.analisadas,
+          premiadas: premiosStats.premiadas,
+          novos: premiosStats.novos,
+          perfis: premiosStats.porPerfil.size
+        });
+        notificacoesPremio = [...premiosStats.porPerfil.values()].map(p => criarNotificacaoPremio(resultadoPremios, p));
+      }
+    }
+
     if (!notification) {
       console.log(`No notification scheduled for this run. mode=${mode}`);
       await finishRunLog(runId, { status: 'idle', message: `Sem notificação agendada para mode=${mode}` });
@@ -389,15 +563,33 @@ async function main() {
       console.log('No enabled push subscriptions. Abre a app, permite notificações e clica em Registar Push Cloud.');
     }
 
-    for (const sub of subscriptions) {
-      try {
-        const result = await sendToSubscription(sub, notification);
-        if (result.sent) stats.sent++;
-        else if (result.skipped) stats.skipped++;
-        else if (result.disabled) stats.disabled++;
-      } catch (e) {
-        stats.failed++;
-        console.error(`Failed subscription ${sub.id}:`, e.message || e);
+    if (notificacoesPremio.length) {
+      console.log(`Prize notifications: ${notificacoesPremio.length}`);
+      for (const premioNotif of notificacoesPremio) {
+        const alvo = subscriptions.filter(s => s.profile_id === premioNotif.target_profile_id);
+        for (const sub of alvo) {
+          try {
+            const result = await sendToSubscription(sub, premioNotif);
+            if (result.sent) stats.sent++;
+            else if (result.skipped) stats.skipped++;
+            else if (result.disabled) stats.disabled++;
+          } catch (e) {
+            stats.failed++;
+            console.error(`Failed prize subscription ${sub.id}:`, e.message || e);
+          }
+        }
+      }
+    } else {
+      for (const sub of subscriptions) {
+        try {
+          const result = await sendToSubscription(sub, notification);
+          if (result.sent) stats.sent++;
+          else if (result.skipped) stats.skipped++;
+          else if (result.disabled) stats.disabled++;
+        } catch (e) {
+          stats.failed++;
+          console.error(`Failed subscription ${sub.id}:`, e.message || e);
+        }
       }
     }
 
@@ -407,13 +599,13 @@ async function main() {
       game: notification.game,
       draw_number: notification.draw_number,
       notification_type: notification.notification_type,
-      notification_title: notification.payload.title,
+      notification_title: notificacoesPremio.length ? `🏆 ${notificacoesPremio.length} utilizador(es) com prémio` : notification.payload.title,
       subscriptions_count: subscriptions.length,
       sent: stats.sent,
       skipped: stats.skipped,
       disabled: stats.disabled,
       failed: stats.failed,
-      message: stats.failed > 0 ? 'Algumas subscrições falharam.' : `Execução concluída. resultados=${importStats ? importStats.guardados : 'n/a'}, novos=${importStats ? importStats.novos : 'n/a'}`
+      message: stats.failed > 0 ? 'Algumas subscrições falharam.' : `Execução concluída. resultados=${importStats ? importStats.guardados : 'n/a'}, prémios=${premiosStats ? premiosStats.novos : 'n/a'}`
     });
     if (stats.failed > 0) process.exitCode = 1;
   } catch (err) {
