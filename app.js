@@ -1,4 +1,4 @@
-window.APP_VERSION = "v75-navegacao-paginas";
+window.APP_VERSION = "v75.1-navegacao-corrigida";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7458,4 +7458,141 @@ instalarV73();
   }
 
   ready(() => setTimeout(instalar, 200));
+})();
+
+
+// V75.1 — Navegação corrigida e isolamento real das páginas
+(function initV751PageNavigationFix(){
+  function ready(fn){
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  function byId(id){ return document.getElementById(id); }
+
+  function mark(el, page){
+    if (!el) return;
+    el.dataset.v75Page = page;
+    el.classList.add('v75-page-section');
+  }
+
+  function ensureChild(parent, el, beforeEl){
+    if (!parent || !el) return;
+    if (el.parentElement !== parent) parent.insertBefore(el, beforeEl || null);
+  }
+
+  function install(){
+    const app = byId('appBox');
+    if (!app) return;
+
+    document.body.classList.add('v75-pages', 'v751-pages');
+
+    const nav = byId('v75AppNav');
+    const tabsNav = byId('tabs');
+    const gameCard = document.querySelector('section.game-card');
+    const resultsSections = Array.from(document.querySelectorAll('section.results'));
+    const settings = byId('settingsPanelV74');
+
+    // Reposiciona secções que ficaram aninhadas ou fora do appBox na primeira V75.
+    const premiosGestao = byId('premiosGestaoV58Card');
+    ensureChild(app, premiosGestao, byId('dashboardBox'));
+
+    ['estatisticasAvancadas','centroEstatisticasV71','graficosV54Card','numerosV54Card','estatisticasInteligentes'].forEach(id => {
+      const el = byId(id);
+      if (el && !app.contains(el)) app.appendChild(el);
+    });
+
+    // Página Home
+    mark(byId('dashboardInteligenteV73'), 'home');
+    mark(byId('sugestoesInteligentesV73'), 'home');
+    mark(byId('dashboardVivoCard'), 'home');
+
+    // Página Apostas
+    mark(tabsNav, 'apostas');
+    mark(gameCard, 'apostas');
+    mark(resultsSections[0], 'apostas');
+
+    // Página Prémios
+    mark(premiosGestao, 'premios');
+    mark(byId('dashboardBox'), 'premios');
+    mark(byId('premiosPremium'), 'premios');
+    mark(byId('statsBox'), 'premios');
+    mark(resultsSections[1], 'premios');
+
+    // Página Estatísticas
+    mark(byId('estatisticasAvancadas'), 'estatisticas');
+    mark(byId('centroEstatisticasV71'), 'estatisticas');
+    mark(byId('graficosV54Card'), 'estatisticas');
+    mark(byId('numerosV54Card'), 'estatisticas');
+    mark(byId('estatisticasInteligentes'), 'estatisticas');
+
+    // Página Perfil
+    mark(byId('perfilApostador'), 'perfil');
+    mark(byId('dashboardPremium'), 'perfil');
+
+    // Página Definições
+    mark(settings, 'definicoes');
+    if (settings) settings.hidden = false;
+    mark(byId('cloudV67Card'), 'definicoes');
+    mark(byId('toolsV57Card'), 'definicoes');
+    mark(byId('notificacoesFcmV58Card'), 'definicoes');
+
+    const sections = Array.from(document.querySelectorAll('.v75-page-section'));
+    const buttons = nav ? Array.from(nav.querySelectorAll('[data-v75-nav]')) : [];
+    const valid = ['home','apostas','premios','estatisticas','perfil','definicoes'];
+
+    function showPage(page, scrollTop){
+      if (!valid.includes(page)) page = 'home';
+      document.body.dataset.v75CurrentPage = page;
+
+      sections.forEach(sec => {
+        const active = sec.dataset.v75Page === page;
+        sec.hidden = !active;
+        sec.classList.toggle('v75-page-active', active);
+      });
+
+      // Garantia extra: as tabs dos jogos só aparecem na página Apostas.
+      if (tabsNav) {
+        tabsNav.hidden = page !== 'apostas';
+        tabsNav.classList.toggle('v75-page-active', page === 'apostas');
+      }
+
+      buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.v75Nav === page));
+
+      try { history.replaceState(null, '', `${location.pathname}${location.search}#${page}`); } catch(e) {}
+      if (scrollTop) setTimeout(() => app.scrollIntoView({ behavior:'smooth', block:'start' }), 20);
+
+      try {
+        atualizarDashboard();
+        if (typeof atualizarDashboardVivo === 'function') atualizarDashboardVivo();
+        if (typeof atualizarPerfilApostador === 'function') atualizarPerfilApostador();
+        if (typeof atualizarCentroEstatisticasPremium === 'function') atualizarCentroEstatisticasPremium();
+      } catch(e) { console.warn('Atualização pós-navegação incompleta:', e); }
+    }
+
+    // Reescreve a navegação, evitando conflito com a V75 inicial.
+    buttons.forEach(btn => {
+      btn.onclick = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        showPage(btn.dataset.v75Nav, true);
+      };
+    });
+
+    const settingsBtn = byId('settingsToggleV74');
+    if (settingsBtn) settingsBtn.onclick = (ev) => { ev.preventDefault(); showPage('definicoes', true); };
+
+    const closeSettings = byId('settingsCloseV74');
+    if (closeSettings) {
+      closeSettings.textContent = 'Voltar à Home';
+      closeSettings.onclick = (ev) => { ev.preventDefault(); showPage('home', true); };
+    }
+
+    const initial = (location.hash || '#home').replace('#','');
+    showPage(valid.includes(initial) ? initial : 'home', false);
+
+    window.JSC_SHOW_PAGE = showPage;
+  }
+
+  ready(() => setTimeout(install, 700));
 })();
