@@ -1,4 +1,4 @@
-window.APP_VERSION = "v70.1-premios-automaticos-estavel";
+window.APP_VERSION = "v71-estatisticas-inteligentes";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -6959,3 +6959,94 @@ setTimeout(() => {
     v68CarregarEstadoPushEngine?.();
   } catch(e) { console.warn(e); }
 }, 250);
+
+
+// V71 - Centro de Estatísticas Inteligentes
+function v71FormatPct(n){return `${Math.round((Number(n)||0)*100)}%`}
+function v71Moeda(n){return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}
+function v71ParseNums(v){
+  if(Array.isArray(v)) return v.map(Number).filter(Number.isFinite);
+  if(v==null) return [];
+  try{const j=JSON.parse(v); if(Array.isArray(j)) return j.map(Number).filter(Number.isFinite)}catch{}
+  return String(v).split(/[\s,;|+\-]+/).map(Number).filter(Number.isFinite);
+}
+function v71Top(map,limit=10){return [...map.entries()].sort((a,b)=>b[1]-a[1]||a[0]-b[0]).slice(0,limit)}
+function v71AddCounts(map, nums){nums.forEach(n=>map.set(n,(map.get(n)||0)+1))}
+function v71Set(id,txt){const el=document.getElementById(id); if(el) el.textContent=txt}
+function v71BarList(id, data, label="x"){
+  const el=document.getElementById(id); if(!el) return;
+  const max=Math.max(1,...data.map(x=>x[1]||0));
+  el.innerHTML=data.length?data.map(([n,c])=>`<div class="v71-row"><div class="v71-row-head"><b>${n}</b><span>${c}${label}</span></div><div class="v71-track"><i style="width:${Math.max(4,Math.round(c/max*100))}%"></i></div></div>`).join(""):`<div class="v71-empty">Sem dados suficientes.</div>`;
+}
+function v71Heat(id, data, maxN=50){
+  const el=document.getElementById(id); if(!el) return;
+  const map=new Map(data); const max=Math.max(1,...[...map.values()]);
+  const chips=[];
+  for(let i=1;i<=maxN;i++){const c=map.get(i)||0; const lvl=Math.min(5,Math.ceil(c/max*5)||0); chips.push(`<span class="v71-chip level-${lvl}"><b>${i}</b><small>${c}</small></span>`)}
+  el.innerHTML=chips.join("");
+}
+function v71ApostasLocais(){
+  const out=[];
+  try{Object.entries(apostas||{}).forEach(([j,l])=>(l||[]).forEach(a=>out.push({jogo:j,aposta:a})))}catch{}
+  return out;
+}
+function v71StatsFromApostas(){
+  const nums=new Map(), extras=new Map(), jogos=new Map(); let pares=0, impares=0, baixos=0, altos=0, soma=0, totalNums=0;
+  for(const a of v71ApostasLocais()){
+    jogos.set(a.jogo,(jogos.get(a.jogo)||0)+1);
+    const p=String(a.aposta||"").split("+");
+    const ns=v71ParseNums(p[0]); const ex=v71ParseNums(p[1]);
+    v71AddCounts(nums,ns); v71AddCounts(extras,ex);
+    ns.forEach(n=>{totalNums++; soma+=n; n%2?impares++:pares++; n<=25?baixos++:altos++;});
+  }
+  return {nums,extras,jogos,pares,impares,baixos,altos,soma,totalNums,apostas:v71ApostasLocais().length,fonte:"apostas"};
+}
+async function v71StatsFromCloud(){
+  if(!supabaseClient) return null;
+  try{
+    const {data,error}=await supabaseClient.from("draw_results").select("game,draw_number,draw_date,numbers,stars,created_at,updated_at").order("draw_date",{ascending:false}).limit(250);
+    if(error) throw error;
+    if(!data?.length) return null;
+    const nums=new Map(), extras=new Map(), jogos=new Map(); let pares=0,impares=0,baixos=0,altos=0,soma=0,totalNums=0;
+    data.forEach(r=>{
+      jogos.set(r.game,(jogos.get(r.game)||0)+1);
+      const ns=v71ParseNums(r.numbers); const ex=v71ParseNums(r.stars);
+      v71AddCounts(nums,ns); v71AddCounts(extras,ex);
+      ns.forEach(n=>{totalNums++; soma+=n; n%2?impares++:pares++; n<=25?baixos++:altos++;});
+    });
+    return {nums,extras,jogos,pares,impares,baixos,altos,soma,totalNums,concursos:data.length,fonte:"resultados"};
+  }catch(e){console.warn("V71 cloud stats indisponíveis",e);return null;}
+}
+function v71Insight(stats){
+  const top=v71Top(stats.nums,3).map(x=>x[0]).join(", ")||"—";
+  const atrasados=[];
+  for(let i=1;i<=50;i++) if(!stats.nums.has(i)) atrasados.push(i);
+  const media=stats.totalNums?Math.round(stats.soma/stats.totalNums):0;
+  const parPct=(stats.pares+stats.impares)?stats.pares/(stats.pares+stats.impares):0;
+  const fonte=stats.fonte==="resultados"?`${stats.concursos} resultados oficiais`:`${stats.apostas} apostas guardadas`;
+  return [`Foram analisados ${fonte}.`, `Números em destaque: ${top}.`, `Soma média das chaves: ${media||"—"}.`, `Distribuição par/ímpar: ${v71FormatPct(parPct)} pares / ${v71FormatPct(1-parPct)} ímpares.`, atrasados.length?`Números sem ocorrência nesta amostra: ${atrasados.slice(0,8).join(", ")}.`:`Todos os números apareceram na amostra analisada.`];
+}
+async function atualizarCentroEstatisticasV71(){
+  const cloud=await v71StatsFromCloud();
+  const stats=cloud||v71StatsFromApostas();
+  const totalBase=stats.fonte==="resultados"?stats.concursos:stats.apostas;
+  v71Set("v71Resumo",`${totalBase||0} item(ns) analisado(s)`);
+  v71Set("v71Fonte",stats.fonte==="resultados"?"Resultados oficiais na cloud":"Apostas guardadas neste dispositivo");
+  v71Set("v71SomaMedia",stats.totalNums?String(Math.round(stats.soma/stats.totalNums)):"—");
+  v71Set("v71ParImpar",(stats.pares+stats.impares)?`${v71FormatPct(stats.pares/(stats.pares+stats.impares))} / ${v71FormatPct(stats.impares/(stats.pares+stats.impares))}`:"—");
+  v71Set("v71BaixoAlto",(stats.baixos+stats.altos)?`${v71FormatPct(stats.baixos/(stats.baixos+stats.altos))} / ${v71FormatPct(stats.altos/(stats.baixos+stats.altos))}`:"—");
+  const topJogo=v71Top(stats.jogos,1)[0];
+  v71Set("v71JogoTop",topJogo?`${jogos?.[topJogo[0]]?.nome||topJogo[0]} (${topJogo[1]})`:"—");
+  v71BarList("v71NumerosQuentes",v71Top(stats.nums,10),"x");
+  const frios=[]; for(let i=1;i<=50;i++) frios.push([i,stats.nums.get(i)||0]);
+  v71BarList("v71NumerosFrios",frios.sort((a,b)=>a[1]-b[1]||a[0]-b[0]).slice(0,10),"x");
+  v71BarList("v71Estrelas",v71Top(stats.extras,10),"x");
+  v71Heat("v71Heatmap",v71Top(stats.nums,50),50);
+  const ins=document.getElementById("v71Insights"); if(ins) ins.innerHTML=v71Insight(stats).map(t=>`<div class="v71-insight">${t}</div>`).join("");
+}
+function instalarV71(){
+  setTimeout(()=>atualizarCentroEstatisticasV71(),700);
+  setTimeout(()=>atualizarCentroEstatisticasV71(),2500);
+  document.addEventListener("click",()=>setTimeout(()=>atualizarCentroEstatisticasV71(),300));
+}
+instalarV71();
