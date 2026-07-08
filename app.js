@@ -1,4 +1,4 @@
-window.APP_VERSION = "v68.1-update-fix";
+window.APP_VERSION = "v68.2-push-dashboard-fix";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -6730,7 +6730,7 @@ async function v68CarregarEstadoPushEngine() {
   try {
     const { data, error } = await supabaseClient
       .from(SUPABASE_V68_PUSH_ENGINE_RUNS)
-      .select("id, mode, status, started_at, finished_at, notification_title, sent, skipped, disabled, failed, subscriptions_count")
+      .select("id, mode, status, started_at, finished_at, title, sent, skipped, disabled, failed, enabled_subscriptions, message")
       .order("started_at", { ascending: false })
       .limit(1);
     if (error) throw error;
@@ -6750,8 +6750,8 @@ async function v68CarregarEstadoPushEngine() {
       engineStatus: ok ? "Online" : (run.status || "Executado"),
       engineLastRun: v68FormatarDataHora(run.finished_at || run.started_at),
       engineNextRun: v68ProximaExecucaoPushEngine(),
-      engineLastNotification: run.notification_title || "Sem notificação",
-      engineDevices: `${run.subscriptions_count ?? 0} subscrição(ões) / ${run.sent ?? 0} enviada(s)`
+      engineLastNotification: run.title || run.message || "Sem notificação",
+      engineDevices: `${run.enabled_subscriptions ?? 0} subscrição(ões) / ${run.sent ?? 0} enviada(s)`
     });
   } catch (e) {
     console.warn("V68 estado Push Engine indisponível:", e);
