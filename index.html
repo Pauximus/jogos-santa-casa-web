@@ -1,662 +1,600 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="pt-PT">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
-  <title>Assistente Jogos Santa Casa</title>
-  <link rel="manifest" href="manifest.webmanifest?v=754">
-  <link rel="stylesheet" href="style.css?v=754">
-  <meta name="theme-color" content="#101828">
-  <meta name="msapplication-TileColor" content="#101828">
-  <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
-  <meta name="application-name" content="Assistente Jogos Santa Casa">
-  <meta name="format-detection" content="telephone=no">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Assistente">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E" rel="icon"/>
+<title>Assistente Jogos Santa Casa</title>
+<link href="manifest.webmanifest?v=760" rel="manifest"/>
+<link href="style.css?v=760" rel="stylesheet"/>
+<meta content="#101828" name="theme-color"/>
+<meta content="#101828" name="msapplication-TileColor"/>
+<meta content="/jogos-santa-casa-web/" name="msapplication-starturl"/>
+<meta content="Assistente Jogos Santa Casa" name="application-name"/>
+<meta content="telephone=no" name="format-detection"/>
+<meta content="yes" name="mobile-web-app-capable"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="Assistente" name="apple-mobile-web-app-title"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<link href="icons/apple-touch-icon.png" rel="apple-touch-icon"/>
+<link href="icons/icon-192.png" rel="icon" sizes="192x192"/>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-icon">🍀</div>
-      <div class="brand-text">JOGOS<br><span>SANTA CASA</span></div>
-    </div>
-    <h1>Assistente Jogos Santa Casa</h1>
-  </header>
+<header class="topbar">
+<div class="brand">
+<div class="brand-icon">🍀</div>
+<div class="brand-text">JOGOS<br/><span>SANTA CASA</span></div>
+</div>
+<h1>Assistente Jogos Santa Casa</h1>
+</header>
+<main class="app">
+<section class="notif-banner" hidden="" id="notifBanner">
+<div class="notif-banner-icon">🔔</div>
+<div class="notif-banner-text">
+<strong>Recebe notificações automáticas dos sorteios</strong>
+<span>Podemos avisar-te quando forem encontrados prémios ou quando existirem novos resultados.</span>
+</div>
+<div class="notif-banner-actions">
+<button id="notifBannerAtivarBtn" type="button">Ativar notificações</button>
+<button id="notifBannerMaisTardeBtn" type="button">Mais tarde</button>
+</div>
+</section>
+<section class="card auth-panel" id="authBox">
+<h2>Entrar</h2>
+<p>Usa a tua conta para sincronizar apostas e histórico entre dispositivos.</p>
+<div class="auth-grid">
+<label>Email:</label>
+<input autocomplete="email" class="auth-input" id="authEmail" placeholder="email@exemplo.pt" type="email"/>
+<label>Password:</label>
+<input autocomplete="current-password" class="auth-input" id="authPassword" placeholder="Password" type="password"/>
+</div>
+<div class="auth-actions">
+<button class="primary" id="loginBtn">Entrar</button>
+<button id="signupBtn">Criar conta</button>
+<button id="resetPasswordBtn">Recuperar password</button>
+</div>
+<div class="result-card warn" id="authMsg" style="display:none;"></div>
+</section>
+<section class="card prize-alert" id="notificacaoPremio" style="display:none;">
+<div>
+<strong id="notificacaoTitulo">🏆 Novo prémio encontrado!</strong>
+<div class="small" id="notificacaoTexto"></div>
+</div>
+<button class="mini-btn" id="fecharNotificacao">Fechar</button>
+</section>
+<div id="appBox" style="display:none;">
+<nav aria-label="Navegação principal" class="v75-app-nav" id="v75AppNav">
+<button class="active" data-v75-nav="home" type="button">🏠<span>Home</span></button>
+<button data-v75-nav="apostas" type="button">🎲<span>Apostas</span></button>
+<button data-v75-nav="premios" type="button">🏆<span>Prémios</span></button>
+<button data-v75-nav="estatisticas" type="button">📊<span>Estatísticas</span></button>
+<button data-v75-nav="perfil" type="button">👤<span>Perfil</span></button>
+<button data-v75-nav="definicoes" type="button">⚙️<span>Definições</span></button>
+</nav>
+<section class="card v73-hero-card" id="dashboardInteligenteV73">
+<section class="v74-hero-user" id="userBox" style="display:none;">
+<div>
+<strong id="userInfo">Sessão iniciada</strong>
+<div class="small" id="syncInfo">Sincronização automática ativa.</div>
+<div class="alias-row">
+<label for="aliasUtilizador">Nome/alcunha no PDF</label>
+<div class="alias-controls">
+<input id="aliasUtilizador" maxlength="40" placeholder="Ex.: Paulo, Pauximus..." type="text">
+<button id="guardarAliasBtn" type="button">Guardar</button>
+</input></div>
+<div aria-live="polite" class="alias-feedback" id="aliasFeedback"></div>
+<button class="notif-status-mini" id="notifStatusMini" type="button">🔔 Notificações</button>
+<div aria-live="polite" class="notificacoes-estado" id="notificacoesEstado"></div>
+</div>
+</div>
+<div class="user-actions">
+<button id="syncNowBtn">Sincronizar agora</button>
+<button class="install-btn" id="installPwaBtn" style="display:none;">Instalar app</button>
+<button class="v74-settings-btn" id="settingsToggleV74" type="button">⚙️ Definições</button>
+<button id="logoutBtn">Terminar sessão</button>
+</div>
+</section>
+<div class="v73-hero-top">
+<div>
+<span class="v73-eyebrow">Dashboard Inteligente</span>
+<h2 id="v73Greeting">Olá 👋</h2>
+<p id="v73Insight">A preparar resumo inteligente...</p>
+</div>
+<div class="v73-next">
+<small id="v73Hoje">—</small>
+<strong id="v73ProximoJogo">—</strong>
+<span id="v73ProximoTempo">—</span>
+</div>
+</div>
+<div class="v73-kpi-grid">
+<div><span>📄 Apostas ativas</span><b id="v73ApostasAtivas">—</b><small id="v73ApostasMeta">—</small></div>
+<div><span>🎯 Último resultado</span><b id="v73UltimoResultado">—</b><small>Base para estatísticas e prémios.</small></div>
+<div><span>☁️ Cloud</span><b id="v73CloudResumo">—</b><small>Estado da sincronização.</small></div>
+<div><span>📲 Push Engine</span><b id="v73PushResumo">—</b><small id="v73UltimaExecucao">—</small></div>
+</div>
+</section>
+<section class="card v73-sugestoes-card" id="sugestoesInteligentesV73">
+<div class="v54-head v73-head"><div><h2>🎯 Sugestões Inteligentes</h2><p>Gera chaves equilibradas usando os resultados oficiais já importados. Não prevê o futuro; ajuda a variar as apostas.</p></div><span class="v54-pill v72-pill">V76.0</span></div>
+<div class="v73-sugestoes-grid">
+<div class="v73-sugestoes-control">
+<label for="v73SugestaoJogo">Jogo</label>
+<select class="v71-filter" id="v73SugestaoJogo">
+<option value="euromilhoes">EuroMilhões</option>
+<option value="totoloto">Totoloto</option>
+<option value="eurodreams">EuroDreams</option>
+</select>
+<div class="v73-sug-actions">
+<button id="v73GerarEstatistica" type="button">Sugestão estatística</button>
+<button id="v73GerarAleatoria" type="button">Aleatória controlada</button>
+</div>
+</div>
+<div class="v73-sugestao-output">
+<div class="v73-sugestao-chave" id="v73SugestaoChave">A gerar sugestão...</div>
+<small id="v73SugestaoMeta">—</small>
+</div>
+</div>
+</section>
+<section class="card dashboard-vivo-card" id="dashboardVivoCard">
+<div class="v54-head"><div><h2>🍀 Dashboard Vivo</h2><p>Resumo rápido do teu momento atual.</p></div><span class="v54-pill" id="dvBadge">A calcular...</span></div>
+<div class="dv-grid">
+<div class="dv-main"><span>🏆 Último prémio</span><strong id="dvUltimoPremio">—</strong><small id="dvUltimoPremioMeta">—</small></div>
+<div class="dv-main"><span>💰 Total ganho</span><strong id="dvTotalGanho">—</strong><small>Valor acumulado conhecido.</small></div>
+<div class="dv-main"><span>🔥 Sequência atual</span><strong id="dvSequencia">—</strong><small>Prémios recentes seguidos.</small></div>
+<div class="dv-main"><span>🎯 Próxima ação</span><strong id="dvProximaAcao">—</strong><small id="dvProximaAcaoMeta">—</small></div>
+</div>
+<div class="dv-frase" id="dvFrase">A analisar o teu histórico...</div>
+</section>
+<section class="card v74-settings-panel" hidden="" id="settingsPanelV74">
+<div class="v74-settings-head">
+<div>
+<h2>⚙️ Definições &amp; Manutenção</h2>
+<p>Cloud, Push, backup, atualização e diagnóstico ficam aqui para não ocupar a página principal.</p>
+</div>
+<button class="mini-btn" id="settingsCloseV74" type="button">Fechar</button>
+</div>
+<div class="v74-settings-note">A sincronização e as notificações continuam automáticas. Usa esta área apenas quando precisares de manutenção.</div>
+<section class="card cloud-v67-card" id="cloudV67Card">
+<div class="v67-cloud-head">
+<div>
+<h2>☁️ Cloud &amp; Push</h2>
+<p>Conta, dispositivo, sincronização, Push Notifications reais e scheduler inteligente.</p>
+</div>
+<span class="v67-cloud-pill" id="v67CloudBadge"><i class="v67-dot warn" id="v67CloudDot"></i> Cloud preparada</span>
+</div>
+<div class="v67-cloud-grid">
+<div><span>Estado</span><strong id="v67CloudStatus">A iniciar...</strong></div>
+<div><span>Conta</span><strong id="v67CloudAccount">—</strong></div>
+<div><span>Dispositivo</span><strong id="v67CloudDevice">—</strong></div>
+<div><span>Última sincronização</span><strong id="v67CloudLastSync">—</strong></div>
+<div><span>Versão</span><strong id="v67CloudVersion">v76.0-navegacao-limpa</strong></div>
+<div><span>Push Cloud</span><strong id="v671PushCloudStatus">—</strong></div>
+<div><span>Push Engine</span><strong id="v672PushEngineStatus">A preparar</strong></div>
+<div><span>Última execução</span><strong id="v68PushEngineLastRun">—</strong></div>
+<div><span>Próxima execução</span><strong id="v68PushEngineNextRun">—</strong></div>
+<div><span>Última notificação</span><strong id="v68PushEngineLastNotification">—</strong></div>
+<div><span>Dispositivos Push</span><strong id="v68PushEngineDevices">—</strong></div>
+</div>
+<div class="v67-cloud-actions">
+<button id="v67CloudSyncBtn" type="button">Sincronizar cloud</button>
+<button id="v67CloudDeviceBtn" type="button">Novo ID dispositivo</button>
+<button id="v671PushRegisterBtn" type="button">Registar Push Cloud</button>
+</div>
+<div class="v67-cloud-note">V68: Scheduler inteligente ativo. O GitHub Actions executa o Push Engine automaticamente e deixa o estado visível aqui.</div>
+</section>
+<section class="card tools-v57-card" id="toolsV57Card">
+<div class="tools-v57-head">
+<div>
+<h2>🛠️ Ferramentas</h2>
+<p>Backup, atualização, estado da app e manutenção.</p>
+</div>
+<span class="tools-v57-badge" id="toolsV57Badge">Pronto</span>
+</div>
+<div class="tools-v57-grid">
+<div class="tool-v57">
+<strong>💾 Backup</strong>
+<small>Exporta ou restaura apostas e histórico.</small>
+<div class="tool-v57-actions">
+<button id="btnBackupV57" type="button">Exportar dados</button>
+<button id="btnRestoreV57" type="button">Restaurar</button>
+<input accept="application/json,.json" hidden="" id="inputRestoreV57" type="file"/>
+</div>
+</div>
+<div class="tool-v57">
+<strong>🔄 Atualização</strong>
+<small>Força limpeza de cache e recarrega a app.</small>
+<div class="tool-v57-actions">
+<button id="btnHardRefreshV57" type="button">Limpar cache</button>
+<button id="btnReloadV57" type="button">Recarregar</button>
+</div>
+</div>
+<div class="tool-v57">
+<strong>ℹ️ Sobre a app</strong>
+<small id="sobreAppV57">A carregar estado...</small>
+<div class="tool-v57-actions">
+<button id="btnSobreV57" type="button">Ver estado</button>
+<button id="btnCopiarEstadoV57" type="button">Copiar estado</button>
+</div>
+</div>
+<div class="tool-v57">
+<strong>📱 Modo compacto</strong>
+<small>Otimização automática para telemóvel.</small>
+<div class="tool-v57-actions">
+<button id="btnCompactOnV57" type="button">Compacto ON</button>
+<button id="btnCompactOffV57" type="button">Normal</button>
+</div>
+</div>
+</div>
+</section>
 
-  <main class="app">
-<section id="notifBanner" class="notif-banner" hidden>
-        <div class="notif-banner-icon">🔔</div>
-        <div class="notif-banner-text">
-          <strong>Recebe notificações automáticas dos sorteios</strong>
-          <span>Podemos avisar-te quando forem encontrados prémios ou quando existirem novos resultados.</span>
-        </div>
-        <div class="notif-banner-actions">
-          <button id="notifBannerAtivarBtn" type="button">Ativar notificações</button>
-          <button id="notifBannerMaisTardeBtn" type="button">Mais tarde</button>
-        </div>
-      </section>
-
-    <section id="authBox" class="card auth-panel">
-      <h2>Entrar</h2>
-      <p>Usa a tua conta para sincronizar apostas e histórico entre dispositivos.</p>
-
-      <div class="auth-grid">
-        <label>Email:</label>
-        <input id="authEmail" class="auth-input" type="email" autocomplete="email" placeholder="email@exemplo.pt">
-
-        <label>Password:</label>
-        <input id="authPassword" class="auth-input" type="password" autocomplete="current-password" placeholder="Password">
-      </div>
-
-      <div class="auth-actions">
-        <button id="loginBtn" class="primary">Entrar</button>
-        <button id="signupBtn">Criar conta</button>
-        <button id="resetPasswordBtn">Recuperar password</button>
-      </div>
-
-      <div id="authMsg" class="result-card warn" style="display:none;"></div>
-    </section>
-
-    <section id="notificacaoPremio" class="card prize-alert" style="display:none;">
-      <div>
-        <strong id="notificacaoTitulo">🏆 Novo prémio encontrado!</strong>
-        <div id="notificacaoTexto" class="small"></div>
-      </div>
-      <button id="fecharNotificacao" class="mini-btn">Fechar</button>
-    </section>
-
-    <div id="appBox" style="display:none;">
-
-      <nav class="v75-app-nav" id="v75AppNav" aria-label="Navegação principal">
-        <button type="button" data-v75-nav="home" class="active">🏠<span>Home</span></button>
-        <button type="button" data-v75-nav="apostas">🎲<span>Apostas</span></button>
-        <button type="button" data-v75-nav="premios">🏆<span>Prémios</span></button>
-        <button type="button" data-v75-nav="estatisticas">📊<span>Estatísticas</span></button>
-        <button type="button" data-v75-nav="perfil">👤<span>Perfil</span></button>
-        <button type="button" data-v75-nav="definicoes">⚙️<span>Definições</span></button>
-      </nav>
-
-      <section class="card v73-hero-card" id="dashboardInteligenteV73">
-        <section id="userBox" class="v74-hero-user" style="display:none;">
-          <div>
-            <strong id="userInfo">Sessão iniciada</strong>
-            <div id="syncInfo" class="small">Sincronização automática ativa.</div>
-            <div class="alias-row">
-              <label for="aliasUtilizador">Nome/alcunha no PDF</label>
-              <div class="alias-controls">
-                <input id="aliasUtilizador" type="text" maxlength="40" placeholder="Ex.: Paulo, Pauximus..." />
-                <button id="guardarAliasBtn" type="button">Guardar</button>
-              </div>
-              <div id="aliasFeedback" class="alias-feedback" aria-live="polite"></div>
-              <button id="notifStatusMini" class="notif-status-mini" type="button">🔔 Notificações</button>
-              <div id="notificacoesEstado" class="notificacoes-estado" aria-live="polite"></div>
-            </div>
-          </div>
-          <div class="user-actions">
-            <button id="syncNowBtn">Sincronizar agora</button>
-            <button id="installPwaBtn" class="install-btn" style="display:none;">Instalar app</button>
-            <button id="settingsToggleV74" type="button" class="v74-settings-btn">⚙️ Definições</button>
-            <button id="logoutBtn">Terminar sessão</button>
-          </div>
-        </section>
-
-
-        <div class="v73-hero-top">
-          <div>
-            <span class="v73-eyebrow">Dashboard Inteligente</span>
-            <h2 id="v73Greeting">Olá 👋</h2>
-            <p id="v73Insight">A preparar resumo inteligente...</p>
-          </div>
-          <div class="v73-next">
-            <small id="v73Hoje">—</small>
-            <strong id="v73ProximoJogo">—</strong>
-            <span id="v73ProximoTempo">—</span>
-          </div>
-        </div>
-        <div class="v73-kpi-grid">
-          <div><span>📄 Apostas ativas</span><b id="v73ApostasAtivas">—</b><small id="v73ApostasMeta">—</small></div>
-          <div><span>🎯 Último resultado</span><b id="v73UltimoResultado">—</b><small>Base para estatísticas e prémios.</small></div>
-          <div><span>☁️ Cloud</span><b id="v73CloudResumo">—</b><small>Estado da sincronização.</small></div>
-          <div><span>📲 Push Engine</span><b id="v73PushResumo">—</b><small id="v73UltimaExecucao">—</small></div>
-        </div>
-      </section>
-
-      <section class="card v73-sugestoes-card" id="sugestoesInteligentesV73">
-        <div class="v54-head v73-head"><div><h2>🎯 Sugestões Inteligentes</h2><p>Gera chaves equilibradas usando os resultados oficiais já importados. Não prevê o futuro; ajuda a variar as apostas.</p></div><span class="v54-pill v72-pill">V75.4</span></div>
-        <div class="v73-sugestoes-grid">
-          <div class="v73-sugestoes-control">
-            <label for="v73SugestaoJogo">Jogo</label>
-            <select id="v73SugestaoJogo" class="v71-filter">
-              <option value="euromilhoes">EuroMilhões</option>
-              <option value="totoloto">Totoloto</option>
-              <option value="eurodreams">EuroDreams</option>
-            </select>
-            <div class="v73-sug-actions">
-              <button id="v73GerarEstatistica" type="button">Sugestão estatística</button>
-              <button id="v73GerarAleatoria" type="button">Aleatória controlada</button>
-            </div>
-          </div>
-          <div class="v73-sugestao-output">
-            <div id="v73SugestaoChave" class="v73-sugestao-chave">A gerar sugestão...</div>
-            <small id="v73SugestaoMeta">—</small>
-          </div>
-        </div>
-      </section>
-      <section class="card dashboard-vivo-card" id="dashboardVivoCard">
-        <div class="v54-head"><div><h2>🍀 Dashboard Vivo</h2><p>Resumo rápido do teu momento atual.</p></div><span id="dvBadge" class="v54-pill">A calcular...</span></div>
-        <div class="dv-grid">
-          <div class="dv-main"><span>🏆 Último prémio</span><strong id="dvUltimoPremio">—</strong><small id="dvUltimoPremioMeta">—</small></div>
-          <div class="dv-main"><span>💰 Total ganho</span><strong id="dvTotalGanho">—</strong><small>Valor acumulado conhecido.</small></div>
-          <div class="dv-main"><span>🔥 Sequência atual</span><strong id="dvSequencia">—</strong><small>Prémios recentes seguidos.</small></div>
-          <div class="dv-main"><span>🎯 Próxima ação</span><strong id="dvProximaAcao">—</strong><small id="dvProximaAcaoMeta">—</small></div>
-        </div>
-        <div class="dv-frase" id="dvFrase">A analisar o teu histórico...</div>
-      </section>
-
-
-
-      <section class="card v74-settings-panel" id="settingsPanelV74" hidden>
-        <div class="v74-settings-head">
-          <div>
-            <h2>⚙️ Definições & Manutenção</h2>
-            <p>Cloud, Push, backup, atualização e diagnóstico ficam aqui para não ocupar a página principal.</p>
-          </div>
-          <button id="settingsCloseV74" type="button" class="mini-btn">Fechar</button>
-        </div>
-        <div class="v74-settings-note">A sincronização e as notificações continuam automáticas. Usa esta área apenas quando precisares de manutenção.</div>
-
-      <section class="card cloud-v67-card" id="cloudV67Card">
-        <div class="v67-cloud-head">
-          <div>
-            <h2>☁️ Cloud & Push</h2>
-            <p>Conta, dispositivo, sincronização, Push Notifications reais e scheduler inteligente.</p>
-          </div>
-          <span id="v67CloudBadge" class="v67-cloud-pill"><i id="v67CloudDot" class="v67-dot warn"></i> Cloud preparada</span>
-        </div>
-        <div class="v67-cloud-grid">
-          <div><span>Estado</span><strong id="v67CloudStatus">A iniciar...</strong></div>
-          <div><span>Conta</span><strong id="v67CloudAccount">—</strong></div>
-          <div><span>Dispositivo</span><strong id="v67CloudDevice">—</strong></div>
-          <div><span>Última sincronização</span><strong id="v67CloudLastSync">—</strong></div>
-          <div><span>Versão</span><strong id="v67CloudVersion">v75.4-navegacao-final</strong></div>
-          <div><span>Push Cloud</span><strong id="v671PushCloudStatus">—</strong></div>
-          <div><span>Push Engine</span><strong id="v672PushEngineStatus">A preparar</strong></div>
-          <div><span>Última execução</span><strong id="v68PushEngineLastRun">—</strong></div>
-          <div><span>Próxima execução</span><strong id="v68PushEngineNextRun">—</strong></div>
-          <div><span>Última notificação</span><strong id="v68PushEngineLastNotification">—</strong></div>
-          <div><span>Dispositivos Push</span><strong id="v68PushEngineDevices">—</strong></div>
-        </div>
-        <div class="v67-cloud-actions">
-          <button id="v67CloudSyncBtn" type="button">Sincronizar cloud</button>
-          <button id="v67CloudDeviceBtn" type="button">Novo ID dispositivo</button>
-          <button id="v671PushRegisterBtn" type="button">Registar Push Cloud</button>
-        </div>
-        <div class="v67-cloud-note">V68: Scheduler inteligente ativo. O GitHub Actions executa o Push Engine automaticamente e deixa o estado visível aqui.</div>
-      </section>
-
-      <section class="card tools-v57-card" id="toolsV57Card">
-        <div class="tools-v57-head">
-          <div>
-            <h2>🛠️ Ferramentas</h2>
-            <p>Backup, atualização, estado da app e manutenção.</p>
-          </div>
-          <span class="tools-v57-badge" id="toolsV57Badge">Pronto</span>
-        </div>
-
-        <div class="tools-v57-grid">
-          <div class="tool-v57">
-            <strong>💾 Backup</strong>
-            <small>Exporta ou restaura apostas e histórico.</small>
-            <div class="tool-v57-actions">
-              <button id="btnBackupV57" type="button">Exportar dados</button>
-              <button id="btnRestoreV57" type="button">Restaurar</button>
-              <input id="inputRestoreV57" type="file" accept="application/json,.json" hidden>
-            </div>
-          </div>
-
-          <div class="tool-v57">
-            <strong>🔄 Atualização</strong>
-            <small>Força limpeza de cache e recarrega a app.</small>
-            <div class="tool-v57-actions">
-              <button id="btnHardRefreshV57" type="button">Limpar cache</button>
-              <button id="btnReloadV57" type="button">Recarregar</button>
-            </div>
-          </div>
-
-          <div class="tool-v57">
-            <strong>ℹ️ Sobre a app</strong>
-            <small id="sobreAppV57">A carregar estado...</small>
-            <div class="tool-v57-actions">
-              <button id="btnSobreV57" type="button">Ver estado</button>
-              <button id="btnCopiarEstadoV57" type="button">Copiar estado</button>
-            </div>
-          </div>
-
-          <div class="tool-v57">
-            <strong>📱 Modo compacto</strong>
-            <small>Otimização automática para telemóvel.</small>
-            <div class="tool-v57-actions">
-              <button id="btnCompactOnV57" type="button">Compacto ON</button>
-              <button id="btnCompactOffV57" type="button">Normal</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card premios-gestao-v58-card" id="premiosGestaoV58Card">
-        <div class="v58-head">
-          <div><h2>💰 Gestão de Prémios</h2><p>Marca prémios levantados e vê o que falta reclamar.</p></div>
-          <span class="v58-pill" id="premiosGestaoResumoV58">—</span>
-        </div>
-        <div class="premios-finance-v58">
-          <div><span>Total ganho</span><strong id="v58TotalGanho">—</strong></div>
-          <div><span>Já levantado</span><strong id="v58TotalLevantado">—</strong></div>
-          <div><span>Por levantar</span><strong id="v58TotalPorLevantar">—</strong></div>
-        </div>
-        <div class="premios-filtros-v58">
-          <button type="button" data-filtro-premios-v58="todos" class="active">Todos</button>
-          <button type="button" data-filtro-premios-v58="porLevantar">Por levantar</button>
-          <button type="button" data-filtro-premios-v58="levantados">Levantados</button>
-        </div>
-<div id="premiosListaGestaoV58" class="premios-lista-gestao-v58"></div>
-      </section>
-      <section class="card notificacoes-fcm-v58-card" id="notificacoesFcmV58Card">
-        <div class="v58-head">
-          <div><h2>🔔 Notificações Inteligentes</h2><p>Push real via Supabase + GitHub Actions, mesmo com a app fechada.</p></div>
-          <span class="v58-pill" id="fcmEstadoV58">FCM ready</span>
-        </div>
-        <div class="fcm-grid-v58">
-          <div><strong>✅ Sem repetições</strong><small id="notifResumoV58">Cada prémio só gera 1 notificação neste dispositivo.</small></div>
-          <div><strong>📲 App fechada</strong><small id="pushResumoV58">Precisa de Firebase + backend para push real.</small></div>
-          <div><strong>🧪 Testes</strong><small>Valida notificações locais.</small><div class="fcm-actions-v58"><button id="btnTesteNotifV58" type="button">Testar</button><button id="btnResetNotifV58" type="button">Reset</button></div></div>
-        </div>
-      </section>
-      </section>
-
-
+<section class="card notificacoes-fcm-v58-card" id="notificacoesFcmV58Card">
+<div class="v58-head">
+<div><h2>🔔 Notificações Inteligentes</h2><p>Push real via Supabase + GitHub Actions, mesmo com a app fechada.</p></div>
+<span class="v58-pill" id="fcmEstadoV58">FCM ready</span>
+</div>
+<div class="fcm-grid-v58">
+<div><strong>✅ Sem repetições</strong><small id="notifResumoV58">Cada prémio só gera 1 notificação neste dispositivo.</small></div>
+<div><strong>📲 App fechada</strong><small id="pushResumoV58">Precisa de Firebase + backend para push real.</small></div>
+<div><strong>🧪 Testes</strong><small>Valida notificações locais.</small><div class="fcm-actions-v58"><button id="btnTesteNotifV58" type="button">Testar</button><button id="btnResetNotifV58" type="button">Reset</button></div></div>
+</div>
+</section>
+</section><section class="card premios-gestao-v58-card" id="premiosGestaoV58Card">
+<div class="v58-head">
+<div><h2>💰 Gestão de Prémios</h2><p>Marca prémios levantados e vê o que falta reclamar.</p></div>
+<span class="v58-pill" id="premiosGestaoResumoV58">—</span>
+</div>
+<div class="premios-finance-v58">
+<div><span>Total ganho</span><strong id="v58TotalGanho">—</strong></div>
+<div><span>Já levantado</span><strong id="v58TotalLevantado">—</strong></div>
+<div><span>Por levantar</span><strong id="v58TotalPorLevantar">—</strong></div>
+</div>
+<div class="premios-filtros-v58">
+<button class="active" data-filtro-premios-v58="todos" type="button">Todos</button>
+<button data-filtro-premios-v58="porLevantar" type="button">Por levantar</button>
+<button data-filtro-premios-v58="levantados" type="button">Levantados</button>
+</div>
+<div class="premios-lista-gestao-v58" id="premiosListaGestaoV58"></div>
+</section>
 <section class="dashboard card" id="dashboardBox">
-        <div class="dashboard-title">
-          <div>
-            <h2>Dashboard</h2>
-            <p>Resumo das tuas apostas e prémios guardados.</p>
-          </div>
-          <div id="dashboardResumo" class="dashboard-resumo">—</div>
-        </div>
-
-        <div class="dashboard-grid">
-          <div class="dash-card">
-            <span>Total de apostas</span>
-            <strong id="dashTotalApostas">0</strong>
-          </div>
-          <div class="dash-card">
-            <span>Total de prémios</span>
-            <strong id="dashTotalPremios">0</strong>
-          </div>
-          <div class="dash-card">
-            <span>Taxa de sucesso</span>
-            <strong id="dashTaxaSucesso">0%</strong>
-          </div>
-          <div class="dash-card">
-            <span>Último prémio</span>
-            <strong id="dashUltimoPremio">—</strong>
-          </div>
-        </div>
-
-        <div class="ranking-card">
-          <div class="ranking-head">
-            <strong>Ranking por jogo</strong>
-            <span id="rankingNota">Com base no histórico cloud</span>
-          </div>
-          <div id="rankingJogos" class="ranking-list"></div>
-        </div>
-
-        <div class="sequencia-pro">
-          <div class="sequencia-pro-head">
-            <div>
-              <strong>Últimas apostas</strong>
-              <span>Verde = prémio, vermelho = sem prémio</span>
-            </div>
-            <b id="statMaiorSequencia">—</b>
-          </div>
-          <div id="statSequenciaVisual" class="sequencia-dots"></div>
-        </div>
-      </section>
+<div class="dashboard-title">
+<div>
+<h2>Dashboard</h2>
+<p>Resumo das tuas apostas e prémios guardados.</p>
+</div>
+<div class="dashboard-resumo" id="dashboardResumo">—</div>
+</div>
+<div class="dashboard-grid">
+<div class="dash-card">
+<span>Total de apostas</span>
+<strong id="dashTotalApostas">0</strong>
+</div>
+<div class="dash-card">
+<span>Total de prémios</span>
+<strong id="dashTotalPremios">0</strong>
+</div>
+<div class="dash-card">
+<span>Taxa de sucesso</span>
+<strong id="dashTaxaSucesso">0%</strong>
+</div>
+<div class="dash-card">
+<span>Último prémio</span>
+<strong id="dashUltimoPremio">—</strong>
+</div>
+</div>
+<div class="ranking-card">
+<div class="ranking-head">
+<strong>Ranking por jogo</strong>
+<span id="rankingNota">Com base no histórico cloud</span>
+</div>
+<div class="ranking-list" id="rankingJogos"></div>
+</div>
+<div class="sequencia-pro">
+<div class="sequencia-pro-head">
+<div>
+<strong>Últimas apostas</strong>
+<span>Verde = prémio, vermelho = sem prémio</span>
+</div>
+<b id="statMaiorSequencia">—</b>
+</div>
+<div class="sequencia-dots" id="statSequenciaVisual"></div>
+</div>
+</section>
 <section class="card dashboard-premium" id="dashboardPremium">
-        <div class="dashboard-premium-head">
-          <div>
-            <h2>📊 Centro de Sorte</h2>
-            <p>Resumo premium do teu desempenho e tendência atual.</p>
-          </div>
-          <strong id="premiumNivel">A calcular...</strong>
-        </div>
-
-        <div class="premium-score-wrap">
-          <div class="premium-score">
-            <div class="premium-ring" id="premiumRing" style="--score:0">
-              <span id="premiumScoreValor">0</span>
-            </div>
-            <div>
-              <strong>Índice de sorte</strong>
-              <p id="premiumScoreTexto">Ainda sem dados suficientes.</p>
-            </div>
-          </div>
-
-          <div class="premium-kpis">
-            <div><span>Apostas</span><b id="premiumApostas">—</b></div>
-            <div><span>Prémios</span><b id="premiumPremios">—</b></div>
-            <div><span>Sucesso</span><b id="premiumTaxa">—</b></div>
-            <div><span>Fase atual</span><b id="premiumFase">—</b></div>
-          </div>
-        </div>
-
-        <div class="premium-mini">
-          <div>
-            <strong>Últimas 10 apostas</strong>
-            <div id="premiumSequencia" class="premium-seq"></div>
-          </div>
-          <div>
-            <strong>Top jogos</strong>
-            <div id="premiumTopJogos" class="premium-top"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card premios-premium" id="premiosPremium">
-        <div class="premios-premium-head">
-          <div>
-            <h2>💰 Prémios Premium</h2>
-            <p>Resumo financeiro dos prémios encontrados.</p>
-          </div>
-          <strong id="premiosNivelBadge">A calcular...</strong>
-        </div>
-
-        <div class="premios-premium-grid">
-          <div class="premio-total">
-            <span>Total ganho</span>
-            <b id="premioTotalGanho">—</b>
-            <small id="premioTotalNota">Valores conhecidos + prémios a consultar.</small>
-          </div>
-          <div>
-            <span>Maior prémio</span>
-            <b id="premioMaior">—</b>
-          </div>
-          <div>
-            <span>Melhor jogo</span>
-            <b id="premioMelhorJogo">—</b>
-          </div>
-          <div>
-            <span>Tendência</span>
-            <b id="premioTendencia">—</b>
-          </div>
-        </div>
-
-        <div class="premios-premium-lista">
-          <div class="premios-premium-lista-head">
-            <strong>Últimos prémios</strong>
-            <span id="premiosPremiumResumo">—</span>
-          </div>
-          <div id="premiosPremiumLista"></div>
-        </div>
-      </section>
-
-      <section class="card perfil-apostador" id="perfilApostador">
-        <div class="perfil-head">
-          <div>
-            <h2>👤 Perfil do Apostador</h2>
-            <p>O teu percurso, nível e recordes pessoais.</p>
-          </div>
-          <strong id="perfilNivelBadge">A calcular...</strong>
-        </div>
-
-        <div class="perfil-main">
-          <div class="perfil-level-card">
-            <div class="perfil-avatar" id="perfilAvatar">🍀</div>
-            <div>
-              <span>Nível atual</span>
-              <b id="perfilNivel">—</b>
-              <small id="perfilNivelTexto">A analisar histórico...</small>
-            </div>
-          </div>
-
-          <div class="perfil-stats-grid">
-            <div><span>Apostas</span><b id="perfilApostas">—</b></div>
-            <div><span>Prémios</span><b id="perfilPremios">—</b></div>
-            <div><span>Total ganho</span><b id="perfilTotalGanho">—</b></div>
-            <div><span>Maior prémio</span><b id="perfilMaiorPremio">—</b></div>
-            <div><span>Jogo favorito</span><b id="perfilJogoFavorito">—</b></div>
-            <div><span>Taxa sucesso</span><b id="perfilTaxa">—</b></div>
-          </div>
-        </div>
-
-        <div class="perfil-progress">
-          <div>
-            <strong>Progresso para o próximo nível</strong>
-            <span id="perfilProximoNivel">—</span>
-          </div>
-          <i><em id="perfilProgressBar" style="width:0%"></em></i>
-        </div>
-
-        <div class="perfil-recordes">
-          <div><span>Sequência sem prémios</span><b id="perfilSeqSem">—</b></div>
-          <div><span>Melhor sequência</span><b id="perfilSeqPremios">—</b></div>
-          <div><span>Índice de sorte</span><b id="perfilIndiceSorte">—</b></div>
-        </div>
-      </section>
-
-
-
-
-      <nav class="tabs" id="tabs"></nav>
-
-      <section class="card game-card">
-        <div class="row top-game-row">
-          <label>Jogo:</label>
-          <select id="jogo"></select>
-          <span class="hint">Atualiza automaticamente.</span>
-          <span id="contadorApostas" class="pill">0 aposta(s)</span>
-        </div>
-
-        <div class="form-area">
-          <div id="campos"></div>
-          <button id="adicionar" class="primary">Adicionar aposta</button>
-        </div>
-
-        <div class="section-title">
-          <h3>Apostas guardadas</h3>
-        </div>
-        <ul id="lista-apostas" class="bet-list"></ul>
-      </section>
-
-      <section class="results">
-        <span id="secResultados"></span>
+<div class="dashboard-premium-head">
+<div>
+<h2>📊 Centro de Sorte</h2>
+<p>Resumo premium do teu desempenho e tendência atual.</p>
+</div>
+<strong id="premiumNivel">A calcular...</strong>
+</div>
+<div class="premium-score-wrap">
+<div class="premium-score">
+<div class="premium-ring" id="premiumRing" style="--score:0">
+<span id="premiumScoreValor">0</span>
+</div>
+<div>
+<strong>Índice de sorte</strong>
+<p id="premiumScoreTexto">Ainda sem dados suficientes.</p>
+</div>
+</div>
+<div class="premium-kpis">
+<div><span>Apostas</span><b id="premiumApostas">—</b></div>
+<div><span>Prémios</span><b id="premiumPremios">—</b></div>
+<div><span>Sucesso</span><b id="premiumTaxa">—</b></div>
+<div><span>Fase atual</span><b id="premiumFase">—</b></div>
+</div>
+</div>
+<div class="premium-mini">
+<div>
+<strong>Últimas 10 apostas</strong>
+<div class="premium-seq" id="premiumSequencia"></div>
+</div>
+<div>
+<strong>Top jogos</strong>
+<div class="premium-top" id="premiumTopJogos"></div>
+</div>
+</div>
+</section>
+<section class="card premios-premium" id="premiosPremium">
+<div class="premios-premium-head">
+<div>
+<h2>💰 Prémios Premium</h2>
+<p>Resumo financeiro dos prémios encontrados.</p>
+</div>
+<strong id="premiosNivelBadge">A calcular...</strong>
+</div>
+<div class="premios-premium-grid">
+<div class="premio-total">
+<span>Total ganho</span>
+<b id="premioTotalGanho">—</b>
+<small id="premioTotalNota">Valores conhecidos + prémios a consultar.</small>
+</div>
+<div>
+<span>Maior prémio</span>
+<b id="premioMaior">—</b>
+</div>
+<div>
+<span>Melhor jogo</span>
+<b id="premioMelhorJogo">—</b>
+</div>
+<div>
+<span>Tendência</span>
+<b id="premioTendencia">—</b>
+</div>
+</div>
+<div class="premios-premium-lista">
+<div class="premios-premium-lista-head">
+<strong>Últimos prémios</strong>
+<span id="premiosPremiumResumo">—</span>
+</div>
+<div id="premiosPremiumLista"></div>
+</div>
+</section>
+<section class="card perfil-apostador" id="perfilApostador">
+<div class="perfil-head">
+<div>
+<h2>👤 Perfil do Apostador</h2>
+<p>O teu percurso, nível e recordes pessoais.</p>
+</div>
+<strong id="perfilNivelBadge">A calcular...</strong>
+</div>
+<div class="perfil-main">
+<div class="perfil-level-card">
+<div class="perfil-avatar" id="perfilAvatar">🍀</div>
+<div>
+<span>Nível atual</span>
+<b id="perfilNivel">—</b>
+<small id="perfilNivelTexto">A analisar histórico...</small>
+</div>
+</div>
+<div class="perfil-stats-grid">
+<div><span>Apostas</span><b id="perfilApostas">—</b></div>
+<div><span>Prémios</span><b id="perfilPremios">—</b></div>
+<div><span>Total ganho</span><b id="perfilTotalGanho">—</b></div>
+<div><span>Maior prémio</span><b id="perfilMaiorPremio">—</b></div>
+<div><span>Jogo favorito</span><b id="perfilJogoFavorito">—</b></div>
+<div><span>Taxa sucesso</span><b id="perfilTaxa">—</b></div>
+</div>
+</div>
+<div class="perfil-progress">
+<div>
+<strong>Progresso para o próximo nível</strong>
+<span id="perfilProximoNivel">—</span>
+</div>
+<i><em id="perfilProgressBar" style="width:0%"></em></i>
+</div>
+<div class="perfil-recordes">
+<div><span>Sequência sem prémios</span><b id="perfilSeqSem">—</b></div>
+<div><span>Melhor sequência</span><b id="perfilSeqPremios">—</b></div>
+<div><span>Índice de sorte</span><b id="perfilIndiceSorte">—</b></div>
+</div>
+</section>
+<nav class="tabs" id="tabs"></nav>
+<section class="card game-card">
+<div class="row top-game-row">
+<label>Jogo:</label>
+<select id="jogo"></select>
+<span class="hint">Atualiza automaticamente.</span>
+<span class="pill" id="contadorApostas">0 aposta(s)</span>
+</div>
+<div class="form-area">
+<div id="campos"></div>
+<button class="primary" id="adicionar">Adicionar aposta</button>
+</div>
+<div class="section-title">
+<h3>Apostas guardadas</h3>
+</div>
+<ul class="bet-list" id="lista-apostas"></ul>
+</section>
+<section class="results">
+<span id="secResultados"></span>
 <h2>Resultados</h2>
-        <div id="resultado" class="result-box card"></div>
-      </section>
-
-      <section class="stats-grid" id="statsBox">
-        <div class="stat-card card">
-          <span>🎲 Apostas</span>
-          <strong id="statApostas">0</strong>
-        </div>
-        <div class="stat-card card">
-          <span>🏆 Prémios</span>
-          <strong id="statPremios">0</strong>
-        </div>
-        <div class="stat-card card">
-          <span>Último prémio</span>
-          <strong id="statUltimoPremio">—</strong>
-        </div>
-        <div class="stat-card card">
-          <span>Jogo mais premiado</span>
-          <strong id="statJogoMaisPremiado">—</strong>
-        </div>
-      </section>
-
-      <section class="results">
-        <div class="history-head">
-          <span id="secHistorico"></span>
+<div class="result-box card" id="resultado"></div>
+</section>
+<section class="stats-grid" id="statsBox">
+<div class="stat-card card">
+<span>🎲 Apostas</span>
+<strong id="statApostas">0</strong>
+</div>
+<div class="stat-card card">
+<span>🏆 Prémios</span>
+<strong id="statPremios">0</strong>
+</div>
+<div class="stat-card card">
+<span>Último prémio</span>
+<strong id="statUltimoPremio">—</strong>
+</div>
+<div class="stat-card card">
+<span>Jogo mais premiado</span>
+<strong id="statJogoMaisPremiado">—</strong>
+</div>
+</section>
+<section class="results">
+<div class="history-head">
+<span id="secHistorico"></span>
 <h2>Histórico</h2>
-          <div class="history-actions">
-            <button id="exportarPdfHistorico" class="primary">📄 Exportar PDF</button>
-            <button id="partilharHistorico">📤 Partilhar</button>
-            <button id="limparHistorico" class="danger">🗑 Limpar histórico</button>
-          </div>
-        </div>
-
-        <div class="history-tools card">
-          <input id="pesquisaHistorico" class="search-history" type="search" placeholder="Pesquisar no histórico...">
-          <div class="filter-buttons" id="filtrosHistorico">
-            <button data-filter="todos" class="filter active">Todos</button>
-            <button data-filter="Euromilhões" class="filter">Euromilhões</button>
-            <button data-filter="Totoloto" class="filter">Totoloto</button>
-            <button data-filter="EuroDreams" class="filter">EuroDreams</button>
-            <button data-filter="M1lhão" class="filter">M1lhão</button>
-            <button data-filter="Lotaria Clássica" class="filter">Clássica</button>
-            <button data-filter="Lotaria Popular" class="filter">Popular</button>
-          </div>
-        </div>
-
-        <div id="historico" class="result-box historico-box card"></div>
-      </section>
-    </div>
-  
-      <section class="card stats-pro-card" id="estatisticasAvancadas">
-        <div class="section-title-row">
-          <div>
-            <h2>Estatísticas</h2>
-            <p>Resumo avançado das tuas apostas e prémios.</p>
-          </div>
-        </div>
-        <div class="stats-pro-grid">
-          <div class="stat-pro-box"><span>Jogo mais apostado</span><strong id="statJogoMaisApostado">—</strong></div>
-          <div class="stat-pro-box"><span>Jogo mais premiado</span><strong id="statJogoMaisPremiado">—</strong></div>
-          <div class="stat-pro-box"><span>Maior prémio</span><strong id="statMelhorPremio">—</strong></div>
-          <div class="stat-pro-box"><span>Sequência sem prémios</span><strong id="statUltimaSync">—</strong></div>
-        </div>
-        <div class="mini-ranking">
-          <div class="mini-ranking-head"><strong>Prémios por jogo</strong><span id="statResumoRanking">Sem dados</span></div>
-          <div id="statRankingJogos" class="mini-ranking-list"></div>
-        </div>
-      
-        <div class="conquistas-pro">
-          <div class="sequencia-pro-head">
-            <div>
-              <strong>Conquistas</strong>
-              <span>Marcos atingidos com as tuas apostas.</span>
-            </div>
-            <b id="statConquistasResumo">—</b>
-          </div>
-          <div id="conquistasGrid" class="conquistas-grid"></div>
-        </div>
+<div class="history-actions">
+<button class="primary" id="exportarPdfHistorico">📄 Exportar PDF</button>
+<button id="partilharHistorico">📤 Partilhar</button>
+<button class="danger" id="limparHistorico">🗑 Limpar histórico</button>
+</div>
+</div>
+<div class="history-tools card">
+<input class="search-history" id="pesquisaHistorico" placeholder="Pesquisar no histórico..." type="search"/>
+<div class="filter-buttons" id="filtrosHistorico">
+<button class="filter active" data-filter="todos">Todos</button>
+<button class="filter" data-filter="Euromilhões">Euromilhões</button>
+<button class="filter" data-filter="Totoloto">Totoloto</button>
+<button class="filter" data-filter="EuroDreams">EuroDreams</button>
+<button class="filter" data-filter="M1lhão">M1lhão</button>
+<button class="filter" data-filter="Lotaria Clássica">Clássica</button>
+<button class="filter" data-filter="Lotaria Popular">Popular</button>
+</div>
+</div>
+<div class="result-box historico-box card" id="historico"></div>
 </section>
-
-      <section class="card graficos-v54-card" id="graficosV54Card">
-        <div class="v54-head"><div><h2>📈 Gráficos</h2><p>Evolução dos prémios e distribuição por jogo.</p></div><span id="graficosV54Resumo" class="v54-pill">—</span></div>
-        <div class="graficos-v54-grid">
-          <div><h3>Prémios por mês</h3><div id="graficoMesesV54" class="grafico-bars-v54"></div></div>
-          <div><h3>Prémios por jogo</h3><div id="graficoJogosV54" class="grafico-bars-v54"></div></div>
-        </div>
-      </section>
+</div>
+<section class="card stats-pro-card" id="estatisticasAvancadas">
+<div class="section-title-row">
+<div>
+<h2>Estatísticas</h2>
+<p>Resumo avançado das tuas apostas e prémios.</p>
+</div>
+</div>
+<div class="stats-pro-grid">
+<div class="stat-pro-box"><span>Jogo mais apostado</span><strong id="statJogoMaisApostado">—</strong></div>
+<div class="stat-pro-box"><span>Jogo mais premiado</span><strong id="statJogoMaisPremiado">—</strong></div>
+<div class="stat-pro-box"><span>Maior prémio</span><strong id="statMelhorPremio">—</strong></div>
+<div class="stat-pro-box"><span>Sequência sem prémios</span><strong id="statUltimaSync">—</strong></div>
+</div>
+<div class="mini-ranking">
+<div class="mini-ranking-head"><strong>Prémios por jogo</strong><span id="statResumoRanking">Sem dados</span></div>
+<div class="mini-ranking-list" id="statRankingJogos"></div>
+</div>
+<div class="conquistas-pro">
+<div class="sequencia-pro-head">
+<div>
+<strong>Conquistas</strong>
+<span>Marcos atingidos com as tuas apostas.</span>
+</div>
+<b id="statConquistasResumo">—</b>
+</div>
+<div class="conquistas-grid" id="conquistasGrid"></div>
+</div>
+</section>
+<section class="card graficos-v54-card" id="graficosV54Card">
+<div class="v54-head"><div><h2>📈 Gráficos</h2><p>Evolução dos prémios e distribuição por jogo.</p></div><span class="v54-pill" id="graficosV54Resumo">—</span></div>
+<div class="graficos-v54-grid">
+<div><h3>Prémios por mês</h3><div class="grafico-bars-v54" id="graficoMesesV54"></div></div>
+<div><h3>Prémios por jogo</h3><div class="grafico-bars-v54" id="graficoJogosV54"></div></div>
+</div>
+</section>
 <section class="card numeros-v54-card" id="numerosV54Card">
-        <div class="v54-head"><div><h2>🔢 Números da Sorte</h2><p>Os números mais usados nas tuas apostas guardadas.</p></div><span id="numerosV54Resumo" class="v54-pill">—</span></div>
-        <div id="heatmapNumerosV54" class="heatmap-v54"></div>
-      </section>
-
-<section class="card v71-card v72-premium-card" id="centroEstatisticasV71">
-  <div class="v54-head v72-head"><div><h2>✨ Centro de Estatísticas Premium</h2><p>Heatmap, tendências, números quentes/frios e leitura inteligente dos resultados oficiais.</p></div><div class="v71-filter-wrap"><select id="v71GameFilter" class="v71-filter" aria-label="Filtrar estatísticas por jogo"><option value="todos">Todos os jogos</option></select><span id="v71Resumo" class="v54-pill v72-pill">A analisar...</span></div></div>
-  <div class="v71-kpis">
-    <div><span>Fonte</span><b id="v71Fonte">—</b></div>
-    <div><span>Soma média</span><b id="v71SomaMedia">—</b></div>
-    <div><span>Pares / Ímpares</span><b id="v71ParImpar">—</b></div>
-    <div><span>Baixos / Altos</span><b id="v71BaixoAlto">—</b></div>
-    <div><span>Jogo dominante</span><b id="v71JogoTop">—</b></div>
-  </div>
-  <div class="v71-grid">
-    <div><h3>🔥 Números quentes</h3><div id="v71NumerosQuentes" class="v71-list"></div></div>
-    <div><h3>❄️ Números frios</h3><div id="v71NumerosFrios" class="v71-list"></div></div>
-    <div><h3>⭐ Extras / estrelas</h3><div id="v71Estrelas" class="v71-list"></div></div>
-  </div>
-  <div class="v71-heat-wrap v72-heat-wrap"><h3 id="v71HeatTitle">🔥 Heatmap premium 1–50</h3><div id="v71Heatmap" class="v71-heat"></div></div>
-  <div class="v71-ai v72-ai"><h3>🧠 Leitura inteligente premium</h3><div id="v71Insights"></div></div>
+<div class="v54-head"><div><h2>🔢 Números da Sorte</h2><p>Os números mais usados nas tuas apostas guardadas.</p></div><span class="v54-pill" id="numerosV54Resumo">—</span></div>
+<div class="heatmap-v54" id="heatmapNumerosV54"></div>
 </section>
-
+<section class="card v71-card v72-premium-card" id="centroEstatisticasV71">
+<div class="v54-head v72-head"><div><h2>✨ Centro de Estatísticas Premium</h2><p>Heatmap, tendências, números quentes/frios e leitura inteligente dos resultados oficiais.</p></div><div class="v71-filter-wrap"><select aria-label="Filtrar estatísticas por jogo" class="v71-filter" id="v71GameFilter"><option value="todos">Todos os jogos</option></select><span class="v54-pill v72-pill" id="v71Resumo">A analisar...</span></div></div>
+<div class="v71-kpis">
+<div><span>Fonte</span><b id="v71Fonte">—</b></div>
+<div><span>Soma média</span><b id="v71SomaMedia">—</b></div>
+<div><span>Pares / Ímpares</span><b id="v71ParImpar">—</b></div>
+<div><span>Baixos / Altos</span><b id="v71BaixoAlto">—</b></div>
+<div><span>Jogo dominante</span><b id="v71JogoTop">—</b></div>
+</div>
+<div class="v71-grid">
+<div><h3>🔥 Números quentes</h3><div class="v71-list" id="v71NumerosQuentes"></div></div>
+<div><h3>❄️ Números frios</h3><div class="v71-list" id="v71NumerosFrios"></div></div>
+<div><h3>⭐ Extras / estrelas</h3><div class="v71-list" id="v71Estrelas"></div></div>
+</div>
+<div class="v71-heat-wrap v72-heat-wrap"><h3 id="v71HeatTitle">🔥 Heatmap premium 1–50</h3><div class="v71-heat" id="v71Heatmap"></div></div>
+<div class="v71-ai v72-ai"><h3>🧠 Leitura inteligente premium</h3><div id="v71Insights"></div></div>
+</section>
 <section class="card estatisticas-inteligentes" id="estatisticasInteligentes">
-        <div class="estatisticas-inteligentes-head">
-          <div>
-            <h2>🧠 Estatísticas inteligentes</h2>
-            <p>Análise automática das tuas apostas, prémios e tendência atual.</p>
-          </div>
-          <strong id="intelResumoBadge">A analisar...</strong>
-        </div>
-
-        <div class="intel-grid">
-          <div class="intel-box">
-            <span>Média de prémios</span>
-            <b id="intelMediaPremios">—</b>
-          </div>
-          <div class="intel-box">
-            <span>Melhor jogo</span>
-            <b id="intelMelhorJogo">—</b>
-          </div>
-          <div class="intel-box">
-            <span>Jogo mais usado</span>
-            <b id="intelJogoDominante">—</b>
-          </div>
-          <div class="intel-box">
-            <span>Momento atual</span>
-            <b id="intelMomento">—</b>
-          </div>
-        </div>
-
-        <div class="intel-insights" id="intelInsights"></div>
-
-        <div class="intel-bars">
-          <div class="intel-bars-head">
-            <strong>Distribuição das apostas</strong>
-            <span id="intelDistribuicaoResumo">—</span>
-          </div>
-          <div id="intelDistribuicaoJogos"></div>
-        </div>
-      </section>
+<div class="estatisticas-inteligentes-head">
+<div>
+<h2>🧠 Estatísticas inteligentes</h2>
+<p>Análise automática das tuas apostas, prémios e tendência atual.</p>
+</div>
+<strong id="intelResumoBadge">A analisar...</strong>
+</div>
+<div class="intel-grid">
+<div class="intel-box">
+<span>Média de prémios</span>
+<b id="intelMediaPremios">—</b>
+</div>
+<div class="intel-box">
+<span>Melhor jogo</span>
+<b id="intelMelhorJogo">—</b>
+</div>
+<div class="intel-box">
+<span>Jogo mais usado</span>
+<b id="intelJogoDominante">—</b>
+</div>
+<div class="intel-box">
+<span>Momento atual</span>
+<b id="intelMomento">—</b>
+</div>
+</div>
+<div class="intel-insights" id="intelInsights"></div>
+<div class="intel-bars">
+<div class="intel-bars-head">
+<strong>Distribuição das apostas</strong>
+<span id="intelDistribuicaoResumo">—</span>
+</div>
+<div id="intelDistribuicaoJogos"></div>
+</div>
+</section>
 </main>
-
-  <footer id="estado">Pronto.</footer>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=7532"></script>
-
-      <div id="notifModal" class="notif-modal" hidden>
-        <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>
-        <div class="notif-modal-card" role="dialog" aria-modal="true" aria-labelledby="notifModalTitulo">
-          <div class="notif-modal-head">
-            <div>
-              <h2 id="notifModalTitulo">🔔 Notificações</h2>
-              <p>Configuração deste dispositivo.</p>
-            </div>
-            <button id="notifModalFechar" type="button" aria-label="Fechar">×</button>
-          </div>
-          <div class="notif-modal-grid">
-            <div><span>Estado</span><b id="notifModalEstado">—</b></div>
-            <div><span>Permissão</span><b id="notifModalPermissao">—</b></div>
-            <div><span>Última notificação</span><b id="notifModalUltima">—</b></div>
-            <div><span>Tipos ativos</span><b id="notifModalTipos">Prémios, resultados e sorteios</b></div>
-            <div><span>Push cloud</span><b id="notifModalPushCloud">—</b></div>
-            <div><span>Endpoint</span><b id="notifModalEndpoint">—</b></div>
-          </div>
-          <div class="notif-modal-actions">
-            <button id="notifModalAtivar" type="button">Ativar notificações</button>
-            <button id="notifModalTeste" type="button">Enviar teste local</button>
-            <button id="notifModalRegistarPush" type="button">Registar Push Cloud</button>
-          </div>
-          <p id="notifModalMsg" class="notif-modal-msg"></p>
-        </div>
-      </div>
-
+<footer id="estado">Pronto.</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="app.js?v=76032"></script>
+<div class="notif-modal" hidden="" id="notifModal">
+<div class="notif-modal-backdrop" id="notifModalFecharBg"></div>
+<div aria-labelledby="notifModalTitulo" aria-modal="true" class="notif-modal-card" role="dialog">
+<div class="notif-modal-head">
+<div>
+<h2 id="notifModalTitulo">🔔 Notificações</h2>
+<p>Configuração deste dispositivo.</p>
+</div>
+<button aria-label="Fechar" id="notifModalFechar" type="button">×</button>
+</div>
+<div class="notif-modal-grid">
+<div><span>Estado</span><b id="notifModalEstado">—</b></div>
+<div><span>Permissão</span><b id="notifModalPermissao">—</b></div>
+<div><span>Última notificação</span><b id="notifModalUltima">—</b></div>
+<div><span>Tipos ativos</span><b id="notifModalTipos">Prémios, resultados e sorteios</b></div>
+<div><span>Push cloud</span><b id="notifModalPushCloud">—</b></div>
+<div><span>Endpoint</span><b id="notifModalEndpoint">—</b></div>
+</div>
+<div class="notif-modal-actions">
+<button id="notifModalAtivar" type="button">Ativar notificações</button>
+<button id="notifModalTeste" type="button">Enviar teste local</button>
+<button id="notifModalRegistarPush" type="button">Registar Push Cloud</button>
+</div>
+<p class="notif-modal-msg" id="notifModalMsg"></p>
+</div>
+</div>
 </body>
 </html>

@@ -1,4 +1,4 @@
-window.APP_VERSION = "v75.4-navegacao-final";
+window.APP_VERSION = "v76.0-navegacao-limpa";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7397,6 +7397,22 @@ instalarV73();
     };
   }
 
+
+  function normalizePageDomV76(){
+    const settings = byId('settingsPanelV74');
+    const premios = byId('premiosGestaoV58Card');
+    const dashboard = byId('dashboardBox');
+    if (settings && premios && settings.contains(premios)) {
+      settings.insertAdjacentElement('afterend', premios);
+    }
+    // Remove toggles/linhas herdadas das V74/V75 que ficavam vazias entre páginas.
+    document.querySelectorAll('.v742-panel-toggle, .v75-empty-strip').forEach(el => el.remove());
+    document.querySelectorAll('#appBox > br').forEach(el => el.remove());
+    if (dashboard && dashboard.parentElement && dashboard.nextElementSibling && dashboard.nextElementSibling.id === 'dashboardPremium') {
+      // Mantém a ordem real dos blocos estável; a visibilidade é controlada em showPage().
+    }
+  }
+
   function cleanLegacyPanels(){
     document.body.classList.remove('v742');
     document.querySelectorAll('.v742-panel-toggle').forEach(el => el.remove());
@@ -7412,6 +7428,7 @@ instalarV73();
     if (!appBox || !nav) return null;
 
     cleanLegacyPanels();
+    normalizePageDomV76();
 
     // Limpa marcas antigas das V75.x anteriores.
     document.querySelectorAll('.v75-page-section,.v754-managed,.v754-visible').forEach(el => {
@@ -7450,7 +7467,7 @@ instalarV73();
     if (!ctx) ctx = prepare();
     if (!ctx) return;
 
-    document.body.classList.add('v75-pages','v754-pages');
+    document.body.classList.add('v75-pages','v754-pages','v76-pages');
     document.body.classList.remove('v753-pages');
     document.body.dataset.v75CurrentPage = page;
 

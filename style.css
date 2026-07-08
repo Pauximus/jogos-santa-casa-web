@@ -2918,3 +2918,33 @@ body.v754-pages[data-v75-current-page="definicoes"] #tabs,
 body.v754-pages[data-v75-current-page="home"] #tabs,
 body.v754-pages[data-v75-current-page="estatisticas"] #tabs,
 body.v754-pages[data-v75-current-page="premios"] #tabs{display:none!important;}
+
+
+/* V76.0 - navegação limpa e sem componentes fantasma */
+body.v76-pages #appBox > .v742-panel-toggle,
+body.v76-pages #appBox > .v75-empty-strip{
+  display:none!important;
+}
+body.v76-pages #settingsPanelV74 #premiosGestaoV58Card{
+  display:none!important;
+}
+body.v76-pages[data-v75-current-page="premios"] #premiosGestaoV58Card.v754-visible{
+  display:block!important;
+}
+body.v76-pages[data-v75-current-page="home"] #tabs,
+body.v76-pages[data-v75-current-page="perfil"] #tabs,
+body.v76-pages[data-v75-current-page="definicoes"] #tabs{
+  display:none!important;
+}
+body.v76-pages[data-v75-current-page="premios"] #tabs,
+body.v76-pages[data-v75-current-page="estatisticas"] #tabs{
+  display:none!important;
+}
+body.v76-pages[data-v75-current-page="apostas"] #tabs{
+  display:flex!important;
+}
+body.v76-pages .v754-managed:not(.v754-visible),
+body.v76-pages #appBox > *:not(#v75AppNav):not(.v754-visible){
+  display:none!important;
+}
+body.v76-pages .v754-managed.v754-visible{animation:v75FadeIn .16s ease both;}
