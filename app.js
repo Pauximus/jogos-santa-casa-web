@@ -1,4 +1,4 @@
-window.APP_VERSION = "v73-dashboard-inteligente-sugestoes";
+window.APP_VERSION = "v74-interface-limpa";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7240,3 +7240,37 @@ function instalarV73(){
   document.addEventListener('click',()=>setTimeout(()=>atualizarDashboardInteligenteV73(),400));
 }
 instalarV73();
+
+
+// V74 — Interface Limpa / Definições
+(function initV74SettingsPanel(){
+  function ready(fn){
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  ready(() => {
+    const btn = document.getElementById('settingsToggleV74');
+    const close = document.getElementById('settingsCloseV74');
+    const panel = document.getElementById('settingsPanelV74');
+    if (!btn || !panel) return;
+
+    const openPanel = () => {
+      panel.hidden = false;
+      panel.classList.add('v74-settings-open');
+      try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch { panel.scrollIntoView(); }
+    };
+
+    const closePanel = () => {
+      panel.classList.remove('v74-settings-open');
+      panel.hidden = true;
+    };
+
+    btn.addEventListener('click', () => {
+      if (panel.hidden) openPanel();
+      else closePanel();
+    });
+
+    if (close) close.addEventListener('click', closePanel);
+  });
+})();
