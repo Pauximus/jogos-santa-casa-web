@@ -1,4 +1,4 @@
-window.APP_VERSION = "v76.0-navegacao-limpa";
+window.APP_VERSION = "v76.1-login-google";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -328,6 +328,32 @@ async function fetchComTimeout(url, opcoes = {}, ms = 60000) {
     return await fetch(url, { ...opcoes, signal: controller.signal });
   } finally {
     clearTimeout(timer);
+  }
+}
+
+
+async function loginGoogle() {
+  esconderAuthMensagem();
+  try {
+    estado.textContent = "A abrir login Google...";
+    const redirectTo = window.location.origin + window.location.pathname;
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+        queryParams: {
+          access_type: "offline",
+          prompt: "select_account"
+        }
+      }
+    });
+    if (error) {
+      mostrarAuthMensagem("Erro ao entrar com Google: " + error.message, "bad");
+      estado.textContent = "Erro no login Google.";
+    }
+  } catch (err) {
+    mostrarAuthMensagem("Erro ao abrir login Google: " + (err.message || err), "bad");
+    estado.textContent = "Erro no login Google.";
   }
 }
 
@@ -1654,6 +1680,7 @@ async function limparHistorico() {
   }
 }
 
+document.getElementById("googleLoginBtn")?.addEventListener("click", loginGoogle);
 document.getElementById("loginBtn").addEventListener("click", login);
 document.getElementById("signupBtn").addEventListener("click", criarConta);
 document.getElementById("resetPasswordBtn").addEventListener("click", recuperarPassword);
@@ -1864,6 +1891,10 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
   if (error) console.warn(error);
 
   currentUser = data?.session?.user || null;
+
+  if (currentUser && (window.location.hash || window.location.search.includes("code="))) {
+    try { window.history.replaceState({}, document.title, window.location.pathname); } catch(e) {}
+  }
 
   if (currentUser) {
     await arrancarApp();

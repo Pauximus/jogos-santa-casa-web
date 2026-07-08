@@ -2948,3 +2948,49 @@ body.v76-pages #appBox > *:not(#v75AppNav):not(.v754-visible){
   display:none!important;
 }
 body.v76-pages .v754-managed.v754-visible{animation:v75FadeIn .16s ease both;}
+
+
+/* V76.1 - Login Social Google */
+.auth-google-btn{
+  width:100%;
+  justify-content:center;
+  background:#fff!important;
+  color:#111827!important;
+  border:1px solid var(--line)!important;
+  box-shadow:0 8px 20px rgba(15,23,42,.08);
+  font-weight:900;
+}
+.auth-google-btn:hover{ transform:translateY(-1px); }
+.auth-google-g{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  margin-right:8px;
+  font-weight:900;
+  color:#4285f4;
+  background:linear-gradient(90deg,#4285f4,#34a853,#fbbc05,#ea4335);
+  -webkit-background-clip:text;
+  background-clip:text;
+}
+.auth-separator{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.auth-separator:before,
+.auth-separator:after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:var(--line);
+}
+.auth-actions .auth-separator + button{ margin-left:0; }
