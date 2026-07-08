@@ -1,4 +1,4 @@
-window.APP_VERSION = "v68.2-push-dashboard-fix";
+window.APP_VERSION = "v68.3-push-dashboard-live";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -6730,7 +6730,7 @@ async function v68CarregarEstadoPushEngine() {
   try {
     const { data, error } = await supabaseClient
       .from(SUPABASE_V68_PUSH_ENGINE_RUNS)
-      .select("id, mode, status, started_at, finished_at, title, sent, skipped, disabled, failed, enabled_subscriptions, message")
+      .select("id, mode, status, game, draw_number, notification_type, notification_title, title, subscriptions_count, enabled_subscriptions, sent, skipped, disabled, failed, message, app_version, started_at, finished_at, run_id")
       .order("started_at", { ascending: false })
       .limit(1);
     if (error) throw error;
@@ -6746,12 +6746,17 @@ async function v68CarregarEstadoPushEngine() {
       return;
     }
     const ok = run.status === "success";
+    const titulo = run.title || run.notification_title || run.message || "Sem notificação";
+    const subs = run.enabled_subscriptions ?? run.subscriptions_count ?? 0;
+    const enviados = run.sent ?? 0;
+    const ignorados = run.skipped ?? 0;
+    const falhados = run.failed ?? 0;
     v67CloudSetStatus(v67CloudState.status, {
       engineStatus: ok ? "Online" : (run.status || "Executado"),
       engineLastRun: v68FormatarDataHora(run.finished_at || run.started_at),
       engineNextRun: v68ProximaExecucaoPushEngine(),
-      engineLastNotification: run.title || run.message || "Sem notificação",
-      engineDevices: `${run.enabled_subscriptions ?? 0} subscrição(ões) / ${run.sent ?? 0} enviada(s)`
+      engineLastNotification: titulo,
+      engineDevices: `${subs} subscrição(ões) / ${enviados} enviada(s) / ${ignorados} ignorada(s) / ${falhados} falhada(s)`
     });
   } catch (e) {
     console.warn("V68 estado Push Engine indisponível:", e);
@@ -6901,6 +6906,7 @@ async function v67CloudInit() {
       lastSync: agoraPt()
     });
     await v671SincronizarEstadoPushCloudSilencioso();
+    await v68CarregarEstadoPushEngine();
   } catch (err) {
     console.warn("V67 Cloud Foundation indisponível:", err);
     v67CloudSetStatus("Cloud parcial: " + (err.message || "erro desconhecido"), {
@@ -6950,5 +6956,6 @@ setTimeout(() => {
   try {
     v67BindCloudButtons();
     v67RenderCloudCard();
+    v68CarregarEstadoPushEngine?.();
   } catch(e) { console.warn(e); }
 }, 250);
