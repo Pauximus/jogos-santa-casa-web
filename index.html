@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍀%3C/text%3E%3C/svg%3E">
   <title>Assistente Jogos Santa Casa</title>
-  <link rel="manifest" href="manifest.webmanifest?v=67.1">
-  <link rel="stylesheet" href="style.css?v=68.3">
+  <link rel="manifest" href="manifest.webmanifest?v=73">
+  <link rel="stylesheet" href="style.css?v=73">
   <meta name="theme-color" content="#101828">
   <meta name="msapplication-TileColor" content="#101828">
   <meta name="msapplication-starturl" content="/jogos-santa-casa-web/">
@@ -93,6 +93,49 @@
     </section>
 
     <div id="appBox" style="display:none;">
+
+      <section class="card v73-hero-card" id="dashboardInteligenteV73">
+        <div class="v73-hero-top">
+          <div>
+            <span class="v73-eyebrow">Dashboard Inteligente</span>
+            <h2 id="v73Greeting">Olá 👋</h2>
+            <p id="v73Insight">A preparar resumo inteligente...</p>
+          </div>
+          <div class="v73-next">
+            <small id="v73Hoje">—</small>
+            <strong id="v73ProximoJogo">—</strong>
+            <span id="v73ProximoTempo">—</span>
+          </div>
+        </div>
+        <div class="v73-kpi-grid">
+          <div><span>📄 Apostas ativas</span><b id="v73ApostasAtivas">—</b><small id="v73ApostasMeta">—</small></div>
+          <div><span>🎯 Último resultado</span><b id="v73UltimoResultado">—</b><small>Base para estatísticas e prémios.</small></div>
+          <div><span>☁️ Cloud</span><b id="v73CloudResumo">—</b><small>Estado da sincronização.</small></div>
+          <div><span>📲 Push Engine</span><b id="v73PushResumo">—</b><small id="v73UltimaExecucao">—</small></div>
+        </div>
+      </section>
+
+      <section class="card v73-sugestoes-card" id="sugestoesInteligentesV73">
+        <div class="v54-head v73-head"><div><h2>🎯 Sugestões Inteligentes</h2><p>Gera chaves equilibradas usando os resultados oficiais já importados. Não prevê o futuro; ajuda a variar as apostas.</p></div><span class="v54-pill v72-pill">V73</span></div>
+        <div class="v73-sugestoes-grid">
+          <div class="v73-sugestoes-control">
+            <label for="v73SugestaoJogo">Jogo</label>
+            <select id="v73SugestaoJogo" class="v71-filter">
+              <option value="euromilhoes">EuroMilhões</option>
+              <option value="totoloto">Totoloto</option>
+              <option value="eurodreams">EuroDreams</option>
+            </select>
+            <div class="v73-sug-actions">
+              <button id="v73GerarEstatistica" type="button">Sugestão estatística</button>
+              <button id="v73GerarAleatoria" type="button">Aleatória controlada</button>
+            </div>
+          </div>
+          <div class="v73-sugestao-output">
+            <div id="v73SugestaoChave" class="v73-sugestao-chave">A gerar sugestão...</div>
+            <small id="v73SugestaoMeta">—</small>
+          </div>
+        </div>
+      </section>
       <section class="card dashboard-vivo-card" id="dashboardVivoCard">
         <div class="v54-head"><div><h2>🍀 Dashboard Vivo</h2><p>Resumo rápido do teu momento atual.</p></div><span id="dvBadge" class="v54-pill">A calcular...</span></div>
         <div class="dv-grid">
@@ -119,7 +162,7 @@
           <div><span>Conta</span><strong id="v67CloudAccount">—</strong></div>
           <div><span>Dispositivo</span><strong id="v67CloudDevice">—</strong></div>
           <div><span>Última sincronização</span><strong id="v67CloudLastSync">—</strong></div>
-          <div><span>Versão</span><strong id="v67CloudVersion">v68.3-push-dashboard-live</strong></div>
+          <div><span>Versão</span><strong id="v67CloudVersion">v73-dashboard-inteligente-sugestoes</strong></div>
           <div><span>Push Cloud</span><strong id="v671PushCloudStatus">—</strong></div>
           <div><span>Push Engine</span><strong id="v672PushEngineStatus">A preparar</strong></div>
           <div><span>Última execução</span><strong id="v68PushEngineLastRun">—</strong></div>

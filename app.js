@@ -1,4 +1,4 @@
-window.APP_VERSION = "v72.2-importacao-global-resultados";
+window.APP_VERSION = "v73-dashboard-inteligente-sugestoes";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7095,3 +7095,148 @@ function instalarV72Premium(){
   if(badge && !badge.dataset.v72){ badge.dataset.v72='1'; badge.title='Centro estatístico premium atualizado automaticamente'; }
 }
 instalarV72Premium();
+
+
+// V73 - Dashboard Inteligente + Sugestões
+function v73Set(id, html){ const el=document.getElementById(id); if(el) el.innerHTML = html; }
+function v73Text(id, txt){ const el=document.getElementById(id); if(el) el.textContent = txt; }
+function v73NomeJogo(id){
+  return (typeof jogos !== 'undefined' && jogos?.[id]?.nome) || ({euromilhoes:'EuroMilhões',totoloto:'Totoloto',eurodreams:'EuroDreams',milhao:'M1lhão',joker:'Joker',lotaria_classica:'Lotaria Clássica',lotaria_popular:'Lotaria Popular'}[id]) || id || 'Jogo';
+}
+function v73Saudacao(){ const h=new Date().getHours(); return h<12?'Bom dia':(h<20?'Boa tarde':'Boa noite'); }
+function v73ParseNums(v){
+  if(Array.isArray(v)) return v.map(Number).filter(Number.isFinite);
+  if(v==null) return [];
+  try{ const j=JSON.parse(v); if(Array.isArray(j)) return j.map(Number).filter(Number.isFinite); }catch{}
+  return String(v).split(/[\s,;|+\-]+/).map(Number).filter(Number.isFinite);
+}
+function v73GameToday(d=new Date()){
+  const p=new Intl.DateTimeFormat('en-US',{timeZone:'Europe/Lisbon',weekday:'short'}).format(d).toLowerCase();
+  if(p.startsWith('tue')||p.startsWith('fri')) return {id:'euromilhoes',nome:'EuroMilhões',hora:'20:00'};
+  if(p.startsWith('wed')||p.startsWith('sat')) return {id:'totoloto',nome:'Totoloto',hora:'20:00'};
+  if(p.startsWith('mon')||p.startsWith('thu')) return {id:'eurodreams',nome:'EuroDreams',hora:'20:00'};
+  return null;
+}
+function v73NextDraw(){
+  const now=new Date();
+  const dias=[
+    {day:1,id:'eurodreams',nome:'EuroDreams',hora:'20:00'},
+    {day:2,id:'euromilhoes',nome:'EuroMilhões',hora:'20:00'},
+    {day:3,id:'totoloto',nome:'Totoloto',hora:'20:00'},
+    {day:4,id:'eurodreams',nome:'EuroDreams',hora:'20:00'},
+    {day:5,id:'euromilhoes',nome:'EuroMilhões',hora:'20:00'},
+    {day:6,id:'totoloto',nome:'Totoloto',hora:'20:00'}
+  ];
+  const local=new Date(now.toLocaleString('en-US',{timeZone:'Europe/Lisbon'}));
+  let best=null;
+  for(let add=0; add<8; add++){
+    const d=new Date(local); d.setDate(local.getDate()+add);
+    const dow=d.getDay();
+    for(const item of dias.filter(x=>x.day===dow)){
+      const [hh,mm]=item.hora.split(':').map(Number);
+      const target=new Date(d); target.setHours(hh,mm,0,0);
+      if(target>local){ best={...item,date:target}; break; }
+    }
+    if(best) break;
+  }
+  return best;
+}
+function v73TempoRestante(target){
+  if(!target) return '—';
+  const local=new Date(new Date().toLocaleString('en-US',{timeZone:'Europe/Lisbon'}));
+  let ms=target-local; if(ms<0) ms=0;
+  const dias=Math.floor(ms/86400000); ms-=dias*86400000;
+  const horas=Math.floor(ms/3600000); ms-=horas*3600000;
+  const mins=Math.floor(ms/60000);
+  if(dias>0) return `${dias}d ${horas}h`;
+  if(horas>0) return `${horas}h ${mins}m`;
+  return `${mins}m`;
+}
+function v73ApostasResumo(){
+  let total=0, jogosMap=new Map();
+  try{ Object.entries(apostas||{}).forEach(([j,l])=>{ const n=(l||[]).length; total+=n; if(n) jogosMap.set(j,n); }); }catch{}
+  const top=[...jogosMap.entries()].sort((a,b)=>b[1]-a[1])[0];
+  return {total, topJogo: top ? `${v73NomeJogo(top[0])} (${top[1]})` : '—'};
+}
+async function v73CloudResumo(){
+  const out={push:'—',cloud:'—',lastRun:'—',lastResult:'—'};
+  try{ out.push=document.getElementById('v672PushEngineStatus')?.textContent?.trim() || '—'; }catch{}
+  try{ out.cloud=document.getElementById('v67CloudStatus')?.textContent?.trim() || '—'; }catch{}
+  try{ out.lastRun=document.getElementById('v68PushEngineLastRun')?.textContent?.trim() || '—'; }catch{}
+  try{
+    if(window.supabaseClient){
+      const {data}=await supabaseClient.from('draw_results').select('game,draw_number,draw_date').order('draw_date',{ascending:false}).limit(1);
+      if(data?.[0]) out.lastResult=`${v73NomeJogo(data[0].game)} — ${data[0].draw_number || data[0].draw_date || 'último'}`;
+    }
+  }catch(e){ console.warn('V73 last result indisponível', e); }
+  return out;
+}
+function v73SugestaoAleatoria(jogo='euromilhoes'){
+  const maxN=jogo==='totoloto'?49:(jogo==='eurodreams'?40:50);
+  const qtd=jogo==='eurodreams'?6:5;
+  const maxExtra=jogo==='totoloto'?13:(jogo==='eurodreams'?5:12);
+  const qtdExtra=jogo==='totoloto'?1:(jogo==='eurodreams'?1:2);
+  const pick=(max,qtd)=>{ const s=new Set(); while(s.size<qtd) s.add(1+Math.floor(Math.random()*max)); return [...s].sort((a,b)=>a-b); };
+  return {nums:pick(maxN,qtd), extras:pick(maxExtra,qtdExtra)};
+}
+async function v73SugestaoEstatistica(jogo='euromilhoes'){
+  try{
+    if(window.supabaseClient){
+      const {data}=await supabaseClient.from('draw_results').select('numbers,stars,game').eq('game',jogo).limit(250);
+      if(data?.length){
+        const nums=new Map(), extras=new Map();
+        data.forEach(r=>{ v73ParseNums(r.numbers).forEach(n=>nums.set(n,(nums.get(n)||0)+1)); v73ParseNums(r.stars).forEach(n=>extras.set(n,(extras.get(n)||0)+1)); });
+        const maxN=jogo==='totoloto'?49:(jogo==='eurodreams'?40:50), qtd=jogo==='eurodreams'?6:5;
+        const maxE=jogo==='totoloto'?13:(jogo==='eurodreams'?5:12), qtdE=jogo==='totoloto'?1:(jogo==='eurodreams'?1:2);
+        const top=(map,max,qtd)=>{
+          const arr=[]; for(let i=1;i<=max;i++) arr.push([i,map.get(i)||0]);
+          // mistura quente e frio para não ser só "top": metade frequentes, metade atrasados
+          const hot=arr.slice().sort((a,b)=>b[1]-a[1]||a[0]-b[0]).slice(0,Math.ceil(qtd/2)).map(x=>x[0]);
+          const cold=arr.slice().sort((a,b)=>a[1]-b[1]||a[0]-b[0]).filter(x=>!hot.includes(x[0])).slice(0,qtd-hot.length).map(x=>x[0]);
+          return [...hot,...cold].sort((a,b)=>a-b);
+        };
+        return {nums:top(nums,maxN,qtd), extras:top(extras,maxE,qtdE), fonte:`${data.length} resultado(s)`};
+      }
+    }
+  }catch(e){ console.warn('V73 sugestão estatística indisponível', e); }
+  return {...v73SugestaoAleatoria(jogo), fonte:'aleatória controlada'};
+}
+function v73RenderSugestao(tipo, jogo, sug){
+  const nums=sug.nums.map(n=>`<span>${n}</span>`).join('');
+  const extras=sug.extras.map(n=>`<span class="extra">${n}</span>`).join('');
+  v73Set('v73SugestaoChave', `<div class="v73-bolas">${nums}</div><div class="v73-bolas v73-extras">${extras}</div>`);
+  const label=tipo==='estatistica'?'Estatística':'Equilibrada';
+  v73Text('v73SugestaoMeta', `${label} — ${v73NomeJogo(jogo)} · ${sug.fonte || 'gerada agora'}`);
+}
+async function v73GerarSugestao(tipo='estatistica'){
+  const jogo=document.getElementById('v73SugestaoJogo')?.value || v73NextDraw()?.id || 'euromilhoes';
+  const sug=tipo==='aleatoria' ? v73SugestaoAleatoria(jogo) : await v73SugestaoEstatistica(jogo);
+  v73RenderSugestao(tipo,jogo,sug);
+}
+async function atualizarDashboardInteligenteV73(){
+  const prox=v73NextDraw(); const hoje=v73GameToday(); const ap=v73ApostasResumo(); const cl=await v73CloudResumo();
+  v73Text('v73Greeting', `${v73Saudacao()}, Paulo 👋`);
+  v73Text('v73ProximoJogo', prox ? prox.nome : 'Sem sorteio próximo');
+  v73Text('v73ProximoTempo', prox ? `Faltam ${v73TempoRestante(prox.date)} · ${prox.hora}` : '—');
+  v73Text('v73Hoje', hoje ? `Hoje há ${hoje.nome}` : 'Hoje sem sorteio principal');
+  v73Text('v73ApostasAtivas', String(ap.total || 0));
+  v73Text('v73ApostasMeta', ap.topJogo !== '—' ? `Mais usado: ${ap.topJogo}` : 'Regista apostas para alimentar a IA.');
+  v73Text('v73CloudResumo', cl.cloud || '—');
+  v73Text('v73PushResumo', cl.push || '—');
+  v73Text('v73UltimoResultado', cl.lastResult || '—');
+  v73Text('v73UltimaExecucao', cl.lastRun || '—');
+  const frase = hoje ? `Hoje é dia de ${hoje.nome}. O Assistente vai acompanhar o Push Engine e avisar-te se houver novidades.` : `O próximo destaque é ${prox?.nome || 'o próximo sorteio'}. Tudo fica preparado para receber resultados e notificações automaticamente.`;
+  v73Text('v73Insight', frase);
+}
+function instalarV73(){
+  document.documentElement.classList.add('v73-dashboard');
+  const sel=document.getElementById('v73SugestaoJogo');
+  if(sel && !sel.dataset.v73){ sel.dataset.v73='1'; sel.addEventListener('change',()=>v73GerarSugestao('estatistica')); }
+  const b1=document.getElementById('v73GerarEstatistica'); if(b1 && !b1.dataset.v73){ b1.dataset.v73='1'; b1.addEventListener('click',()=>v73GerarSugestao('estatistica')); }
+  const b2=document.getElementById('v73GerarAleatoria'); if(b2 && !b2.dataset.v73){ b2.dataset.v73='1'; b2.addEventListener('click',()=>v73GerarSugestao('aleatoria')); }
+  setTimeout(()=>{ atualizarDashboardInteligenteV73(); v73GerarSugestao('estatistica'); },700);
+  setTimeout(()=>{ atualizarDashboardInteligenteV73(); },2500);
+  setInterval(()=>{ atualizarDashboardInteligenteV73(); },60000);
+  document.addEventListener('click',()=>setTimeout(()=>atualizarDashboardInteligenteV73(),400));
+}
+instalarV73();
