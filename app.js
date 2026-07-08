@@ -1,4 +1,4 @@
-window.APP_VERSION = "v70-premios-automaticos";
+window.APP_VERSION = "v70.1-premios-automaticos-estavel";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";

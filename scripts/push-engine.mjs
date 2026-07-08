@@ -1,6 +1,6 @@
 import webpush from 'web-push';
 
-const APP_VERSION = 'v70-premios-automaticos';
+const APP_VERSION = 'v70.1-premios-automaticos-estavel';
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'];
 for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env: ${key}`);
@@ -159,20 +159,28 @@ async function importarResultadosOficiais(gamePreferido = null) {
     const anterior = existente[0];
     const mudou = !anterior || anterior.result_signature !== r.result_signature;
 
-    await supabaseRequest('draw_results', {
-      method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({
-        game: r.game,
-        draw_number: r.draw_number,
-        draw_date: r.draw_date,
-        numbers: r.numbers,
-        stars: r.stars,
-        official_prize_info: r.official_prize_info,
-        result_signature: r.result_signature,
-        updated_at: new Date().toISOString()
-      })
-    });
+    const payloadResultado = {
+      game: r.game,
+      draw_number: r.draw_number,
+      draw_date: r.draw_date,
+      numbers: r.numbers,
+      stars: r.stars,
+      official_prize_info: r.official_prize_info,
+      result_signature: r.result_signature,
+      updated_at: new Date().toISOString()
+    };
+
+    if (anterior?.id) {
+      await supabaseRequest(`draw_results?id=eq.${encodeURIComponent(anterior.id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payloadResultado)
+      });
+    } else {
+      await supabaseRequest('draw_results', {
+        method: 'POST',
+        body: JSON.stringify(payloadResultado)
+      });
+    }
 
     stats.guardados++;
     stats.ultimo = r;
