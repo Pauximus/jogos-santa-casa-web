@@ -62,29 +62,6 @@
       <div id="authMsg" class="result-card warn" style="display:none;"></div>
     </section>
 
-    <section id="userBox" class="card user-panel" style="display:none;">
-      <div>
-        <strong id="userInfo">Sessão iniciada</strong>
-        <div id="syncInfo" class="small">Sincronização automática ativa.</div>
-        <div class="alias-row">
-          <label for="aliasUtilizador">Nome/alcunha no PDF</label>
-          <div class="alias-controls">
-            <input id="aliasUtilizador" type="text" maxlength="40" placeholder="Ex.: Paulo, Pauximus..." />
-            <button id="guardarAliasBtn" type="button">Guardar</button>
-          </div>
-          <div id="aliasFeedback" class="alias-feedback" aria-live="polite"></div>
-          <button id="notifStatusMini" class="notif-status-mini" type="button">🔔 Notificações</button>
-          <div id="notificacoesEstado" class="notificacoes-estado" aria-live="polite"></div>
-        </div>
-      </div>
-      <div class="user-actions">
-        <button id="syncNowBtn">Sincronizar agora</button>
-        <button id="installPwaBtn" class="install-btn" style="display:none;">Instalar app</button>
-        <button id="settingsToggleV74" type="button" class="v74-settings-btn">⚙️ Definições</button>
-        <button id="logoutBtn">Terminar sessão</button>
-      </div>
-    </section>
-
     <section id="notificacaoPremio" class="card prize-alert" style="display:none;">
       <div>
         <strong id="notificacaoTitulo">🏆 Novo prémio encontrado!</strong>
@@ -96,6 +73,30 @@
     <div id="appBox" style="display:none;">
 
       <section class="card v73-hero-card" id="dashboardInteligenteV73">
+        <section id="userBox" class="v74-hero-user" style="display:none;">
+          <div>
+            <strong id="userInfo">Sessão iniciada</strong>
+            <div id="syncInfo" class="small">Sincronização automática ativa.</div>
+            <div class="alias-row">
+              <label for="aliasUtilizador">Nome/alcunha no PDF</label>
+              <div class="alias-controls">
+                <input id="aliasUtilizador" type="text" maxlength="40" placeholder="Ex.: Paulo, Pauximus..." />
+                <button id="guardarAliasBtn" type="button">Guardar</button>
+              </div>
+              <div id="aliasFeedback" class="alias-feedback" aria-live="polite"></div>
+              <button id="notifStatusMini" class="notif-status-mini" type="button">🔔 Notificações</button>
+              <div id="notificacoesEstado" class="notificacoes-estado" aria-live="polite"></div>
+            </div>
+          </div>
+          <div class="user-actions">
+            <button id="syncNowBtn">Sincronizar agora</button>
+            <button id="installPwaBtn" class="install-btn" style="display:none;">Instalar app</button>
+            <button id="settingsToggleV74" type="button" class="v74-settings-btn">⚙️ Definições</button>
+            <button id="logoutBtn">Terminar sessão</button>
+          </div>
+        </section>
+
+
         <div class="v73-hero-top">
           <div>
             <span class="v73-eyebrow">Dashboard Inteligente</span>
@@ -159,6 +160,7 @@
           <button id="settingsCloseV74" type="button" class="mini-btn">Fechar</button>
         </div>
         <div class="v74-settings-note">A sincronização e as notificações continuam automáticas. Usa esta área apenas quando precisares de manutenção.</div>
+
       <section class="card cloud-v67-card" id="cloudV67Card">
         <div class="v67-cloud-head">
           <div>
@@ -172,7 +174,7 @@
           <div><span>Conta</span><strong id="v67CloudAccount">—</strong></div>
           <div><span>Dispositivo</span><strong id="v67CloudDevice">—</strong></div>
           <div><span>Última sincronização</span><strong id="v67CloudLastSync">—</strong></div>
-          <div><span>Versão</span><strong id="v67CloudVersion">v74-interface-limpa</strong></div>
+          <div><span>Versão</span><strong id="v67CloudVersion">v74.1-header-integrado</strong></div>
           <div><span>Push Cloud</span><strong id="v671PushCloudStatus">—</strong></div>
           <div><span>Push Engine</span><strong id="v672PushEngineStatus">A preparar</strong></div>
           <div><span>Última execução</span><strong id="v68PushEngineLastRun">—</strong></div>
@@ -237,20 +239,6 @@
         </div>
       </section>
 
-      <section class="card notificacoes-fcm-v58-card" id="notificacoesFcmV58Card">
-        <div class="v58-head">
-          <div><h2>🔔 Notificações Inteligentes</h2><p>Push real via Supabase + GitHub Actions, mesmo com a app fechada.</p></div>
-          <span class="v58-pill" id="fcmEstadoV58">FCM ready</span>
-        </div>
-        <div class="fcm-grid-v58">
-          <div><strong>✅ Sem repetições</strong><small id="notifResumoV58">Cada prémio só gera 1 notificação neste dispositivo.</small></div>
-          <div><strong>📲 App fechada</strong><small id="pushResumoV58">Precisa de Firebase + backend para push real.</small></div>
-          <div><strong>🧪 Testes</strong><small>Valida notificações locais.</small><div class="fcm-actions-v58"><button id="btnTesteNotifV58" type="button">Testar</button><button id="btnResetNotifV58" type="button">Reset</button></div></div>
-        </div>
-      </section>
-
-      </section>
-
       <section class="card premios-gestao-v58-card" id="premiosGestaoV58Card">
         <div class="v58-head">
           <div><h2>💰 Gestão de Prémios</h2><p>Marca prémios levantados e vê o que falta reclamar.</p></div>
@@ -267,6 +255,18 @@
           <button type="button" data-filtro-premios-v58="levantados">Levantados</button>
         </div>
 <div id="premiosListaGestaoV58" class="premios-lista-gestao-v58"></div>
+      </section>
+      <section class="card notificacoes-fcm-v58-card" id="notificacoesFcmV58Card">
+        <div class="v58-head">
+          <div><h2>🔔 Notificações Inteligentes</h2><p>Push real via Supabase + GitHub Actions, mesmo com a app fechada.</p></div>
+          <span class="v58-pill" id="fcmEstadoV58">FCM ready</span>
+        </div>
+        <div class="fcm-grid-v58">
+          <div><strong>✅ Sem repetições</strong><small id="notifResumoV58">Cada prémio só gera 1 notificação neste dispositivo.</small></div>
+          <div><strong>📲 App fechada</strong><small id="pushResumoV58">Precisa de Firebase + backend para push real.</small></div>
+          <div><strong>🧪 Testes</strong><small>Valida notificações locais.</small><div class="fcm-actions-v58"><button id="btnTesteNotifV58" type="button">Testar</button><button id="btnResetNotifV58" type="button">Reset</button></div></div>
+        </div>
+      </section>
       </section>
 
 
@@ -620,7 +620,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=74"></script>
+  <script src="app.js?v=741"></script>
 
       <div id="notifModal" class="notif-modal" hidden>
         <div class="notif-modal-backdrop" id="notifModalFecharBg"></div>

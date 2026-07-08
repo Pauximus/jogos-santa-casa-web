@@ -1,4 +1,4 @@
-window.APP_VERSION = "v74-interface-limpa";
+window.APP_VERSION = "v74.1-header-integrado";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7215,7 +7215,8 @@ async function v73GerarSugestao(tipo='estatistica'){
 }
 async function atualizarDashboardInteligenteV73(){
   const prox=v73NextDraw(); const hoje=v73GameToday(); const ap=v73ApostasResumo(); const cl=await v73CloudResumo();
-  v73Text('v73Greeting', `${v73Saudacao()}, Paulo 👋`);
+  const nomeV73 = (aliasUtilizador || currentUser?.email?.split('@')?.[0] || 'Paulo');
+  v73Text('v73Greeting', `${v73Saudacao()}, ${nomeV73} 👋`);
   v73Text('v73ProximoJogo', prox ? prox.nome : 'Sem sorteio próximo');
   v73Text('v73ProximoTempo', prox ? `Faltam ${v73TempoRestante(prox.date)} · ${prox.hora}` : '—');
   v73Text('v73Hoje', hoje ? `Hoje há ${hoje.nome}` : 'Hoje sem sorteio principal');
