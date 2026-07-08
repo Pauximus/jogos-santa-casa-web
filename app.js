@@ -1,4 +1,4 @@
-window.APP_VERSION = "v76.1-login-google";
+window.APP_VERSION = "v76.2-login-google-polido";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -484,12 +484,39 @@ async function logout() {
   }
 }
 
+function obterNomeUtilizadorV762() {
+  const meta = currentUser?.user_metadata || {};
+  return meta.full_name || meta.name || meta.preferred_username || currentUser?.email || "Utilizador";
+}
+
+function atualizarContaGoogleV762() {
+  const nome = obterNomeUtilizadorV762();
+  const email = currentUser?.email || "";
+  const avatar = currentUser?.user_metadata?.avatar_url || currentUser?.user_metadata?.picture || "";
+
+  userInfo.textContent = `Olá, ${nome}`;
+
+  const emailEl = document.getElementById("userEmailV762");
+  if (emailEl) emailEl.textContent = email ? email : "Sessão iniciada";
+
+  const avatarEl = document.getElementById("userAvatarV762");
+  if (avatarEl) {
+    if (avatar) {
+      avatarEl.src = avatar;
+      avatarEl.style.display = "block";
+    } else {
+      avatarEl.removeAttribute("src");
+      avatarEl.style.display = "none";
+    }
+  }
+}
+
 async function mostrarAppAutenticada() {
   authBox.style.display = "none";
   userBox.style.display = "";
   appBox.style.display = "";
 
-  userInfo.textContent = `Olá, ${currentUser.email}`;
+  atualizarContaGoogleV762();
   carregarAliasCloud();
   syncInfo.textContent = "Sincronização automática ativa.";
   setTimeout(() => { try { v67CloudInit(); } catch(e) { console.warn("V67 cloud init falhou:", e); } }, 50);
@@ -1871,7 +1898,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
   }
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js?v=26")
+    navigator.serviceWorker.register("service-worker.js?v=27")
       .then(reg => {
         reg.addEventListener("updatefound", () => {
           const novoWorker = reg.installing;
