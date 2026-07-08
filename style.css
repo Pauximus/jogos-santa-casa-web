@@ -3029,3 +3029,81 @@ body.v76-pages .v754-managed.v754-visible{animation:v75FadeIn .16s ease both;}
   font-weight:900;
   color:#4285f4;
 }
+
+
+/* V76.3 - Login premium / Perfil com conta Google */
+.perfil-conta-card{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:14px;
+  margin:12px 0 14px;
+  border:1px solid #d6bbfb;
+  border-radius:18px;
+  background:linear-gradient(135deg, rgba(124,58,237,.10), rgba(16,185,129,.08));
+}
+.perfil-conta-avatar{
+  width:58px;
+  height:58px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  background:#101828;
+  color:#fff;
+  font-weight:900;
+  font-size:24px;
+  box-shadow:0 10px 28px rgba(16,24,40,.16);
+  overflow:hidden;
+}
+.perfil-conta-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.perfil-conta-avatar span{
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+}
+.perfil-conta-info{
+  min-width:0;
+  flex:1;
+}
+.perfil-conta-info span, .perfil-conta-info small{
+  display:block;
+  color:#667085;
+}
+.perfil-conta-info strong{
+  display:block;
+  font-size:18px;
+  color:#101828;
+  line-height:1.15;
+  margin:2px 0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.perfil-conta-badges{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:6px;
+}
+.perfil-conta-badges b{
+  padding:6px 10px;
+  border-radius:999px;
+  background:#ecfdf3;
+  border:1px solid #86efac;
+  color:#027a48;
+}
+.perfil-conta-badges em{
+  font-style:normal;
+  font-size:12px;
+  color:#475467;
+}
+@media (max-width:720px){
+  .perfil-conta-card{ align-items:flex-start; }
+  .perfil-conta-badges{ align-items:flex-start; }
+}

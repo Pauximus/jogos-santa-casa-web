@@ -1,4 +1,4 @@
-window.APP_VERSION = "v76.2-login-google-polido";
+window.APP_VERSION = "v76.3-login-premium";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -511,12 +511,47 @@ function atualizarContaGoogleV762() {
   }
 }
 
+function atualizarPerfilContaV763() {
+  const nome = obterNomeUtilizadorV762();
+  const email = currentUser?.email || "";
+  const meta = currentUser?.user_metadata || {};
+  const avatar = meta.avatar_url || meta.picture || "";
+  const provider = currentUser?.app_metadata?.provider || "email";
+  const providerTxt = provider === "google" ? "Google" : (provider === "email" ? "Email" : provider);
+
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set("perfilContaNome", nome);
+  set("perfilContaEmail", email || "Sessão iniciada");
+  set("perfilContaProvider", providerTxt);
+  set("perfilContaEstado", "Ligada e sincronizada");
+
+  const inicial = (nome || email || "U").trim().charAt(0).toUpperCase() || "U";
+  const wrap = document.getElementById("perfilContaAvatar");
+  const img = document.getElementById("perfilContaAvatarImg");
+  const letter = document.getElementById("perfilContaAvatarLetter");
+  if (img && letter && wrap) {
+    if (avatar) {
+      img.src = avatar;
+      img.style.display = "block";
+      letter.style.display = "none";
+      wrap.classList.add("has-photo");
+    } else {
+      img.removeAttribute("src");
+      img.style.display = "none";
+      letter.textContent = inicial;
+      letter.style.display = "grid";
+      wrap.classList.remove("has-photo");
+    }
+  }
+}
+
 async function mostrarAppAutenticada() {
   authBox.style.display = "none";
   userBox.style.display = "";
   appBox.style.display = "";
 
   atualizarContaGoogleV762();
+  atualizarPerfilContaV763();
   carregarAliasCloud();
   syncInfo.textContent = "Sincronização automática ativa.";
   setTimeout(() => { try { v67CloudInit(); } catch(e) { console.warn("V67 cloud init falhou:", e); } }, 50);
@@ -3775,6 +3810,7 @@ function atualizarPerfilApostadorV43() {
 
   const avatar = document.getElementById("perfilAvatar");
   if (avatar) avatar.textContent = nivel.nome.split(" ")[0];
+  try { atualizarPerfilContaV763(); } catch {}
 
   if (prox) {
     const prevMin = nivel.min;
