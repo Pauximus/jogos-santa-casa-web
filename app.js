@@ -1,4 +1,4 @@
-window.APP_VERSION = "v74.2-topo-compacto-paineis";
+window.APP_VERSION = "v75-navegacao-paginas";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7331,4 +7331,131 @@ instalarV73();
       section.insertBefore(bar, section.firstChild);
     });
   });
+})();
+
+
+// V75 — Navegação por páginas e Home minimalista
+(function initV75PageNavigation(){
+  function ready(fn){
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  function setPageFor(el, page){
+    if (!el) return;
+    el.dataset.v75Page = page;
+    el.classList.add('v75-page-section');
+  }
+
+  function instalar(){
+    document.body.classList.add('v75-pages');
+
+    const resultsSections = Array.from(document.querySelectorAll('section.results'));
+    const gameCard = document.querySelector('section.game-card');
+
+    // Home: só o essencial do dia-a-dia.
+    setPageFor(document.getElementById('dashboardInteligenteV73'), 'home');
+    setPageFor(document.getElementById('sugestoesInteligentesV73'), 'home');
+    setPageFor(document.getElementById('dashboardVivoCard'), 'home');
+
+    // Apostas: adicionar/editar apostas e ver a comparação do jogo selecionado.
+    setPageFor(gameCard, 'apostas');
+    setPageFor(resultsSections[0], 'apostas');
+
+    // Prémios: gestão, resumo, prémios premium e histórico.
+    setPageFor(document.getElementById('premiosGestaoV58Card'), 'premios');
+    setPageFor(document.getElementById('dashboardBox'), 'premios');
+    setPageFor(document.getElementById('premiosPremium'), 'premios');
+    setPageFor(document.getElementById('statsBox'), 'premios');
+    setPageFor(resultsSections[1], 'premios');
+
+    // Estatísticas: tudo o que é análise avançada fica junto.
+    setPageFor(document.getElementById('estatisticasAvancadas'), 'estatisticas');
+    setPageFor(document.getElementById('centroEstatisticasV71'), 'estatisticas');
+    setPageFor(document.getElementById('graficosV54Card'), 'estatisticas');
+    setPageFor(document.getElementById('numerosV54Card'), 'estatisticas');
+    setPageFor(document.getElementById('estatisticasInteligentes'), 'estatisticas');
+
+    // Perfil: informação do apostador e Centro de Sorte.
+    setPageFor(document.getElementById('perfilApostador'), 'perfil');
+    setPageFor(document.getElementById('dashboardPremium'), 'perfil');
+
+    // Definições: manutenção técnica fica fora da Home.
+    const settings = document.getElementById('settingsPanelV74');
+    setPageFor(settings, 'definicoes');
+    if (settings) {
+      settings.hidden = false;
+      settings.classList.remove('v74-settings-open');
+    }
+
+    // Notificações técnicas continuam disponíveis apenas em Definições.
+    setPageFor(document.getElementById('notificacoesFcmV58Card'), 'definicoes');
+
+    const nav = document.getElementById('v75AppNav');
+    const navButtons = nav ? Array.from(nav.querySelectorAll('[data-v75-nav]')) : [];
+    const sections = Array.from(document.querySelectorAll('.v75-page-section'));
+
+    function pageTitle(page){
+      const map = {
+        home: 'Home', apostas: 'Apostas', premios: 'Prémios', estatisticas: 'Estatísticas', perfil: 'Perfil', definicoes: 'Definições'
+      };
+      return map[page] || 'Home';
+    }
+
+    function showPage(page, scrollTop = true){
+      const valid = ['home','apostas','premios','estatisticas','perfil','definicoes'];
+      if (!valid.includes(page)) page = 'home';
+
+      document.body.dataset.v75CurrentPage = page;
+      sections.forEach(sec => {
+        const active = sec.dataset.v75Page === page;
+        sec.classList.toggle('v75-page-active', active);
+        sec.hidden = !active;
+      });
+
+      navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.v75Nav === page));
+
+      const oldTitle = document.getElementById('v75PageTitle');
+      if (oldTitle) oldTitle.textContent = pageTitle(page);
+
+      try { history.replaceState(null, '', `${location.pathname}${location.search}#${page}`); } catch {}
+      if (scrollTop) {
+        const app = document.getElementById('appBox');
+        if (app) setTimeout(() => app.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
+      }
+    }
+
+    navButtons.forEach(btn => btn.addEventListener('click', () => showPage(btn.dataset.v75Nav)));
+
+    // O botão Definições no hero passa a abrir a página Definições em vez do painel escondido.
+    const settingsBtn = document.getElementById('settingsToggleV74');
+    if (settingsBtn && !settingsBtn.dataset.v75Bound) {
+      settingsBtn.dataset.v75Bound = '1';
+      settingsBtn.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        showPage('definicoes');
+      }, true);
+    }
+
+    const closeSettings = document.getElementById('settingsCloseV74');
+    if (closeSettings && !closeSettings.dataset.v75Bound) {
+      closeSettings.dataset.v75Bound = '1';
+      closeSettings.textContent = 'Voltar à Home';
+      closeSettings.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        showPage('home');
+      }, true);
+    }
+
+    // Pequenos atalhos úteis sem mexer na lógica antiga.
+    document.querySelectorAll('[data-v75-go]').forEach(el => {
+      el.addEventListener('click', () => showPage(el.dataset.v75Go));
+    });
+
+    const initial = (location.hash || '#home').replace('#','');
+    showPage(initial, false);
+  }
+
+  ready(() => setTimeout(instalar, 200));
 })();

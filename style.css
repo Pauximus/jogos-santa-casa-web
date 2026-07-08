@@ -2745,3 +2745,104 @@ body.v742 .v742-collapsed .v742-panel-toggle{
     align-items:flex-start;
   }
 }
+
+
+/* V75 — Navegação por páginas / PWA com estrutura de app */
+.v75-app-nav{
+  position:sticky;
+  top:82px;
+  z-index:9;
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:8px;
+  margin:0 0 14px;
+  padding:10px;
+  border:1px solid rgba(208,217,226,.85);
+  background:rgba(255,255,255,.86);
+  backdrop-filter:blur(10px);
+  border-radius:18px;
+  box-shadow:0 12px 30px rgba(16,24,40,.07);
+}
+.v75-app-nav button{
+  width:100%;
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:9px 10px;
+  border-radius:14px;
+  border:1px solid transparent;
+  background:transparent;
+  box-shadow:none;
+  font-size:13px;
+  color:#334155;
+}
+.v75-app-nav button:hover{
+  transform:translateY(-1px);
+  background:#f8fafc;
+}
+.v75-app-nav button.active{
+  background:linear-gradient(135deg,#102218,#152238);
+  color:#fff;
+  border-color:rgba(255,255,255,.08);
+  box-shadow:0 10px 22px rgba(15,23,42,.18);
+}
+.v75-page-section[hidden]{display:none!important;}
+.v75-page-section.v75-page-active{
+  animation:v75FadeIn .18s ease both;
+}
+@keyframes v75FadeIn{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+body.v75-pages .v742-panel-toggle{display:none!important;}
+body.v75-pages .v742-panel.v742-collapsed > *:not(.v742-panel-toggle){display:initial;}
+body.v75-pages .v742-panel.v742-collapsed{padding:inherit;}
+body.v75-pages #settingsPanelV74{
+  margin-top:0;
+}
+body.v75-pages #settingsPanelV74 .cloud-v67-card,
+body.v75-pages #settingsPanelV74 .tools-v57-card,
+body.v75-pages #settingsPanelV74 #notificacoesFcmV58Card{
+  box-shadow:none;
+}
+body.v75-pages[data-v75-current-page="home"] #dashboardVivoCard,
+body.v75-pages[data-v75-current-page="home"] #sugestoesInteligentesV73{
+  margin-bottom:14px;
+}
+body.v75-pages[data-v75-current-page="apostas"] section.game-card{
+  border-radius:16px;
+}
+body.v75-pages[data-v75-current-page="estatisticas"] #centroEstatisticasV71{
+  margin-top:0;
+}
+@media(max-width:760px){
+  .v75-app-nav{
+    position:fixed;
+    left:10px;
+    right:10px;
+    bottom:10px;
+    top:auto;
+    grid-template-columns:repeat(6,1fr);
+    gap:4px;
+    margin:0;
+    padding:6px;
+    border-radius:20px;
+    z-index:50;
+  }
+  .v75-app-nav button{
+    min-height:48px;
+    padding:6px 4px;
+    flex-direction:column;
+    gap:2px;
+    font-size:11px;
+  }
+  .v75-app-nav button span{font-size:10px;line-height:1;}
+  body.v75-pages .app{padding-bottom:92px;}
+  body.v75-pages footer{display:none;}
+}
+@media(max-width:420px){
+  .v75-app-nav button span{display:none;}
+  .v75-app-nav button{font-size:18px;}
+}
