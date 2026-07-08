@@ -3126,3 +3126,30 @@ body.v76-pages .v754-managed.v754-visible{animation:v75FadeIn .16s ease both;}
 .v764-dashboard-vivo #installPwaBtn{box-shadow:0 0 0 0 rgba(25,195,108,.35);animation:v764InstallPulse 2.4s infinite}
 @keyframes v764InstallPulse{0%{box-shadow:0 0 0 0 rgba(25,195,108,.35)}70%{box-shadow:0 0 0 10px rgba(25,195,108,0)}100%{box-shadow:0 0 0 0 rgba(25,195,108,0)}}
 @media(max-width:760px){.v764-activity-card{max-width:none;width:100%}.v764-dashboard-vivo .v73-hero-top{display:grid}}
+
+
+/* V76.5 — Premium polish */
+body.v765-premium-polish .v762-user-head{gap:16px;align-items:flex-start}
+body.v765-premium-polish #userAvatarV762,
+body.v765-premium-polish .v764-avatar{width:56px!important;height:56px!important;min-width:56px;border-width:2px!important;box-shadow:0 12px 30px rgba(0,0,0,.30)}
+body.v765-premium-polish #userInfo{font-size:15px;line-height:1.08;display:block;margin-top:1px}
+body.v765-premium-polish .v765-provider-badge{margin-top:3px;margin-bottom:2px;font-size:12px;font-weight:900;color:#9df7c2;letter-spacing:.01em}
+body.v765-premium-polish .v765-email-line{font-size:12px;opacity:.88;margin-top:0}
+body.v765-premium-polish .v765-sync-line{font-size:12px;color:#c8fadc!important;opacity:1!important;font-weight:800;margin-top:2px}
+body.v765-premium-polish .v73-hero-title h1{font-size:clamp(32px,3.2vw,44px);letter-spacing:-.04em;line-height:1.02;margin-bottom:8px}
+body.v765-premium-polish .v73-hero-title p{font-size:15px;max-width:720px;color:rgba(255,255,255,.90)}
+body.v765-premium-polish .v765-hero-polish{position:relative;overflow:hidden}
+body.v765-premium-polish .v765-hero-polish:before{content:"";position:absolute;right:26px;top:48px;width:240px;height:240px;pointer-events:none;opacity:.16;background:
+  radial-gradient(circle at 30% 30%, rgba(34,197,94,.9) 0 0.45rem, transparent .5rem),
+  radial-gradient(circle at 62% 28%, rgba(255,255,255,.8) 0 0.28rem, transparent .33rem),
+  radial-gradient(circle at 46% 62%, rgba(34,197,94,.75) 0 0.38rem, transparent .42rem),
+  radial-gradient(circle at 78% 68%, rgba(255,255,255,.65) 0 0.22rem, transparent .28rem);
+  filter:blur(.1px);transform:rotate(-10deg)}
+body.v765-premium-polish .v764-activity-card{min-width:210px;max-width:235px;background:linear-gradient(145deg,rgba(255,255,255,.105),rgba(255,255,255,.055));border-color:rgba(157,247,194,.30)}
+body.v765-premium-polish .v764-activity-card strong{font-size:22px;letter-spacing:-.02em;margin:4px 0 7px;white-space:nowrap}
+body.v765-premium-polish .v764-activity-card span{font-size:12px;line-height:1.35;color:#c8fadc}
+body.v765-premium-polish .v764-progress{height:7px;background:rgba(255,255,255,.16)}
+body.v765-premium-polish .v73-kpi-grid>div strong{font-size:23px;line-height:1.05}
+body.v765-premium-polish #installPwaBtn{animation:v765InstallPulse 2.8s infinite}
+@keyframes v765InstallPulse{0%{box-shadow:0 0 0 0 rgba(25,195,108,.32)}70%{box-shadow:0 0 0 8px rgba(25,195,108,0)}100%{box-shadow:0 0 0 0 rgba(25,195,108,0)}}
+@media(max-width:760px){body.v765-premium-polish .v762-user-head{align-items:center}body.v765-premium-polish #userAvatarV762{width:50px!important;height:50px!important;min-width:50px}body.v765-premium-polish .v764-activity-card{max-width:none;width:100%}body.v765-premium-polish .v73-hero-title h1{font-size:32px}}

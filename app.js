@@ -1,4 +1,4 @@
-window.APP_VERSION = "v76.4-dashboard-vivo";
+window.APP_VERSION = "v76.5-premium-polish";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7744,4 +7744,89 @@ instalarV73();
   }
   function tick(){ try{ updateUserCard(); updateDashboard(); }catch(e){ console.warn('V76.4 dashboard vivo', e); } }
   ready(()=>{ document.body.classList.add('v764-dashboard-vivo'); setTimeout(tick,400); setTimeout(tick,1800); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,300)); });
+})();
+
+
+// V76.5 — Premium Polish / atividade objetiva
+(function initV765PremiumPolish(){
+  window.APP_VERSION = "v76.5-premium-polish";
+  const VERSION_LABEL = 'V76.5';
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
+  function byId(id){ return document.getElementById(id); }
+  function getUser(){ try{ return window.currentUser || currentUser || null; }catch{ return window.currentUser || null; } }
+  function totalApostas(){
+    try{ const ap = window.apostas || apostas || {}; return Object.values(ap).reduce((n,l)=>n+(Array.isArray(l)?l.length:0),0); }catch{ return 0; }
+  }
+  function countPrizes(){
+    try{
+      if(Array.isArray(window.historicoPremios)) return window.historicoPremios.length;
+      const raw=localStorage.getItem('historicoPremios') || localStorage.getItem('jsc_historico_premios');
+      const j=raw?JSON.parse(raw):[]; return Array.isArray(j)?j.length:0;
+    }catch{ return 0; }
+  }
+  function providerLabel(){
+    const u=getUser();
+    const provider = String(u?.app_metadata?.provider || 'email').toLowerCase();
+    return provider === 'google' ? 'Conta Google ✓' : 'Conta ligada ✓';
+  }
+  function firstName(){
+    const u=getUser();
+    const meta=u?.user_metadata || {};
+    const name=meta.full_name || meta.name || u?.email || localStorage.getItem('jsc_alias') || 'Paulo';
+    return String(name).trim().split(/\s+/)[0] || 'Paulo';
+  }
+  function updateVersion(){
+    document.querySelectorAll('.v72-pill,.v54-pill').forEach(el=>{ if(/^V\d+/.test((el.textContent||'').trim())) el.textContent=VERSION_LABEL; });
+    const about=document.getElementById('sobreAppV57');
+    if(about) about.textContent = `${window.APP_VERSION} · ${totalApostas()} aposta(s) · ${countPrizes()} prémio(s) · premium polish`;
+  }
+  function polishUserCard(){
+    const emailEl=byId('userEmailV762');
+    const provider=byId('v764ProviderBadge');
+    const sync=byId('syncInfo');
+    if(provider){
+      provider.textContent = providerLabel();
+      provider.classList.add('v765-provider-badge');
+      if(emailEl && provider.nextElementSibling !== emailEl){
+        emailEl.parentNode.insertBefore(provider, emailEl);
+      }
+    }
+    if(emailEl){
+      emailEl.classList.add('v765-email-line');
+      if(!/^📧/.test(emailEl.textContent || '') && emailEl.textContent) emailEl.textContent = `📧 ${emailEl.textContent.replace(/^📧\s*/, '')}`;
+    }
+    if(sync){ sync.textContent = '☁ Cloud sincronizada'; sync.classList.add('v765-sync-line'); }
+    const hero=byId('dashboardInteligenteV73');
+    if(hero) hero.classList.add('v765-hero-polish');
+    const greeting=byId('v73Greeting');
+    if(greeting) greeting.textContent = `${(window.v73Saudacao ? window.v73Saudacao() : 'Olá')}, ${firstName()} 👋`;
+  }
+  function updateActivity(){
+    const ap=totalApostas(); const prizes=countPrizes();
+    const score=byId('v764ActivityScore');
+    const text=byId('v764ActivityText');
+    const small=document.querySelector('#v764ActivityCard small');
+    const bar=byId('v764ActivityBar');
+    if(small) small.textContent = '🔥 Atividade';
+    if(score) score.textContent = ap >= 10 ? 'Muito ativa' : ap > 0 ? 'Ativa' : 'A começar';
+    if(text){
+      if(prizes>0) text.textContent = `${prizes} prémio(s) no histórico · ${ap} aposta(s)`;
+      else if(ap>0) text.textContent = `${ap} aposta(s) · Cloud OK · ${providerLabel().replace(' ✓','')}`;
+      else text.textContent = 'Adiciona a primeira aposta para ativar estatísticas.';
+    }
+    if(bar){
+      const pct=Math.min(100, Math.max(18, ap*6 + (prizes?20:0) + 25));
+      bar.style.width=`${pct}%`;
+    }
+  }
+  function updateHeroMessage(){
+    const sub=document.querySelector('#dashboardInteligenteV73 .v73-hero-title p');
+    if(!sub) return;
+    const ap=totalApostas(); const prizes=countPrizes();
+    if(prizes>0) sub.textContent = `🎉 Tens ${prizes} prémio(s) no histórico. Confirma se há algo por levantar.`;
+    else if(ap===0) sub.textContent = '👋 Começa por guardar a tua primeira aposta e o assistente trata do resto.';
+    else sub.textContent = '🍀 O Assistente acompanha os resultados, sincroniza na cloud e avisa-te quando houver novidades.';
+  }
+  function tick(){ try{ updateVersion(); polishUserCard(); updateActivity(); updateHeroMessage(); }catch(e){ console.warn('V76.5 premium polish', e); } }
+  ready(()=>{ document.body.classList.add('v765-premium-polish'); setTimeout(tick,450); setTimeout(tick,1900); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,250)); });
 })();
