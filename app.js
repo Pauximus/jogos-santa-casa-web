@@ -1,4 +1,4 @@
-window.APP_VERSION = "v75.3-navegacao-isolada";
+window.APP_VERSION = "v75.4-navegacao-final";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7335,8 +7335,8 @@ instalarV73();
 
 
 
-// V75.3 — Navegação isolada por páginas
-(function initV753PageNavigation(){
+// V75.4 — Navegação final por páginas (isolamento real)
+(function initV754FinalNavigation(){
   function ready(fn){
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
     else fn();
@@ -7348,10 +7348,20 @@ instalarV73();
   };
 
   function byId(id){ return document.getElementById(id); }
+  function unique(list){ return Array.from(new Set((list || []).filter(Boolean))); }
 
-  function getTopLevelSections(){
+  function getResultsSections(){
     const results = Array.from(document.querySelectorAll('section.results'));
+    return {
+      resultados: results.find(sec => sec.querySelector('#resultado')) || results[0] || null,
+      historico: results.find(sec => sec.querySelector('#historico')) || results[1] || null
+    };
+  }
+
+  function getGroups(){
+    const gameTabs = byId('tabs');
     const gameCard = document.querySelector('section.game-card');
+    const { resultados, historico } = getResultsSections();
 
     return {
       home: [
@@ -7360,13 +7370,14 @@ instalarV73();
         byId('dashboardVivoCard')
       ],
       apostas: [
+        gameTabs,
         gameCard,
-        results[0]
+        resultados
       ],
       premios: [
         byId('premiosGestaoV58Card'),
         byId('statsBox'),
-        results[1]
+        historico
       ],
       estatisticas: [
         byId('centroEstatisticasV71'),
@@ -7377,7 +7388,8 @@ instalarV73();
       ],
       perfil: [
         byId('perfilApostador'),
-        byId('dashboardPremium')
+        byId('dashboardPremium'),
+        byId('premiosPremium')
       ],
       definicoes: [
         byId('settingsPanelV74')
@@ -7385,84 +7397,102 @@ instalarV73();
     };
   }
 
-  function unique(list){
-    return Array.from(new Set((list || []).filter(Boolean)));
+  function cleanLegacyPanels(){
+    document.body.classList.remove('v742');
+    document.querySelectorAll('.v742-panel-toggle').forEach(el => el.remove());
+    document.querySelectorAll('.v742-panel, .v742-collapsed').forEach(el => {
+      el.classList.remove('v742-panel','v742-collapsed');
+      delete el.dataset.v742Ready;
+    });
   }
 
-  function allManagedSections(groups){
-    return unique(Object.values(groups).flat());
-  }
+  function prepare(){
+    const appBox = byId('appBox');
+    const nav = byId('v75AppNav');
+    if (!appBox || !nav) return null;
 
-  function clearOldNavigationState(){
-    // Remove qualquer marcação deixada pelas versões 75/75.1/75.2.
-    document.querySelectorAll('.v75-page-section').forEach(el => {
-      el.classList.remove('v75-page-section','v75-page-active');
+    cleanLegacyPanels();
+
+    // Limpa marcas antigas das V75.x anteriores.
+    document.querySelectorAll('.v75-page-section,.v754-managed,.v754-visible').forEach(el => {
+      el.classList.remove('v75-page-section','v75-page-active','v754-managed','v754-visible');
       delete el.dataset.v75Page;
       el.hidden = false;
       el.style.display = '';
     });
 
-    // As subsecções dentro de Definições não são páginas próprias.
-    ['cloudV67Card','toolsV57Card','notificacoesFcmV58Card'].forEach(id => {
-      const el = byId(id);
-      if (!el) return;
-      el.classList.remove('v75-page-section','v75-page-active');
-      delete el.dataset.v75Page;
-      el.hidden = false;
-      el.style.display = '';
+    const groups = getGroups();
+    const managed = unique(Object.values(groups).flat());
+
+    // Todos os blocos de página ficam geridos explicitamente.
+    managed.forEach(el => {
+      el.classList.add('v754-managed');
+      el.hidden = true;
+      el.style.display = 'none';
     });
+
+    // Qualquer filho direto do appBox que não seja a navegação nem um bloco gerido fica escondido.
+    // Isto elimina restos da Home antiga, barras vazias e tabs fora de sítio.
+    Array.from(appBox.children).forEach(child => {
+      if (child === nav || child.classList.contains('v754-managed')) return;
+      child.classList.add('v754-orphan-hidden');
+      child.hidden = true;
+      child.style.display = 'none';
+    });
+
+    return { appBox, nav, groups, managed, navButtons: Array.from(nav.querySelectorAll('[data-v75-nav]')) };
+  }
+
+  let ctx = null;
+
+  function showPage(page, scrollTop = true){
+    if (!PAGE_ORDER.includes(page)) page = 'home';
+    if (!ctx) ctx = prepare();
+    if (!ctx) return;
+
+    document.body.classList.add('v75-pages','v754-pages');
+    document.body.classList.remove('v753-pages');
+    document.body.dataset.v75CurrentPage = page;
+
+    ctx.managed.forEach(el => {
+      const visible = (ctx.groups[page] || []).includes(el);
+      el.classList.toggle('v754-visible', visible);
+      el.classList.toggle('v75-page-active', visible);
+      el.classList.toggle('v75-page-section', true);
+      el.hidden = !visible;
+      el.style.display = visible ? '' : 'none';
+    });
+
+    // Definições é um painel que contém sub-blocos. Quando está ativo, estes ficam visíveis.
+    if (page === 'definicoes') {
+      ['cloudV67Card','toolsV57Card','notificacoesFcmV58Card'].forEach(id => {
+        const el = byId(id);
+        if (el) { el.hidden = false; el.style.display = ''; }
+      });
+    }
+
+    ctx.navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.v75Nav === page));
+
+    // Atualiza filtros/estatísticas ao entrar em páginas que dependem de dados dinâmicos.
+    try {
+      if (page === 'perfil' && typeof atualizarPerfilApostador === 'function') atualizarPerfilApostador();
+      if (page === 'estatisticas' && typeof renderCentroEstatisticasV71 === 'function') renderCentroEstatisticasV71();
+      if (page === 'premios' && typeof renderPremiosGestaoV58 === 'function') renderPremiosGestaoV58();
+      if (page === 'apostas' && typeof renderLista === 'function') renderLista();
+    } catch (err) {
+      console.warn('Atualização de página incompleta:', page, err);
+    }
+
+    try { history.replaceState(null, '', `${location.pathname}${location.search}#${page}`); } catch {}
+    if (scrollTop) setTimeout(() => ctx.nav.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
+    window.JSC_CURRENT_PAGE = page;
   }
 
   function install(){
-    clearOldNavigationState();
-    document.body.classList.add('v75-pages','v753-pages');
+    ctx = prepare();
+    if (!ctx) return;
 
-    const groups = getTopLevelSections();
-    const managed = allManagedSections(groups);
-
-    Object.entries(groups).forEach(([page, list]) => {
-      unique(list).forEach(el => {
-        el.dataset.v75Page = page;
-        el.classList.add('v75-page-section');
-      });
-    });
-
-    const nav = byId('v75AppNav');
-    const navButtons = nav ? Array.from(nav.querySelectorAll('[data-v75-nav]')) : [];
-
-    function showPage(page, scrollTop = true){
-      if (!PAGE_ORDER.includes(page)) page = 'home';
-      document.body.dataset.v75CurrentPage = page;
-
-      managed.forEach(el => {
-        const active = el.dataset.v75Page === page;
-        el.classList.toggle('v75-page-active', active);
-        el.hidden = !active;
-        el.style.display = active ? '' : 'none';
-      });
-
-      // Mantém os filhos das Definições visíveis quando a página Definições está ativa.
-      if (page === 'definicoes') {
-        ['cloudV67Card','toolsV57Card','notificacoesFcmV58Card'].forEach(id => {
-          const el = byId(id);
-          if (el) { el.hidden = false; el.style.display = ''; }
-        });
-      }
-
-      navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.v75Nav === page));
-
-      try { history.replaceState(null, '', `${location.pathname}${location.search}#${page}`); } catch {}
-      if (scrollTop) {
-        const app = byId('appBox');
-        if (app) setTimeout(() => app.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
-      }
-
-      window.JSC_CURRENT_PAGE = page;
-    }
-
-    window.JSC_SHOW_PAGE = showPage;
-
-    navButtons.forEach(btn => {
+    ctx.navButtons.forEach(btn => {
       btn.onclick = (ev) => {
         ev.preventDefault();
         showPage(btn.dataset.v75Nav);
@@ -7486,13 +7516,13 @@ instalarV73();
       };
     }
 
-    document.querySelectorAll('[data-v75-go]').forEach(el => {
-      el.onclick = () => showPage(el.dataset.v75Go);
-    });
+    window.JSC_SHOW_PAGE = showPage;
 
     const initial = (location.hash || '#home').replace('#','');
     showPage(PAGE_ORDER.includes(initial) ? initial : 'home', false);
   }
 
-  ready(() => setTimeout(install, 250));
+  // Corre depois da inicialização antiga e volta a limpar qualquer resíduo.
+  ready(() => setTimeout(install, 450));
 })();
+

@@ -2872,3 +2872,49 @@ body.v753-pages[data-v75-current-page="apostas"] section.game-card,
 body.v753-pages[data-v75-current-page="apostas"] section.results:first-of-type{
   display:block!important;
 }
+
+
+/* V75.4 - navegação final: cada página mostra só os seus blocos */
+body.v754-pages #appBox > .v754-orphan-hidden,
+body.v754-pages #appBox > *:not(#v75AppNav):not(.v754-visible){
+  display:none!important;
+}
+body.v754-pages .v754-managed:not(.v754-visible){
+  display:none!important;
+}
+body.v754-pages .v754-managed.v754-visible{
+  display:block!important;
+  animation:v75FadeIn .18s ease both;
+}
+body.v754-pages #tabs.v754-visible{
+  display:flex!important;
+}
+body.v754-pages .v742-panel-toggle{display:none!important;}
+body.v754-pages[data-v75-current-page="home"] #dashboardInteligenteV73,
+body.v754-pages[data-v75-current-page="home"] #sugestoesInteligentesV73,
+body.v754-pages[data-v75-current-page="home"] #dashboardVivoCard{display:block!important;}
+body.v754-pages[data-v75-current-page="apostas"] #tabs,
+body.v754-pages[data-v75-current-page="apostas"] section.game-card,
+body.v754-pages[data-v75-current-page="apostas"] section.results:has(#resultado){display:block!important;}
+body.v754-pages[data-v75-current-page="apostas"] #tabs{display:flex!important;}
+body.v754-pages[data-v75-current-page="premios"] #premiosGestaoV58Card,
+body.v754-pages[data-v75-current-page="premios"] #statsBox,
+body.v754-pages[data-v75-current-page="premios"] section.results:has(#historico){display:block!important;}
+body.v754-pages[data-v75-current-page="premios"] #statsBox{display:grid!important;}
+body.v754-pages[data-v75-current-page="estatisticas"] #centroEstatisticasV71,
+body.v754-pages[data-v75-current-page="estatisticas"] #estatisticasAvancadas,
+body.v754-pages[data-v75-current-page="estatisticas"] #graficosV54Card,
+body.v754-pages[data-v75-current-page="estatisticas"] #numerosV54Card,
+body.v754-pages[data-v75-current-page="estatisticas"] #estatisticasInteligentes{display:block!important;}
+body.v754-pages[data-v75-current-page="perfil"] #perfilApostador,
+body.v754-pages[data-v75-current-page="perfil"] #dashboardPremium,
+body.v754-pages[data-v75-current-page="perfil"] #premiosPremium{display:block!important;}
+body.v754-pages[data-v75-current-page="definicoes"] #settingsPanelV74{display:block!important;}
+body.v754-pages[data-v75-current-page="definicoes"] #settingsPanelV74 #cloudV67Card,
+body.v754-pages[data-v75-current-page="definicoes"] #settingsPanelV74 #toolsV57Card,
+body.v754-pages[data-v75-current-page="definicoes"] #settingsPanelV74 #notificacoesFcmV58Card{display:block!important;}
+body.v754-pages[data-v75-current-page="perfil"] #tabs,
+body.v754-pages[data-v75-current-page="definicoes"] #tabs,
+body.v754-pages[data-v75-current-page="home"] #tabs,
+body.v754-pages[data-v75-current-page="estatisticas"] #tabs,
+body.v754-pages[data-v75-current-page="premios"] #tabs{display:none!important;}
