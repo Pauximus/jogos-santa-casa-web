@@ -1,4 +1,4 @@
-window.APP_VERSION = "v71-estatisticas-inteligentes";
+window.APP_VERSION = "v72-premium-experience";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -6976,13 +6976,13 @@ function v71Set(id,txt){const el=document.getElementById(id); if(el) el.textCont
 function v71BarList(id, data, label="x"){
   const el=document.getElementById(id); if(!el) return;
   const max=Math.max(1,...data.map(x=>x[1]||0));
-  el.innerHTML=data.length?data.map(([n,c])=>`<div class="v71-row"><div class="v71-row-head"><b>${n}</b><span>${c}${label}</span></div><div class="v71-track"><i style="width:${Math.max(4,Math.round(c/max*100))}%"></i></div></div>`).join(""):`<div class="v71-empty">Sem dados suficientes.</div>`;
+  el.innerHTML=data.length?data.map(([n,c],idx)=>`<div class="v71-row premium-row" style="--w:${Math.max(4,Math.round(c/max*100))}%"><div class="v71-row-head"><b><small>#${idx+1}</small> ${n}</b><span>${c}${label}</span></div><div class="v71-track" aria-label="${n}: ${c}${label}"><i></i></div></div>`).join(""):`<div class="v71-empty">Sem dados suficientes.</div>`;
 }
 function v71Heat(id, data, maxN=50){
   const el=document.getElementById(id); if(!el) return;
   const map=new Map(data); const max=Math.max(1,...[...map.values()]);
   const chips=[];
-  for(let i=1;i<=maxN;i++){const c=map.get(i)||0; const lvl=Math.min(5,Math.ceil(c/max*5)||0); chips.push(`<span class="v71-chip level-${lvl}"><b>${i}</b><small>${c}</small></span>`)}
+  for(let i=1;i<=maxN;i++){const c=map.get(i)||0; const lvl=Math.min(5,Math.ceil(c/max*5)||0); chips.push(`<span class="v71-chip level-${lvl}" title="Número ${i}: ${c} ocorrência(s)"><b>${i}</b><small>${c}</small></span>`)}
   el.innerHTML=chips.join("");
 }
 function v71ApostasLocais(){
@@ -7023,8 +7023,13 @@ function v71Insight(stats){
   for(let i=1;i<=50;i++) if(!stats.nums.has(i)) atrasados.push(i);
   const media=stats.totalNums?Math.round(stats.soma/stats.totalNums):0;
   const parPct=(stats.pares+stats.impares)?stats.pares/(stats.pares+stats.impares):0;
-  const fonte=stats.fonte==="resultados"?`${stats.concursos} resultados oficiais`:`${stats.apostas} apostas guardadas`;
-  return [`Foram analisados ${fonte}.`, `Números em destaque: ${top}.`, `Soma média das chaves: ${media||"—"}.`, `Distribuição par/ímpar: ${v71FormatPct(parPct)} pares / ${v71FormatPct(1-parPct)} ímpares.`, atrasados.length?`Números sem ocorrência nesta amostra: ${atrasados.slice(0,8).join(", ")}.`:`Todos os números apareceram na amostra analisada.`];
+  const fonte=stats.fonte==="resultados"?`${stats.concursos} resultado(s) oficial(is) disponíveis na cloud`:`${stats.apostas} aposta(s) guardada(s) neste dispositivo`;
+  const base = [];
+  base.push(`A análise premium processou ${fonte}. Quanto maior for o histórico, mais precisa fica a leitura estatística.`);
+  base.push(top!=="—" ? `Os números com maior destaque nesta amostra são ${top}. Isto não prevê o futuro, mas ajuda a perceber o comportamento recente.` : `Ainda não existem dados suficientes para destacar números com confiança.`);
+  base.push(media ? `A soma média das chaves analisadas está em ${media}, com distribuição ${v71FormatPct(parPct)} pares / ${v71FormatPct(1-parPct)} ímpares.` : `A soma média ainda não está disponível.`);
+  base.push(atrasados.length ? `Números com presença muito baixa nesta amostra: ${atrasados.slice(0,8).join(", ")}.` : `Todos os números apareceram pelo menos uma vez na amostra analisada.`);
+  return base;
 }
 async function atualizarCentroEstatisticasV71(){
   const cloud=await v71StatsFromCloud();
@@ -7050,3 +7055,12 @@ function instalarV71(){
   document.addEventListener("click",()=>setTimeout(()=>atualizarCentroEstatisticasV71(),300));
 }
 instalarV71();
+
+
+// V72 - Premium Experience
+function instalarV72Premium(){
+  document.documentElement.classList.add('v72-premium');
+  const badge=document.getElementById('v71Resumo');
+  if(badge && !badge.dataset.v72){ badge.dataset.v72='1'; badge.title='Centro estatístico premium atualizado automaticamente'; }
+}
+instalarV72Premium();
