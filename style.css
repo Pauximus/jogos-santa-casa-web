@@ -2848,58 +2848,27 @@ body.v75-pages[data-v75-current-page="estatisticas"] #centroEstatisticasV71{
 }
 
 
-/* V75.2 — correção da navegação real por páginas */
-.v752-pages-root{
-  display:block;
-  width:100%;
+/* V75.3 - isolamento real das páginas */
+body.v753-pages .v75-page-section:not(.v75-page-active){
+  display:none!important;
 }
-.v752-page{
-  display:block;
+body.v753-pages .v75-page-section.v75-page-active{
+  display:block!important;
 }
-.v752-page[hidden]{
-  display:none !important;
+body.v753-pages[data-v75-current-page="home"] #dashboardVivoCard{display:block!important;}
+body.v753-pages:not([data-v75-current-page="home"]) #dashboardVivoCard{display:none!important;}
+body.v753-pages:not([data-v75-current-page="definicoes"]) #settingsPanelV74{display:none!important;}
+body.v753-pages[data-v75-current-page="definicoes"] #settingsPanelV74{display:block!important;}
+body.v753-pages[data-v75-current-page="definicoes"] #cloudV67Card,
+body.v753-pages[data-v75-current-page="definicoes"] #toolsV57Card,
+body.v753-pages[data-v75-current-page="definicoes"] #notificacoesFcmV58Card{
+  display:block!important;
 }
-.v752-managed-section{
-  margin-top:16px;
+body.v753-pages[data-v75-current-page="perfil"] #perfilApostador,
+body.v753-pages[data-v75-current-page="perfil"] #dashboardPremium{
+  display:block!important;
 }
-.v752-page > .tabs{
-  margin-top:16px;
-}
-body.v752-pages-ready .v75-page-section:not(.v752-managed-section){
-  display:none !important;
-}
-body.v752-pages-ready .v752-page .v75-page-section,
-body.v752-pages-ready .v752-page .v752-managed-section{
-  display:block;
-}
-body.v752-pages-ready #v752-page-apostas #tabs,
-body.v752-pages-ready #v752-page-apostas nav.tabs{
-  display:flex;
-}
-body.v752-pages-ready #v752-page-perfil .perfil-apostador,
-body.v752-pages-ready #v752-page-perfil .dashboard-premium{
-  display:block !important;
-  visibility:visible !important;
-  opacity:1 !important;
-}
-body.v752-pages-ready #v752-page-definicoes .v74-settings-panel{
-  display:block !important;
-  visibility:visible !important;
-  opacity:1 !important;
-}
-body.v752-pages-ready #v752-page-definicoes .tabs,
-body.v752-pages-ready #v752-page-perfil .tabs,
-body.v752-pages-ready #v752-page-home .tabs{
-  display:none !important;
-}
-body.v752-pages-ready #v752-page-premios .tabs,
-body.v752-pages-ready #v752-page-estatisticas .tabs{
-  display:none !important;
-}
-body.v752-pages-ready .v752-page > .stats-grid{
-  margin-left:0;
-  margin-right:0;
-}
-@media(max-width:760px){
-  .v752-managed-section{margin-top:12px;}
+body.v753-pages[data-v75-current-page="apostas"] section.game-card,
+body.v753-pages[data-v75-current-page="apostas"] section.results:first-of-type{
+  display:block!important;
 }
