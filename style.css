@@ -2848,22 +2848,58 @@ body.v75-pages[data-v75-current-page="estatisticas"] #centroEstatisticasV71{
 }
 
 
-/* V75.1 — correção de páginas isoladas */
-body.v751-pages .v75-page-section:not(.v75-page-active){display:none!important;}
-body.v751-pages .v75-page-section.v75-page-active[hidden]{display:none!important;}
-body.v751-pages #tabs:not(.v75-page-active){display:none!important;}
-body.v751-pages[data-v75-current-page="apostas"] #tabs.v75-page-active{display:flex;}
-body.v751-pages[data-v75-current-page="premios"] #statsBox.v75-page-active{display:grid;}
-body.v751-pages[data-v75-current-page="definicoes"] #settingsPanelV74.v75-page-active{display:block;}
-body.v751-pages[data-v75-current-page="perfil"] #perfilApostador.v75-page-active,
-body.v751-pages[data-v75-current-page="perfil"] #dashboardPremium.v75-page-active{display:block;}
-body.v751-pages[data-v75-current-page="estatisticas"] #centroEstatisticasV71.v75-page-active,
-body.v751-pages[data-v75-current-page="estatisticas"] #estatisticasAvancadas.v75-page-active,
-body.v751-pages[data-v75-current-page="estatisticas"] #graficosV54Card.v75-page-active,
-body.v751-pages[data-v75-current-page="estatisticas"] #numerosV54Card.v75-page-active,
-body.v751-pages[data-v75-current-page="estatisticas"] #estatisticasInteligentes.v75-page-active{display:block;}
-body.v751-pages #settingsPanelV74 > .card{margin-top:14px;}
-body.v751-pages .v75-app-nav{margin-bottom:18px;}
+/* V75.2 — correção da navegação real por páginas */
+.v752-pages-root{
+  display:block;
+  width:100%;
+}
+.v752-page{
+  display:block;
+}
+.v752-page[hidden]{
+  display:none !important;
+}
+.v752-managed-section{
+  margin-top:16px;
+}
+.v752-page > .tabs{
+  margin-top:16px;
+}
+body.v752-pages-ready .v75-page-section:not(.v752-managed-section){
+  display:none !important;
+}
+body.v752-pages-ready .v752-page .v75-page-section,
+body.v752-pages-ready .v752-page .v752-managed-section{
+  display:block;
+}
+body.v752-pages-ready #v752-page-apostas #tabs,
+body.v752-pages-ready #v752-page-apostas nav.tabs{
+  display:flex;
+}
+body.v752-pages-ready #v752-page-perfil .perfil-apostador,
+body.v752-pages-ready #v752-page-perfil .dashboard-premium{
+  display:block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+}
+body.v752-pages-ready #v752-page-definicoes .v74-settings-panel{
+  display:block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+}
+body.v752-pages-ready #v752-page-definicoes .tabs,
+body.v752-pages-ready #v752-page-perfil .tabs,
+body.v752-pages-ready #v752-page-home .tabs{
+  display:none !important;
+}
+body.v752-pages-ready #v752-page-premios .tabs,
+body.v752-pages-ready #v752-page-estatisticas .tabs{
+  display:none !important;
+}
+body.v752-pages-ready .v752-page > .stats-grid{
+  margin-left:0;
+  margin-right:0;
+}
 @media(max-width:760px){
-  body.v751-pages[data-v75-current-page="apostas"] #tabs.v75-page-active{display:grid;}
+  .v752-managed-section{margin-top:12px;}
 }

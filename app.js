@@ -1,4 +1,4 @@
-window.APP_VERSION = "v75.1-navegacao-corrigida";
+window.APP_VERSION = "v75.2-navegacao-corrigida";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7461,8 +7461,8 @@ instalarV73();
 })();
 
 
-// V75.1 — Navegação corrigida e isolamento real das páginas
-(function initV751PageNavigationFix(){
+// V75.2 — Navegação corrigida: páginas reais e limpeza de restos visuais
+(function initV752RealPages(){
   function ready(fn){
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
     else fn();
@@ -7470,129 +7470,148 @@ instalarV73();
 
   function byId(id){ return document.getElementById(id); }
 
-  function mark(el, page){
-    if (!el) return;
-    el.dataset.v75Page = page;
-    el.classList.add('v75-page-section');
+  function firstResultSection(index){
+    return Array.from(document.querySelectorAll('section.results'))[index] || null;
   }
 
-  function ensureChild(parent, el, beforeEl){
-    if (!parent || !el) return;
-    if (el.parentElement !== parent) parent.insertBefore(el, beforeEl || null);
+  function moveInto(pageEl, el){
+    if (!pageEl || !el) return;
+    el.hidden = false;
+    el.classList.remove('v75-page-section');
+    el.classList.add('v752-managed-section');
+    pageEl.appendChild(el);
   }
 
-  function install(){
+  function buildPages(){
     const app = byId('appBox');
-    if (!app) return;
-
-    document.body.classList.add('v75-pages', 'v751-pages');
-
     const nav = byId('v75AppNav');
-    const tabsNav = byId('tabs');
-    const gameCard = document.querySelector('section.game-card');
-    const resultsSections = Array.from(document.querySelectorAll('section.results'));
-    const settings = byId('settingsPanelV74');
+    if (!app || !nav || byId('v752PagesRoot')) return;
 
-    // Reposiciona secções que ficaram aninhadas ou fora do appBox na primeira V75.
-    const premiosGestao = byId('premiosGestaoV58Card');
-    ensureChild(app, premiosGestao, byId('dashboardBox'));
+    document.body.classList.add('v752-pages-ready');
 
-    ['estatisticasAvancadas','centroEstatisticasV71','graficosV54Card','numerosV54Card','estatisticasInteligentes'].forEach(id => {
-      const el = byId(id);
-      if (el && !app.contains(el)) app.appendChild(el);
+    const root = document.createElement('div');
+    root.id = 'v752PagesRoot';
+    root.className = 'v752-pages-root';
+
+    const pages = ['home','apostas','premios','estatisticas','perfil','definicoes'];
+    const pageEls = {};
+    pages.forEach(page => {
+      const div = document.createElement('div');
+      div.id = `v752-page-${page}`;
+      div.className = 'v752-page';
+      div.dataset.v752Page = page;
+      pageEls[page] = div;
+      root.appendChild(div);
     });
 
-    // Página Home
-    mark(byId('dashboardInteligenteV73'), 'home');
-    mark(byId('sugestoesInteligentesV73'), 'home');
-    mark(byId('dashboardVivoCard'), 'home');
+    nav.insertAdjacentElement('afterend', root);
 
-    // Página Apostas
-    mark(tabsNav, 'apostas');
-    mark(gameCard, 'apostas');
-    mark(resultsSections[0], 'apostas');
+    // HOME — só o essencial.
+    moveInto(pageEls.home, byId('dashboardInteligenteV73'));
+    moveInto(pageEls.home, byId('sugestoesInteligentesV73'));
+    moveInto(pageEls.home, byId('dashboardVivoCard'));
 
-    // Página Prémios
-    mark(premiosGestao, 'premios');
-    mark(byId('dashboardBox'), 'premios');
-    mark(byId('premiosPremium'), 'premios');
-    mark(byId('statsBox'), 'premios');
-    mark(resultsSections[1], 'premios');
+    // APOSTAS — tabs + formulário + resultados do jogo.
+    moveInto(pageEls.apostas, byId('tabs'));
+    moveInto(pageEls.apostas, document.querySelector('section.game-card'));
+    moveInto(pageEls.apostas, firstResultSection(0));
 
-    // Página Estatísticas
-    mark(byId('estatisticasAvancadas'), 'estatisticas');
-    mark(byId('centroEstatisticasV71'), 'estatisticas');
-    mark(byId('graficosV54Card'), 'estatisticas');
-    mark(byId('numerosV54Card'), 'estatisticas');
-    mark(byId('estatisticasInteligentes'), 'estatisticas');
+    // PRÉMIOS — gestão, premium e histórico. Sem tabs de jogos soltas.
+    moveInto(pageEls.premios, byId('premiosGestaoV58Card'));
+    moveInto(pageEls.premios, byId('premiosPremium'));
+    moveInto(pageEls.premios, byId('statsBox'));
+    moveInto(pageEls.premios, firstResultSection(1));
 
-    // Página Perfil
-    mark(byId('perfilApostador'), 'perfil');
-    mark(byId('dashboardPremium'), 'perfil');
+    // ESTATÍSTICAS — apenas análise estatística.
+    moveInto(pageEls.estatisticas, byId('estatisticasAvancadas'));
+    moveInto(pageEls.estatisticas, byId('centroEstatisticasV71'));
+    moveInto(pageEls.estatisticas, byId('graficosV54Card'));
+    moveInto(pageEls.estatisticas, byId('numerosV54Card'));
+    moveInto(pageEls.estatisticas, byId('estatisticasInteligentes'));
 
-    // Página Definições
-    mark(settings, 'definicoes');
-    if (settings) settings.hidden = false;
-    mark(byId('cloudV67Card'), 'definicoes');
-    mark(byId('toolsV57Card'), 'definicoes');
-    mark(byId('notificacoesFcmV58Card'), 'definicoes');
+    // PERFIL — corrigido: mostra o perfil e o Centro de Sorte.
+    moveInto(pageEls.perfil, byId('perfilApostador'));
+    moveInto(pageEls.perfil, byId('dashboardPremium'));
 
-    const sections = Array.from(document.querySelectorAll('.v75-page-section'));
-    const buttons = nav ? Array.from(nav.querySelectorAll('[data-v75-nav]')) : [];
-    const valid = ['home','apostas','premios','estatisticas','perfil','definicoes'];
+    // DEFINIÇÕES — manutenção técnica.
+    const settings = byId('settingsPanelV74');
+    if (settings) {
+      settings.hidden = false;
+      settings.classList.remove('v74-settings-open');
+    }
+    moveInto(pageEls.definicoes, settings);
 
-    function showPage(page, scrollTop){
-      if (!valid.includes(page)) page = 'home';
+    const closeSettings = byId('settingsCloseV74');
+    if (closeSettings) closeSettings.textContent = 'Voltar à Home';
+
+    // Limpa restos da navegação antiga: barras vazias / wrappers sem conteúdo.
+    cleanupOrphans();
+
+    const buttons = Array.from(nav.querySelectorAll('[data-v75-nav]'));
+    window.v752ShowPage = function(page, scrollTop = true){
+      if (!pages.includes(page)) page = 'home';
       document.body.dataset.v75CurrentPage = page;
+      document.body.dataset.v752CurrentPage = page;
 
-      sections.forEach(sec => {
-        const active = sec.dataset.v75Page === page;
-        sec.hidden = !active;
-        sec.classList.toggle('v75-page-active', active);
+      Object.entries(pageEls).forEach(([key, el]) => {
+        el.hidden = key !== page;
+        el.classList.toggle('active', key === page);
       });
-
-      // Garantia extra: as tabs dos jogos só aparecem na página Apostas.
-      if (tabsNav) {
-        tabsNav.hidden = page !== 'apostas';
-        tabsNav.classList.toggle('v75-page-active', page === 'apostas');
-      }
 
       buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.v75Nav === page));
 
-      try { history.replaceState(null, '', `${location.pathname}${location.search}#${page}`); } catch(e) {}
-      if (scrollTop) setTimeout(() => app.scrollIntoView({ behavior:'smooth', block:'start' }), 20);
+      try { history.replaceState(null, '', `${location.pathname}${location.search}#${page}`); } catch {}
+      if (scrollTop) {
+        setTimeout(() => nav.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
+      }
+    };
 
-      try {
-        atualizarDashboard();
-        if (typeof atualizarDashboardVivo === 'function') atualizarDashboardVivo();
-        if (typeof atualizarPerfilApostador === 'function') atualizarPerfilApostador();
-        if (typeof atualizarCentroEstatisticasPremium === 'function') atualizarCentroEstatisticasPremium();
-      } catch(e) { console.warn('Atualização pós-navegação incompleta:', e); }
-    }
-
-    // Reescreve a navegação, evitando conflito com a V75 inicial.
     buttons.forEach(btn => {
-      btn.onclick = (ev) => {
+      btn.addEventListener('click', ev => {
         ev.preventDefault();
-        ev.stopPropagation();
-        showPage(btn.dataset.v75Nav, true);
-      };
+        ev.stopImmediatePropagation();
+        window.v752ShowPage(btn.dataset.v75Nav);
+      }, true);
     });
 
-    const settingsBtn = byId('settingsToggleV74');
-    if (settingsBtn) settingsBtn.onclick = (ev) => { ev.preventDefault(); showPage('definicoes', true); };
-
-    const closeSettings = byId('settingsCloseV74');
-    if (closeSettings) {
-      closeSettings.textContent = 'Voltar à Home';
-      closeSettings.onclick = (ev) => { ev.preventDefault(); showPage('home', true); };
+    const heroSettingsBtn = byId('settingsToggleV74');
+    if (heroSettingsBtn) {
+      heroSettingsBtn.addEventListener('click', ev => {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        window.v752ShowPage('definicoes');
+      }, true);
     }
 
-    const initial = (location.hash || '#home').replace('#','');
-    showPage(valid.includes(initial) ? initial : 'home', false);
+    if (closeSettings) {
+      closeSettings.addEventListener('click', ev => {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        window.v752ShowPage('home');
+      }, true);
+    }
 
-    window.JSC_SHOW_PAGE = showPage;
+    // Estado inicial.
+    const initial = (location.hash || '#home').replace('#','');
+    window.v752ShowPage(initial, false);
   }
 
-  ready(() => setTimeout(install, 700));
+  function cleanupOrphans(){
+    // Remove/oculta divisores visuais sem conteúdo criados na tentativa anterior.
+    document.querySelectorAll('.v75-page-section').forEach(el => {
+      if (!el.classList.contains('v752-managed-section')) {
+        el.hidden = true;
+      }
+    });
+
+    // Oculta elementos vazios que estavam a aparecer como barras brancas.
+    document.querySelectorAll('section.card, section.results, nav.tabs').forEach(el => {
+      if (el.id === 'tabs') return;
+      const text = (el.textContent || '').replace(/\s+/g,'').trim();
+      const hasControls = el.querySelector('input,button,select,canvas,svg,img');
+      if (!text && !hasControls) el.hidden = true;
+    });
+  }
+
+  ready(() => setTimeout(buildPages, 750));
 })();
