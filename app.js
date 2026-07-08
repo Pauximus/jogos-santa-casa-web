@@ -7830,3 +7830,112 @@ instalarV73();
   function tick(){ try{ updateVersion(); polishUserCard(); updateActivity(); updateHeroMessage(); }catch(e){ console.warn('V76.5 premium polish', e); } }
   ready(()=>{ document.body.classList.add('v765-premium-polish'); setTimeout(tick,450); setTimeout(tick,1900); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,250)); });
 })();
+
+// V77.0 — Launch polish: splash, conquistas e níveis
+(function initV770LaunchPolish(){
+  window.APP_VERSION = "v77.0-launch-polish";
+  const VERSION_LABEL = 'V77.0';
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
+  function byId(id){ return document.getElementById(id); }
+  function getUser(){ try{ return window.currentUser || currentUser || null; }catch{ return window.currentUser || null; } }
+  function totalApostas(){
+    try{ const ap = window.apostas || apostas || {}; return Object.values(ap).reduce((n,l)=>n+(Array.isArray(l)?l.length:0),0); }catch{ return 0; }
+  }
+  function countPrizes(){
+    try{
+      if(Array.isArray(window.historicoPremios)) return window.historicoPremios.length;
+      const raw=localStorage.getItem('historicoPremios') || localStorage.getItem('jsc_historico_premios');
+      const j=raw?JSON.parse(raw):[]; return Array.isArray(j)?j.length:0;
+    }catch{ return 0; }
+  }
+  function provider(){ const u=getUser(); return String(u?.app_metadata?.provider || 'email').toLowerCase(); }
+  function installed(){ return window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true; }
+  function notificationsOn(){ try{return Notification?.permission === 'granted'}catch{return false} }
+  function firstName(){
+    const u=getUser(); const m=u?.user_metadata || {};
+    const name=m.full_name || m.name || u?.email || localStorage.getItem('jsc_alias') || 'Paulo';
+    return String(name).trim().split(/\s+/)[0] || 'Paulo';
+  }
+  function levelInfo(points){
+    const levels=[['Bronze',0],['Prata',50],['Ouro',120],['Platina',240],['Diamante',420]];
+    let cur=levels[0], next=levels[1];
+    for(let i=0;i<levels.length;i++){ if(points>=levels[i][1]){cur=levels[i]; next=levels[i+1]||null;} }
+    const base=cur[1], target=next?next[1]:cur[1]+200;
+    const pct=Math.max(6, Math.min(100, Math.round(((points-base)/(target-base))*100)));
+    return {name:cur[0], next:next?.[0] || 'Máximo', pct, missing:Math.max(0,target-points)};
+  }
+  function points(){ return totalApostas()*4 + countPrizes()*25 + (provider()==='google'?10:0) + (notificationsOn()?8:0) + (installed()?8:0); }
+  function achievements(){
+    const ap=totalApostas(), pr=countPrizes();
+    return [
+      {icon:'🔐', title:'Conta Google', ok:provider()==='google', text:provider()==='google'?'Ativa':'Opcional'},
+      {icon:'☁️', title:'Cloud ativa', ok:!!getUser(), text:!!getUser()?'Sincronizada':'Entrar'},
+      {icon:'🔔', title:'Notificações', ok:notificationsOn(), text:notificationsOn()?'Ativas':'Ativar'},
+      {icon:'🎯', title:'10 apostas', ok:ap>=10, text:`${ap}/10`},
+      {icon:'🏆', title:'1.º prémio', ok:pr>=1, text:`${pr}/1`},
+      {icon:'📱', title:'App instalada', ok:installed(), text:installed()?'Sim':'Opcional'}
+    ];
+  }
+  function showSplash(){
+    if(sessionStorage.getItem('jsc_v770_splash_seen')) return;
+    sessionStorage.setItem('jsc_v770_splash_seen','1');
+    const el=document.createElement('div');
+    el.className='v770-splash';
+    el.innerHTML=`<div class="v770-splash-card"><div class="v770-logo">🍀</div><strong>Assistente Jogos Santa Casa</strong><span>A preparar a tua dashboard...</span><i></i></div>`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.classList.add('is-leaving'),1150);
+    setTimeout(()=>el.remove(),1600);
+  }
+  function updateVersion(){
+    document.querySelectorAll('.v72-pill,.v54-pill').forEach(el=>{ if(/^V\d+/.test((el.textContent||'').trim())) el.textContent=VERSION_LABEL; });
+    const about=byId('sobreAppV57'); if(about) about.textContent=`${window.APP_VERSION} · ${totalApostas()} aposta(s) · ${countPrizes()} prémio(s) · launch polish`;
+  }
+  function ensureHomeProgress(){
+    const hero=byId('dashboardInteligenteV73'); if(!hero) return;
+    if(byId('v770LevelCard')) return;
+    const ap=totalApostas(), pr=countPrizes(), pts=points(), lvl=levelInfo(pts);
+    const card=document.createElement('div');
+    card.id='v770LevelCard';
+    card.className='v770-level-card';
+    card.innerHTML=`
+      <div class="v770-level-head"><span>🏅 Nível atual</span><strong>${lvl.name}</strong></div>
+      <div class="v770-level-progress"><i style="width:${lvl.pct}%"></i></div>
+      <small>${pts} pts · faltam ${lvl.missing} para ${lvl.next}</small>
+      <div class="v770-mini-stats"><b>${ap}</b><span>apostas</span><b>${pr}</b><span>prémios</span></div>`;
+    const top=hero.querySelector('.v73-hero-top');
+    const next=hero.querySelector('.v73-next');
+    if(top && next) top.insertBefore(card,next);
+  }
+  function ensureAchievements(){
+    const container = byId('pagePerfil') || byId('perfilPage') || document.querySelector('[data-page="perfil"]') || document.querySelector('.page-perfil');
+    const anchor = container || document.querySelector('main') || document.body;
+    if(byId('v770Achievements')) return;
+    const wrap=document.createElement('section');
+    wrap.id='v770Achievements';
+    wrap.className='card v770-achievements';
+    const pts=points(), lvl=levelInfo(pts);
+    wrap.innerHTML=`
+      <div class="v770-section-title"><div><h2>🏆 Conquistas</h2><p>Objetivos e progresso da tua conta.</p></div><span>${pts} pts</span></div>
+      <div class="v770-rank"><strong>${lvl.name}</strong><div class="v770-level-progress"><i style="width:${lvl.pct}%"></i></div><small>Faltam ${lvl.missing} pontos para ${lvl.next}.</small></div>
+      <div class="v770-ach-grid">${achievements().map(a=>`<div class="v770-ach ${a.ok?'ok':''}"><span>${a.icon}</span><strong>${a.title}</strong><small>${a.text}</small></div>`).join('')}</div>`;
+    anchor.appendChild(wrap);
+  }
+  function updateHero(){
+    const sub=document.querySelector('#dashboardInteligenteV73 .v73-hero-title p');
+    if(sub){
+      const ap=totalApostas(), pr=countPrizes();
+      if(pr>0) sub.textContent=`🎉 Tens ${pr} prémio(s) no histórico. Confirma o que já foi levantado.`;
+      else if(ap>=10) sub.textContent=`🍀 Tens ${ap} apostas ativas. Cloud OK, conta ligada e resultados a serem acompanhados.`;
+      else if(ap>0) sub.textContent=`🍀 Tens ${ap} aposta(s) guardada(s). Continua a construir o teu histórico.`;
+      else sub.textContent='👋 Guarda a primeira aposta e deixa o assistente acompanhar os resultados.';
+    }
+    const activity=byId('v764ActivityScore');
+    if(activity){
+      const pts=points(), lvl=levelInfo(pts);
+      activity.textContent = lvl.name;
+      const txt=byId('v764ActivityText'); if(txt) txt.textContent=`${pts} pts · ${totalApostas()} apostas · Cloud OK`;
+    }
+  }
+  function tick(){ try{ updateVersion(); ensureHomeProgress(); ensureAchievements(); updateHero(); }catch(e){ console.warn('V77 launch polish', e); } }
+  ready(()=>{ document.body.classList.add('v770-launch-polish'); showSplash(); setTimeout(tick,500); setTimeout(tick,1800); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,300)); });
+})();
