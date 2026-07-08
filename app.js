@@ -1,4 +1,4 @@
-window.APP_VERSION = "v74.1-header-integrado";
+window.APP_VERSION = "v74.2-topo-compacto-paineis";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7273,5 +7273,62 @@ instalarV73();
     });
 
     if (close) close.addEventListener('click', closePanel);
+  });
+})();
+
+
+// V74.2 — topo compacto e painéis expansíveis
+(function initV742CompactPanels(){
+  function ready(fn){
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  ready(function(){
+    document.body.classList.add('v742');
+
+    // Guardar alias automaticamente ao sair do campo ou pressionar Enter.
+    const alias = document.getElementById('aliasUtilizador');
+    const aliasBtn = document.getElementById('guardarAliasBtn');
+    if (alias && aliasBtn) {
+      alias.addEventListener('change', () => aliasBtn.click());
+      alias.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          aliasBtn.click();
+          alias.blur();
+        }
+      });
+    }
+
+    const panels = [
+      ['dashboardVivoCard', '🍀 Dashboard Vivo', false],
+      ['dashboardBox', '📊 Dashboard', true],
+      ['dashboardPremium', '🎲 Centro de Sorte', true],
+      ['premiosPremium', '🏆 Prémios Premium', true],
+      ['perfilApostador', '👤 Perfil do Apostador', true],
+      ['estatisticasAvancadas', '📊 Estatísticas', true],
+      ['graficosV54Card', '📈 Gráficos', true],
+      ['numerosV54Card', '🔢 Números da Sorte', true],
+      ['estatisticasInteligentes', '🧠 Estatísticas Inteligentes', true]
+    ];
+
+    panels.forEach(([id, title, collapsed]) => {
+      const section = document.getElementById(id);
+      if (!section || section.dataset.v742Ready === '1') return;
+      section.dataset.v742Ready = '1';
+      section.classList.add('v742-panel');
+      if (collapsed) section.classList.add('v742-collapsed');
+
+      const bar = document.createElement('button');
+      bar.type = 'button';
+      bar.className = 'v742-panel-toggle';
+      bar.innerHTML = `<span>${title}</span><b>${collapsed ? 'Abrir' : 'Fechar'}</b>`;
+      bar.addEventListener('click', () => {
+        const isCollapsed = section.classList.toggle('v742-collapsed');
+        bar.querySelector('b').textContent = isCollapsed ? 'Abrir' : 'Fechar';
+      });
+      section.insertBefore(bar, section.firstChild);
+    });
   });
 })();
