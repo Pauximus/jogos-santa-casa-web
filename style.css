@@ -3107,3 +3107,22 @@ body.v76-pages .v754-managed.v754-visible{animation:v75FadeIn .16s ease both;}
   .perfil-conta-card{ align-items:flex-start; }
   .perfil-conta-badges{ align-items:flex-start; }
 }
+
+
+/* V76.4 — Dashboard Vivo / Premium UX */
+.v764-dashboard-vivo .v762-user-head{align-items:center;gap:12px}
+.v764-dashboard-vivo .v764-avatar{width:48px!important;height:48px!important;border-radius:999px;object-fit:cover;border:2px solid rgba(255,255,255,.35);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.v764-provider-badge{margin-top:2px;font-size:11px;font-weight:800;color:#9df7c2;letter-spacing:.01em}
+.v764-activity-card{min-width:190px;max-width:220px;padding:16px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.v764-activity-card small{display:block;color:rgba(255,255,255,.78);font-weight:800;margin-bottom:6px}
+.v764-activity-card strong{display:block;font-size:28px;line-height:1;color:#fff;margin-bottom:5px}
+.v764-activity-card span{display:block;color:#aef7c8;font-weight:800;font-size:12px;margin-bottom:10px}
+.v764-progress{height:8px;border-radius:999px;background:rgba(255,255,255,.13);overflow:hidden}
+.v764-progress i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#18c46f,#4d8cff);transition:width .7s ease}
+.v764-dashboard-vivo .v73-hero-top{gap:16px;align-items:stretch}
+.v764-dashboard-vivo .v73-next{align-self:stretch;display:flex;flex-direction:column;justify-content:center}
+.v764-dashboard-vivo .v73-kpi-grid>div{transition:transform .2s ease, box-shadow .2s ease}
+.v764-dashboard-vivo .v73-kpi-grid>div:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(0,0,0,.18)}
+.v764-dashboard-vivo #installPwaBtn{box-shadow:0 0 0 0 rgba(25,195,108,.35);animation:v764InstallPulse 2.4s infinite}
+@keyframes v764InstallPulse{0%{box-shadow:0 0 0 0 rgba(25,195,108,.35)}70%{box-shadow:0 0 0 10px rgba(25,195,108,0)}100%{box-shadow:0 0 0 0 rgba(25,195,108,0)}}
+@media(max-width:760px){.v764-activity-card{max-width:none;width:100%}.v764-dashboard-vivo .v73-hero-top{display:grid}}

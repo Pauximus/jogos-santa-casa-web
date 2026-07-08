@@ -1,4 +1,4 @@
-window.APP_VERSION = "v76.3-login-premium";
+window.APP_VERSION = "v76.4-dashboard-vivo";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7637,3 +7637,111 @@ instalarV73();
   ready(() => setTimeout(install, 450));
 })();
 
+
+
+// V76.4 — Dashboard Vivo / Login Premium UX
+(function initV764DashboardVivo(){
+  const VERSION_LABEL = 'V76.4';
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
+  function byId(id){ return document.getElementById(id); }
+  function txt(id, value){ const el=byId(id); if(el) el.textContent = value; }
+  function firstName(name){ return String(name || '').trim().split(/\s+/)[0] || 'Paulo'; }
+  function userName(){
+    try{
+      const meta = window.currentUser?.user_metadata || currentUser?.user_metadata || {};
+      return meta.full_name || meta.name || meta.preferred_username || window.currentUser?.email || currentUser?.email || localStorage.getItem('jsc_alias') || 'Paulo';
+    }catch{ return localStorage.getItem('jsc_alias') || 'Paulo'; }
+  }
+  function userEmail(){ try{ return window.currentUser?.email || currentUser?.email || ''; }catch{ return ''; } }
+  function userProvider(){ try{ return (window.currentUser?.app_metadata?.provider || currentUser?.app_metadata?.provider || 'email').toLowerCase(); }catch{ return 'email'; } }
+  function parsePtDate(v){
+    if(!v || v === '—') return null;
+    const d=new Date(v); if(!isNaN(d)) return d;
+    const m=String(v).match(/(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if(m) return new Date(+m[3], +m[2]-1, +m[1], +m[4], +m[5], +(m[6]||0));
+    return null;
+  }
+  function ago(d){
+    if(!d) return 'a sincronizar';
+    let s=Math.max(0, Math.floor((Date.now()-d.getTime())/1000));
+    if(s<20) return 'agora mesmo';
+    if(s<60) return `há ${s}s`;
+    const m=Math.floor(s/60); if(m<60) return `há ${m} min`;
+    const h=Math.floor(m/60); if(h<24) return `há ${h}h`;
+    const days=Math.floor(h/24); return `há ${days}d`;
+  }
+  function countPrizes(){
+    try{
+      if(Array.isArray(window.historicoPremios)) return window.historicoPremios.length;
+      const raw=localStorage.getItem('historicoPremios') || localStorage.getItem('jsc_historico_premios');
+      const j=raw?JSON.parse(raw):[]; return Array.isArray(j)?j.length:0;
+    }catch{ return 0; }
+  }
+  function totalApostas(){
+    try{
+      const ap = window.apostas || apostas || {};
+      return Object.values(ap).reduce((n,l)=>n+(Array.isArray(l)?l.length:0),0);
+    }catch{ return 0; }
+  }
+  function installed(){ return window.matchMedia && window.matchMedia('(display-mode: standalone)').matches; }
+  function ensureActivityCard(){
+    const top=document.querySelector('#dashboardInteligenteV73 .v73-hero-top');
+    if(!top) return null;
+    let card=byId('v764ActivityCard');
+    if(!card){
+      card=document.createElement('div');
+      card.id='v764ActivityCard';
+      card.className='v764-activity-card';
+      card.innerHTML=`<small>🍀 A tua atividade</small><strong id="v764ActivityScore">—</strong><span id="v764ActivityText">A preparar...</span><div class="v764-progress"><i id="v764ActivityBar"></i></div>`;
+      const next=top.querySelector('.v73-next');
+      if(next) top.insertBefore(card,next); else top.appendChild(card);
+    }
+    return card;
+  }
+  function updateUserCard(){
+    const name=userName(); const email=userEmail(); const provider=userProvider();
+    const short=firstName(name);
+    const userHead=document.querySelector('.v762-user-head');
+    if(userHead){
+      userHead.classList.add('v764-user-head');
+      const emailEl=byId('userEmailV762');
+      if(emailEl) emailEl.textContent=email || 'Sessão iniciada';
+      let badge=byId('v764ProviderBadge');
+      if(!badge){
+        badge=document.createElement('div'); badge.id='v764ProviderBadge'; badge.className='v764-provider-badge';
+        emailEl?.insertAdjacentElement('afterend', badge);
+      }
+      badge.textContent = provider === 'google' ? 'Google ✓ · Conta ligada' : 'Email · Conta ligada';
+      const avatar=byId('userAvatarV762');
+      if(avatar) avatar.classList.add('v764-avatar');
+    }
+    const uinfo=byId('userInfo'); if(uinfo) uinfo.textContent=`Olá, ${name}`;
+    txt('v73Greeting', `${v73Saudacao ? v73Saudacao() : 'Olá'}, ${short} 👋`);
+  }
+  function updateDashboard(){
+    document.querySelectorAll('.v72-pill,.v54-pill').forEach(el=>{ if(/^V\d+/.test(el.textContent.trim())) el.textContent=VERSION_LABEL; });
+    const ap=totalApostas(); const prizes=countPrizes();
+    const lastSync=parsePtDate(byId('v67CloudLastSync')?.textContent); const cloudAgo=ago(lastSync);
+    const cloud=byId('v73CloudResumo'); if(cloud){ cloud.textContent='Sincronizado'; const small=cloud.parentElement?.querySelector('small'); if(small) small.textContent=`Última sincronização: ${cloudAgo}`; }
+    const push=byId('v73PushResumo'); if(push){ const small=push.parentElement?.querySelector('small'); if(small) small.textContent=byId('v68PushEngineLastRun')?.textContent || 'A preparar próxima execução.'; }
+    let action='Adicionar apostas', actionMeta='Começa por guardar apostas.';
+    if(prizes>0){ action='Confirmar prémios'; actionMeta='Tens prémios no histórico.'; }
+    else if(ap>=10){ action='Acompanhar resultados'; actionMeta='As tuas apostas já estão prontas.'; }
+    txt('dvProximaAcao', action); txt('dvProximaAcaoMeta', actionMeta);
+    txt('dvSequencia', `${prizes} prémio(s)`);
+    const badge=byId('dvBadge'); if(badge) badge.textContent = prizes>0 ? 'Atenção' : 'Novo';
+    const score=Math.min(100, Math.round(35 + Math.min(ap,20)*2 + (prizes>0?20:0) + (userProvider()==='google'?5:0) + (installed()?5:0)));
+    ensureActivityCard();
+    txt('v764ActivityScore', `${score}%`);
+    txt('v764ActivityText', prizes>0 ? 'Há prémios para acompanhares.' : (ap ? `${ap} aposta(s) registadas.` : 'Começa por adicionar apostas.'));
+    const bar=byId('v764ActivityBar'); if(bar) bar.style.width=`${score}%`;
+    const insight=byId('v73Insight');
+    if(insight){
+      if(prizes>0) insight.textContent=`🎉 Encontrámos ${prizes} prémio(s) no teu histórico. Confirma e marca os que já levantaste.`;
+      else if(ap===0) insight.textContent='👋 Bem-vindo! Adiciona a tua primeira aposta para ativar estatísticas, prémios e alertas.';
+      else insight.textContent=`🍀 Tens ${ap} aposta(s) ativas. A cloud está sincronizada ${cloudAgo} e o assistente continua a acompanhar os resultados.`;
+    }
+  }
+  function tick(){ try{ updateUserCard(); updateDashboard(); }catch(e){ console.warn('V76.4 dashboard vivo', e); } }
+  ready(()=>{ document.body.classList.add('v764-dashboard-vivo'); setTimeout(tick,400); setTimeout(tick,1800); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,300)); });
+})();
