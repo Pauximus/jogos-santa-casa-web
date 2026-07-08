@@ -1,6 +1,6 @@
 import webpush from 'web-push';
 
-const APP_VERSION = 'v68-scheduler-inteligente';
+const APP_VERSION = 'v69-resultados-oficiais';
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'];
 for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env: ${key}`);
@@ -8,6 +8,7 @@ for (const key of required) {
 
 const SUPABASE_URL = process.env.SUPABASE_URL.replace(/\/$/, '');
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BACKEND_API = process.env.BACKEND_API || 'https://jogos-santa-casa-backend.onrender.com';
 
 async function supabaseRequest(path, options = {}) {
   const url = `${SUPABASE_URL}/rest/v1/${path}`;
@@ -62,6 +63,125 @@ async function finishRunLog(id, patch) {
   } catch (e) {
     console.warn('Could not update push_engine_runs:', e.message || e);
   }
+}
+
+
+
+function parseJsonPossivel(valor, fallback = null) {
+  if (valor == null || valor === '') return fallback;
+  if (typeof valor === 'object') return valor;
+  try { return JSON.parse(valor); } catch { return fallback; }
+}
+
+function arrayNumeros(valor) {
+  if (Array.isArray(valor)) return valor.map(Number).filter(Number.isFinite);
+  if (valor == null) return [];
+  return String(valor).trim().split(/[\s,;|-]+/).map(Number).filter(Number.isFinite);
+}
+
+function dataISO(valor) {
+  if (!valor) return null;
+  const s = String(valor).trim();
+  const pt = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (pt) return `${pt[3]}-${pt[2].padStart(2,'0')}-${pt[1].padStart(2,'0')}`;
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0,10);
+}
+
+function nomeJogo(id) {
+  return {
+    euromilhoes: 'EuroMilhões',
+    totoloto: 'Totoloto',
+    eurodreams: 'EuroDreams',
+    milhao: 'M1lhão',
+    lotaria_classica: 'Lotaria Clássica',
+    lotaria_popular: 'Lotaria Popular'
+  }[id] || id || 'Jogo';
+}
+
+function normalizarResultado(row) {
+  const jogo = String(row?.jogo || row?.game || '').toLowerCase().trim();
+  if (!jogo) return null;
+  const numeros = arrayNumeros(row.numeros || row.numbers);
+  const extras = arrayNumeros(row.extras || row.stars || row.estrelas);
+  const data = dataISO(row.data_sorteio || row.data || row.draw_date);
+  const drawNumber = String(row.sorteio || row.draw_number || row.concurso || data || 'ultimo').trim();
+  const premios = parseJsonPossivel(row.premios, row.premios || null);
+  const assinatura = JSON.stringify({ jogo, drawNumber, data, numeros, extras, codigo: row.codigo || '', premios });
+  return {
+    game: jogo,
+    draw_number: drawNumber,
+    draw_date: data,
+    numbers: numeros,
+    stars: extras,
+    official_prize_info: { premios, raw: row, assinatura },
+    result_signature: assinatura
+  };
+}
+
+async function fetchBackendJson(path, timeoutMs = 70000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${BACKEND_API}${path}`, { cache: 'no-store', signal: ctrl.signal });
+    if (!res.ok) throw new Error(`Backend ${path} HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function importarResultadosOficiais(gamePreferido = null) {
+  try {
+    await fetchBackendJson('/atualizar', 70000);
+  } catch (e) {
+    console.warn('Backend /atualizar indisponível:', e.message || e);
+  }
+
+  const data = await fetchBackendJson('/resultados', 70000);
+  const lista = Array.isArray(data) ? data : (Array.isArray(data?.resultados) ? data.resultados : []);
+  const normalizados = lista.map(normalizarResultado).filter(Boolean);
+  const filtrados = gamePreferido ? normalizados.filter(r => r.game === gamePreferido) : normalizados;
+
+  const stats = { lidos: normalizados.length, guardados: 0, novos: 0, atualizados: 0, semAlteracao: 0, ultimo: null };
+
+  for (const r of filtrados) {
+    if (!r.numbers.length && !r.official_prize_info?.raw?.codigo && !r.official_prize_info?.raw?.premios) continue;
+
+    const existente = await supabaseRequest(
+      `draw_results?select=id,result_signature,created_at&game=eq.${encodeURIComponent(r.game)}&draw_number=eq.${encodeURIComponent(r.draw_number)}&limit=1`,
+      { method: 'GET', headers: { Accept: 'application/json' } }
+    ) || [];
+
+    const anterior = existente[0];
+    const mudou = !anterior || anterior.result_signature !== r.result_signature;
+
+    await supabaseRequest('draw_results', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        game: r.game,
+        draw_number: r.draw_number,
+        draw_date: r.draw_date,
+        numbers: r.numbers,
+        stars: r.stars,
+        official_prize_info: r.official_prize_info,
+        result_signature: r.result_signature,
+        updated_at: new Date().toISOString()
+      })
+    });
+
+    stats.guardados++;
+    stats.ultimo = r;
+    if (!anterior) stats.novos++;
+    else if (mudou) stats.atualizados++;
+    else stats.semAlteracao++;
+  }
+
+  return stats;
 }
 
 webpush.setVapidDetails(
@@ -233,11 +353,26 @@ async function main() {
   const mode = process.env.PUSH_MODE || 'scheduled';
   const runId = await createRunLog(mode);
   let notification = null;
+  let importStats = null;
   let subscriptions = [];
   const stats = { sent: 0, skipped: 0, disabled: 0, failed: 0 };
 
   try {
     notification = buildNotification(mode);
+
+    if (notification?.notification_type === 'resultado_disponivel') {
+      console.log('A importar resultados oficiais para draw_results...');
+      importStats = await importarResultadosOficiais(notification.game);
+      console.log('Resultados oficiais:', importStats);
+      if (importStats.guardados > 0 && importStats.ultimo) {
+        notification.draw_number = importStats.ultimo.draw_number;
+        notification.payload.title = `📢 Resultados disponíveis — ${nomeJogo(importStats.ultimo.game)}`;
+        notification.payload.body = importStats.novos || importStats.atualizados
+          ? `Resultado oficial importado para a cloud. Abre a app para analisar as tuas apostas.`
+          : `Resultado já estava na cloud. Abre a app para consultar.`;
+        notification.payload.tag = `jsc-${importStats.ultimo.game}-resultado-${importStats.ultimo.draw_number}`;
+      }
+    }
 
     if (!notification) {
       console.log(`No notification scheduled for this run. mode=${mode}`);
@@ -278,7 +413,7 @@ async function main() {
       skipped: stats.skipped,
       disabled: stats.disabled,
       failed: stats.failed,
-      message: stats.failed > 0 ? 'Algumas subscrições falharam.' : 'Execução concluída.'
+      message: stats.failed > 0 ? 'Algumas subscrições falharam.' : `Execução concluída. resultados=${importStats ? importStats.guardados : 'n/a'}, novos=${importStats ? importStats.novos : 'n/a'}`
     });
     if (stats.failed > 0) process.exitCode = 1;
   } catch (err) {

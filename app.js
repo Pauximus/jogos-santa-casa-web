@@ -1,4 +1,4 @@
-window.APP_VERSION = "v68.3-push-dashboard-live";
+window.APP_VERSION = "v69-resultados-oficiais";
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
