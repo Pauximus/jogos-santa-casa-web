@@ -8161,19 +8161,63 @@ instalarV73();
 
 
 /* =========================================================
-   V80.3 — Scanner de Talões (Beta)
+   V80.4 — Scanner de Talões (Beta) + mobile polish
    Talão a talão: abre câmara/galeria, faz OCR e preenche os campos.
    O utilizador confirma manualmente antes de guardar.
    ========================================================= */
 (function initScannerTalaoV803(){
   const info = window.APP_INFO || (window.APP_INFO = {});
-  info.version = "80.3";
-  info.label = "V80.3";
-  info.codename = "Scanner Beta";
-  info.slug = "scanner-beta";
-  window.APP_VERSION = "v80.3-scanner-beta";
+  info.version = "80.4";
+  info.label = "V80.4";
+  info.codename = "Scanner Mobile Fix";
+  info.slug = "scanner-mobile-fix";
+  window.APP_VERSION = "v80.4-scanner-mobile-fix";
 
   const OCR_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+
+  function injectMobilePolishV804(){
+    if (document.getElementById("v804MobilePolish")) return;
+    const st = document.createElement("style");
+    st.id = "v804MobilePolish";
+    st.textContent = `
+      @media (max-width: 700px){
+        .tabs{
+          display:flex!important;
+          flex-wrap:nowrap!important;
+          overflow-x:auto!important;
+          overflow-y:hidden!important;
+          gap:8px!important;
+          padding:10px 12px!important;
+          -webkit-overflow-scrolling:touch;
+          scroll-snap-type:x proximity;
+        }
+        .tabs::-webkit-scrollbar{height:0!important;}
+        .tabs button{
+          flex:0 0 auto!important;
+          min-width:86px!important;
+          max-width:108px!important;
+          min-height:54px!important;
+          padding:9px 7px!important;
+          font-size:11px!important;
+          line-height:1.08!important;
+          white-space:normal!important;
+          word-break:normal!important;
+          overflow:hidden!important;
+          text-align:center!important;
+          scroll-snap-align:start;
+        }
+        .tabs button:nth-child(1){min-width:92px!important;}
+        .tabs button:nth-child(3){min-width:98px!important;}
+        .tabs button:nth-child(5),
+        .tabs button:nth-child(6){min-width:96px!important;font-size:10.5px!important;}
+        .form-area{gap:10px!important;}
+        #scannerTalaoWrapV803{display:flex!important;width:100%!important;margin-left:0!important;}
+        #scanTalaoBtnV803{width:100%!important;min-height:48px!important;font-size:16px!important;}
+        #scannerTalaoMsgV803{font-size:14px!important;line-height:1.25!important;}
+      }
+    `;
+    document.head.appendChild(st);
+  }
 
   function byId(id){ return document.getElementById(id); }
 
@@ -8271,19 +8315,37 @@ instalarV73();
     if (jogo === "totoloto" || (!jogo && typeof jogoAtual !== "undefined" && jogoAtual === "totoloto")) {
       const candidatos = [];
       linhas.forEach((linha, idx) => {
-        const ns = numsDaLinha(linha).filter(n => n >= 1 && n <= 49);
+        const nsAll = numsDaLinha(linha);
+        let ns = nsAll.filter(n => n >= 1 && n <= 49);
         if (ns.length >= 5) {
           let score = 0;
-          if (/^1\s*[.)]?/.test(linha)) score += 4;
-          if (idx > 0 && /SIMPLES|BIL|SORT|AP/.test(linhas[idx - 1])) score += 3;
-          if (/\b(202\d|19\d|20\d)\b/.test(linha)) score -= 5;
-          candidatos.push({ nums: ns.slice(-5), score, linha });
+          const looksAposta = /^\s*1\s*[.)]?\s+/.test(linha) || /\bAP\b|SIMPLES|BIL|SORT/.test(linha);
+          if (looksAposta) score += 8;
+          if (idx > 0 && /SIMPLES|BIL|SORT|AP/.test(linhas[idx - 1])) score += 5;
+          if (idx < linhas.length - 1 && /N[UÚ]MERO|SORTE/.test(linhas[idx + 1])) score += 4;
+          if (/TOTAL|PAGAR|VALOR|CONTROLO|VIRN|202\d|12[:.]\d/.test(linha)) score -= 9;
+
+          // Em talões Totoloto a linha vem como: "1. 07 09 12 29 31".
+          // O primeiro "1" é o número da aposta, não pertence à chave.
+          let nums = ns;
+          if (ns.length >= 6 && /^\s*1\s*[.)]?/.test(linha)) nums = ns.slice(1, 6);
+          else if (ns.length > 5) nums = ns.slice(0, 5);
+
+          candidatos.push({ nums: nums.slice(0, 5), score, linha });
         }
       });
       candidatos.sort((a,b) => b.score - a.score);
       const nums = candidatos[0]?.nums || [];
-      const mExtra = t.match(/N[ÚU]MERO\s+DA\s+SORTE\s*(\d{1,2})/) || t.match(/SORTE\s*(\d{1,2})/);
-      const extra = mExtra ? Number(mExtra[1]) : null;
+
+      let extra = null;
+      const linhaSorte = linhas.find(l => /N[UÚ]MERO|SORTE/.test(l));
+      if (linhaSorte) {
+        const nsSorte = numsDaLinha(linhaSorte).filter(n => n >= 1 && n <= 13);
+        if (nsSorte.length) extra = nsSorte[nsSorte.length - 1];
+      }
+      const mExtra = t.match(/N[ÚU]MERO\s+DA\s+SORTE\s*(\d{1,2})/) || t.match(/SORTE\D{0,10}(\d{1,2})/);
+      if (!extra && mExtra) extra = Number(mExtra[1]);
+
       if (nums.length === 5 && extra && extra >= 1 && extra <= 13) return { jogo: "totoloto", nums, extras: [extra] };
       if (nums.length === 5) return { jogo: "totoloto", nums, extras: [] };
     }
@@ -8366,7 +8428,7 @@ instalarV73();
   }
 
   function tickScanner(){
-    try { injectScannerUI(); } catch(e) { console.warn("Scanner V80.3", e); }
+    try { injectMobilePolishV804(); injectScannerUI(); } catch(e) { console.warn("Scanner V80.4", e); }
   }
   document.addEventListener("DOMContentLoaded", tickScanner);
   window.setTimeout(tickScanner, 200);
