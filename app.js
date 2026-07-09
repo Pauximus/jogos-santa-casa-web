@@ -8005,12 +8005,12 @@ instalarV73();
     };
   }
   ready(()=>{
-    const safeSlug780 = String(window.APP_INFO.slug || "store-ready")
+    const safeSlugV780 = String(window.APP_INFO.slug || 'store-ready')
       .trim()
       .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9_-]/g, "-");
-    document.body.classList.add(`v780-${safeSlug780}`);
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9_-]/g, '');
+    document.body.classList.add(`v780-${safeSlugV780}`);
     syncVersion(); exposeSupportInfo();
     setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000);
     console.log('APP_VERSION', `${window.APP_INFO.label} (${window.APP_INFO.codename})`);
@@ -8105,12 +8105,12 @@ instalarV73();
   }
 
   function prepararTransicoes(){
-    const safeSlug800 = String(info.slug || "store-ready")
+    const safeSlugV800 = String(info.slug || 'store-ready')
       .trim()
       .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9_-]/g, "-");
-    document.body.classList.add(`v800-${safeSlug800}`);
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9_-]/g, '');
+    document.body.classList.add(`v800-${safeSlugV800}`);
     document.querySelectorAll('.v75-app-nav button').forEach(btn => {
       if (btn.__v800Transition) return;
       btn.__v800Transition = true;
