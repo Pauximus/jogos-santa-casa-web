@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "80.2",
-  label: "V80.2",
+  version: "80.3",
+  label: "V80.3",
   build: "2026.07.09",
-  codename: "Console Clean",
-  slug: "console-clean",
+  codename: "Scanner Beta",
+  slug: "scanner-beta",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -8022,11 +8022,11 @@ instalarV73();
 (function initV800StoreReady(){
   const info = window.APP_INFO = Object.assign({
     name: "Assistente Jogos Santa Casa",
-    version: "80.2",
-    label: "V80.2",
+    version: "80.3",
+    label: "V80.3",
     build: "2026.07.09",
-    codename: "Console Clean",
-    slug: "console-clean",
+    codename: "Scanner Beta",
+    slug: "scanner-beta",
     environment: "Production",
     backend: "Supabase",
     push: "Firebase",
@@ -8034,11 +8034,11 @@ instalarV73();
   }, window.APP_INFO || {});
 
   // V80.2: fonte única da versão desta build.
-  info.version = "80.2";
-  info.label = "V80.2";
+  info.version = "80.3";
+  info.label = "V80.3";
   info.build = "2026.07.09";
-  info.codename = "Console Clean";
-  info.slug = "console-clean";
+  info.codename = "Scanner Beta";
+  info.slug = "scanner-beta";
   window.APP_VERSION = `v${info.version}-${info.slug}`;
 
   const byId = id => document.getElementById(id);
@@ -8157,4 +8157,218 @@ instalarV73();
   window.setInterval(tick, 4000);
 
   console.log(`🍀 ${info.name} · APP_VERSION ${window.APP_VERSION} (${info.codename})`);
+})();
+
+
+/* =========================================================
+   V80.3 — Scanner de Talões (Beta)
+   Talão a talão: abre câmara/galeria, faz OCR e preenche os campos.
+   O utilizador confirma manualmente antes de guardar.
+   ========================================================= */
+(function initScannerTalaoV803(){
+  const info = window.APP_INFO || (window.APP_INFO = {});
+  info.version = "80.3";
+  info.label = "V80.3";
+  info.codename = "Scanner Beta";
+  info.slug = "scanner-beta";
+  window.APP_VERSION = "v80.3-scanner-beta";
+
+  const OCR_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+
+  function byId(id){ return document.getElementById(id); }
+
+  function setScannerMsg(text, type = "info"){
+    const el = byId("scannerTalaoMsgV803");
+    if (!el) return;
+    el.textContent = text || "";
+    el.dataset.type = type;
+    el.style.display = text ? "block" : "none";
+  }
+
+  function injectScannerUI(){
+    const addBtn = byId("adicionar");
+    if (!addBtn || byId("scanTalaoBtnV803")) return;
+
+    const wrap = document.createElement("span");
+    wrap.id = "scannerTalaoWrapV803";
+    wrap.style.display = "inline-flex";
+    wrap.style.alignItems = "center";
+    wrap.style.gap = "8px";
+    wrap.style.marginLeft = "8px";
+    wrap.innerHTML = `
+      <button id="scanTalaoBtnV803" type="button" class="secondary" title="Ler um talão pela câmara">📷 Ler talão</button>
+      <input id="scanTalaoInputV803" type="file" accept="image/*" capture="environment" hidden>
+    `;
+    addBtn.insertAdjacentElement("afterend", wrap);
+
+    const msg = document.createElement("div");
+    msg.id = "scannerTalaoMsgV803";
+    msg.style.display = "none";
+    msg.style.marginTop = "8px";
+    msg.style.padding = "8px 10px";
+    msg.style.border = "1px solid #bfdbfe";
+    msg.style.background = "#eff6ff";
+    msg.style.borderRadius = "10px";
+    msg.style.fontSize = "13px";
+    msg.style.fontWeight = "700";
+    addBtn.parentElement?.appendChild(msg);
+
+    const btn = byId("scanTalaoBtnV803");
+    const input = byId("scanTalaoInputV803");
+    btn?.addEventListener("click", () => input?.click());
+    input?.addEventListener("change", async () => {
+      const file = input.files && input.files[0];
+      input.value = "";
+      if (!file) return;
+      await lerTalaoPorOCR(file);
+    });
+  }
+
+  function carregarTesseract(){
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    return new Promise((resolve, reject) => {
+      const old = document.querySelector(`script[src="${OCR_CDN}"]`);
+      if (old) {
+        old.addEventListener("load", () => resolve(window.Tesseract));
+        old.addEventListener("error", reject);
+        return;
+      }
+      const s = document.createElement("script");
+      s.src = OCR_CDN;
+      s.async = true;
+      s.onload = () => window.Tesseract ? resolve(window.Tesseract) : reject(new Error("OCR não ficou disponível."));
+      s.onerror = () => reject(new Error("Não foi possível carregar o motor OCR."));
+      document.head.appendChild(s);
+    });
+  }
+
+  function normalizarTextoOCR(texto){
+    return String(texto || "")
+      .replace(/[|]/g, "1")
+      .replace(/[Oo](?=\s*\d)/g, "0")
+      .replace(/(?<=\d)[Oo]/g, "0")
+      .replace(/S0RTE/g, "SORTE")
+      .replace(/T0T0L0T0/g, "TOTOLOTO")
+      .replace(/EUROMILH[ÕO]ES/g, "EUROMILHOES")
+      .toUpperCase();
+  }
+
+  function numsDaLinha(linha){
+    return (linha.match(/\b\d{1,2}\b/g) || []).map(Number);
+  }
+
+  function extrairApostaDoTexto(texto){
+    const t = normalizarTextoOCR(texto);
+    const linhas = t.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+    let jogo = "";
+    if (/TOTOLOTO|TOT0LOTO|LOTO\b/.test(t) && !/EUROMILH/.test(t.slice(t.lastIndexOf("TOTOLOTO") + 1))) jogo = "totoloto";
+    if (/TOTOLOTO/.test(t)) jogo = "totoloto";
+    if (/EUROMILH/.test(t) && !jogo) jogo = "euromilhoes";
+    if (/M1LH[ÃA]O|MILH[ÃA]O/.test(t) && !jogo) jogo = "milhao";
+
+    // TOTÓLOTO: procurar linha da aposta, normalmente "1. 07 09 12 29 31".
+    if (jogo === "totoloto" || (!jogo && typeof jogoAtual !== "undefined" && jogoAtual === "totoloto")) {
+      const candidatos = [];
+      linhas.forEach((linha, idx) => {
+        const ns = numsDaLinha(linha).filter(n => n >= 1 && n <= 49);
+        if (ns.length >= 5) {
+          let score = 0;
+          if (/^1\s*[.)]?/.test(linha)) score += 4;
+          if (idx > 0 && /SIMPLES|BIL|SORT|AP/.test(linhas[idx - 1])) score += 3;
+          if (/\b(202\d|19\d|20\d)\b/.test(linha)) score -= 5;
+          candidatos.push({ nums: ns.slice(-5), score, linha });
+        }
+      });
+      candidatos.sort((a,b) => b.score - a.score);
+      const nums = candidatos[0]?.nums || [];
+      const mExtra = t.match(/N[ÚU]MERO\s+DA\s+SORTE\s*(\d{1,2})/) || t.match(/SORTE\s*(\d{1,2})/);
+      const extra = mExtra ? Number(mExtra[1]) : null;
+      if (nums.length === 5 && extra && extra >= 1 && extra <= 13) return { jogo: "totoloto", nums, extras: [extra] };
+      if (nums.length === 5) return { jogo: "totoloto", nums, extras: [] };
+    }
+
+    // EUROMILHÕES: beta. Procura 5 números 1-50 + 2 estrelas 1-12.
+    if (jogo === "euromilhoes" || (!jogo && typeof jogoAtual !== "undefined" && jogoAtual === "euromilhoes")) {
+      const all = (t.match(/\b\d{1,2}\b/g) || []).map(Number);
+      for (let i = 0; i <= all.length - 7; i++) {
+        const nums = all.slice(i, i + 5);
+        const extras = all.slice(i + 5, i + 7);
+        if (nums.every(n => n >= 1 && n <= 50) && new Set(nums).size === 5 && extras.every(n => n >= 1 && n <= 12)) {
+          return { jogo: "euromilhoes", nums, extras };
+        }
+      }
+    }
+
+    // Fallback: usar jogo atual e procurar a primeira sequência compatível.
+    const cfg = (typeof jogos !== "undefined" && typeof jogoAtual !== "undefined") ? jogos[jogoAtual] : null;
+    if (cfg && !cfg.codigo && !cfg.lotaria) {
+      const all = (t.match(/\b\d{1,2}\b/g) || []).map(Number);
+      for (let i = 0; i <= all.length - (cfg.numeros + cfg.extras); i++) {
+        const nums = all.slice(i, i + cfg.numeros);
+        const extras = all.slice(i + cfg.numeros, i + cfg.numeros + cfg.extras);
+        if (nums.every(n => n >= 1 && n <= cfg.maxNum) && extras.every(n => n >= 1 && n <= cfg.maxExtra)) {
+          return { jogo: jogoAtual, nums, extras };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function preencherCamposOCR(res){
+    if (!res || !res.nums) return false;
+    if (res.jogo && typeof mudarJogo === "function" && typeof jogoAtual !== "undefined" && res.jogo !== jogoAtual) {
+      mudarJogo(res.jogo);
+    }
+    const numsInputs = [...(camposDiv || document).querySelectorAll("input.num")];
+    const extraInputs = [...(camposDiv || document).querySelectorAll("input.extra")];
+    numsInputs.forEach((el, i) => { if (res.nums[i] != null) el.value = String(res.nums[i]).padStart(2, "0"); });
+    extraInputs.forEach((el, i) => { if (res.extras?.[i] != null) el.value = String(res.extras[i]).padStart(2, "0"); });
+    numsInputs.concat(extraInputs).forEach(el => el.dispatchEvent(new Event("input", { bubbles: true })));
+    return true;
+  }
+
+  async function lerTalaoPorOCR(file){
+    const btn = byId("scanTalaoBtnV803");
+    const old = btn?.textContent || "📷 Ler talão";
+    try {
+      if (btn) { btn.disabled = true; btn.textContent = "📷 A ler..."; }
+      setScannerMsg("A carregar OCR... mantém a app aberta.");
+      const Tesseract = await carregarTesseract();
+      setScannerMsg("A analisar o talão... pode demorar alguns segundos.");
+      const result = await Tesseract.recognize(file, "por+eng", {
+        logger: m => {
+          if (m?.status === "recognizing text" && typeof m.progress === "number") {
+            setScannerMsg(`A ler texto... ${Math.round(m.progress * 100)}%`);
+          }
+        }
+      });
+      const text = result?.data?.text || "";
+      const aposta = extrairApostaDoTexto(text);
+      if (!aposta) {
+        console.warn("OCR não encontrou aposta. Texto lido:", text);
+        setScannerMsg("Não consegui detetar a aposta. Tenta aproximar mais, com boa luz e só um talão.", "warn");
+        alert("Não consegui ler a aposta. Tenta tirar nova foto mais direita e com melhor luz.");
+        return;
+      }
+      preencherCamposOCR(aposta);
+      const nums = aposta.nums.map(n => String(n).padStart(2, "0")).join(" ");
+      const extras = (aposta.extras || []).map(n => String(n).padStart(2, "0")).join(" ");
+      setScannerMsg(`Aposta lida: ${nums}${extras ? " + " + extras : ""}. Confirma os campos e clica em “Adicionar aposta”.`, "ok");
+    } catch (err) {
+      console.error("Scanner de talão falhou:", err);
+      setScannerMsg("Erro ao ler o talão. Podes continuar a inserir manualmente.", "error");
+      alert("Erro ao ler o talão: " + (err?.message || err));
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = old; }
+    }
+  }
+
+  function tickScanner(){
+    try { injectScannerUI(); } catch(e) { console.warn("Scanner V80.3", e); }
+  }
+  document.addEventListener("DOMContentLoaded", tickScanner);
+  window.setTimeout(tickScanner, 200);
+  window.setInterval(tickScanner, 3000);
 })();
