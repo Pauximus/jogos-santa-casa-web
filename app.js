@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "80.0",
-  label: "V80.0",
+  version: "80.1",
+  label: "V80.1",
   build: "2026.07.09",
-  codename: "Store Ready",
-  slug: "store-ready",
+  codename: "Console Fix",
+  slug: "console-fix",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -8005,7 +8005,12 @@ instalarV73();
     };
   }
   ready(()=>{
-    document.body.classList.add(`v780-${window.APP_INFO.slug || 'store-ready'}`);
+    const safeSlug780 = String(window.APP_INFO.slug || "store-ready")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9_-]/g, "-");
+    document.body.classList.add(`v780-${safeSlug780}`);
     syncVersion(); exposeSupportInfo();
     setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000);
     console.log('APP_VERSION', `${window.APP_INFO.label} (${window.APP_INFO.codename})`);
@@ -8100,7 +8105,12 @@ instalarV73();
   }
 
   function prepararTransicoes(){
-    document.body.classList.add('v800-store-ready');
+    const safeSlug800 = String(info.slug || "store-ready")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9_-]/g, "-");
+    document.body.classList.add(`v800-${safeSlug800}`);
     document.querySelectorAll('.v75-app-nav button').forEach(btn => {
       if (btn.__v800Transition) return;
       btn.__v800Transition = true;
