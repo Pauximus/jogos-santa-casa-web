@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "80.1",
-  label: "V80.1",
+  version: "80.2",
+  label: "V80.2",
   build: "2026.07.09",
-  codename: "Console Fix",
-  slug: "console-fix",
+  codename: "Console Clean",
+  slug: "console-clean",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -1937,7 +1937,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 });
 
 (async function boot() {
-  console.log("APP_VERSION", window.APP_VERSION);
+  // V80.2: log de versão centralizado no bootstrap final.
 
   if (new URLSearchParams(window.location.search).has("logout")) {
     try { localStorage.clear(); sessionStorage.clear(); } catch(e) {}
@@ -8005,15 +8005,15 @@ instalarV73();
     };
   }
   ready(()=>{
-    const safeSlugV780 = String(window.APP_INFO.slug || 'store-ready')
+    const safeSlug = String(window.APP_INFO.slug || 'store-ready')
       .trim()
       .toLowerCase()
       .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9_-]/g, '');
-    document.body.classList.add(`v780-${safeSlugV780}`);
+      .replace(/[^a-z0-9_-]/g, '-');
+    document.body.classList.add(`v780-${safeSlug}`);
     syncVersion(); exposeSupportInfo();
     setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000);
-    console.log('APP_VERSION', `${window.APP_INFO.label} (${window.APP_INFO.codename})`);
+    // V80.2: sem log legado aqui para evitar versões duplicadas na consola.
   });
 })();
 
@@ -8022,23 +8022,23 @@ instalarV73();
 (function initV800StoreReady(){
   const info = window.APP_INFO = Object.assign({
     name: "Assistente Jogos Santa Casa",
-    version: "80.0",
-    label: "V80.0",
+    version: "80.2",
+    label: "V80.2",
     build: "2026.07.09",
-    codename: "Store Ready",
-    slug: "store-ready",
+    codename: "Console Clean",
+    slug: "console-clean",
     environment: "Production",
     backend: "Supabase",
     push: "Firebase",
     cloud: true
   }, window.APP_INFO || {});
 
-  // Força V80 como fonte única desta build.
-  info.version = "80.0";
-  info.label = "V80.0";
+  // V80.2: fonte única da versão desta build.
+  info.version = "80.2";
+  info.label = "V80.2";
   info.build = "2026.07.09";
-  info.codename = "Store Ready";
-  info.slug = "store-ready";
+  info.codename = "Console Clean";
+  info.slug = "console-clean";
   window.APP_VERSION = `v${info.version}-${info.slug}`;
 
   const byId = id => document.getElementById(id);
@@ -8105,12 +8105,12 @@ instalarV73();
   }
 
   function prepararTransicoes(){
-    const safeSlugV800 = String(info.slug || 'store-ready')
+    const safeSlug = String(info.slug || 'store-ready')
       .trim()
       .toLowerCase()
       .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9_-]/g, '');
-    document.body.classList.add(`v800-${safeSlugV800}`);
+      .replace(/[^a-z0-9_-]/g, '-');
+    document.body.classList.add(`v800-${safeSlug}`);
     document.querySelectorAll('.v75-app-nav button').forEach(btn => {
       if (btn.__v800Transition) return;
       btn.__v800Transition = true;
@@ -8156,6 +8156,5 @@ instalarV73();
   window.setTimeout(() => { splashV800(); tick(); }, 100);
   window.setInterval(tick, 4000);
 
-  console.log(`🍀 ${info.name}`);
-  console.log('APP_VERSION', `${info.label} (${info.codename})`);
+  console.log(`🍀 ${info.name} · APP_VERSION ${window.APP_VERSION} (${info.codename})`);
 })();
