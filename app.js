@@ -1,28 +1,28 @@
-window.APP_INFO = {
+window.APP_INFO = window.APP_INFO || {
   name: "Assistente Jogos Santa Casa",
-  version: "80.0",
-  label: "V80.0",
+  version: "0.9.0",
+  label: "V0.9.0",
   build: "2026.07.09",
-  codename: "Store Ready",
-  slug: "store-ready",
+  codename: "Release Candidate",
+  slug: "release-candidate",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
   cloud: true
 };
-window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
+window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
 
-const API = "https://jogos-santa-casa-api.onrender.com";
-const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
-const SUPABASE_URL = "https://whnokdkqobtgyywqmrju.supabase.co";
-const SUPABASE_KEY = "sb_publishable_t1ONYEGH_h11uFDENsINJw_RqlNxcpc";
-const SUPABASE_HISTORICO = "historico_premios";
-const SUPABASE_APOSTAS = "apostas_guardadas";
-const SUPABASE_V67_PROFILES = "profiles";
-const SUPABASE_V67_DEVICES = "devices";
-const SUPABASE_V67_PUSH_SUBSCRIPTIONS = "push_subscriptions";
-const SUPABASE_V68_PUSH_ENGINE_RUNS = "push_engine_runs";
-const V67_1_VAPID_PUBLIC_KEY = "BLIiD2ChRw0XwhWFES1hjpu7qwUfItr5fEjBxcLMKTSatPAS-1OkhQSjTgKA4q3gafiY2Dhxi6UX9wpFd_jQwp4";
+const API = window.JSC_CONFIG?.API || "https://jogos-santa-casa-api.onrender.com";
+const BACKEND_API = window.JSC_CONFIG?.BACKEND_API || "https://jogos-santa-casa-backend.onrender.com";
+const SUPABASE_URL = window.JSC_CONFIG?.SUPABASE_URL || "https://whnokdkqobtgyywqmrju.supabase.co";
+const SUPABASE_KEY = window.JSC_CONFIG?.SUPABASE_KEY || "sb_publishable_t1ONYEGH_h11uFDENsINJw_RqlNxcpc";
+const SUPABASE_HISTORICO = window.JSC_CONFIG?.SUPABASE_HISTORICO || "historico_premios";
+const SUPABASE_APOSTAS = window.JSC_CONFIG?.SUPABASE_APOSTAS || "apostas_guardadas";
+const SUPABASE_V67_PROFILES = window.JSC_CONFIG?.SUPABASE_V67_PROFILES || "profiles";
+const SUPABASE_V67_DEVICES = window.JSC_CONFIG?.SUPABASE_V67_DEVICES || "devices";
+const SUPABASE_V67_PUSH_SUBSCRIPTIONS = window.JSC_CONFIG?.SUPABASE_V67_PUSH_SUBSCRIPTIONS || "push_subscriptions";
+const SUPABASE_V68_PUSH_ENGINE_RUNS = window.JSC_CONFIG?.SUPABASE_V68_PUSH_ENGINE_RUNS || "push_engine_runs";
+const V67_1_VAPID_PUBLIC_KEY = window.JSC_CONFIG?.VAPID_PUBLIC_KEY || "BLIiD2ChRw0XwhWFES1hjpu7qwUfItr5fEjBxcLMKTSatPAS-1OkhQSjTgKA4q3gafiY2Dhxi6UX9wpFd_jQwp4";
 const V67_2_PUSH_ENGINE = true;
 const V67_3_GITHUB_ACTIONS_PUSH = true;
 
