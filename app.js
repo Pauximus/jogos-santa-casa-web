@@ -1,14 +1,14 @@
 window.APP_INFO = {
-  version: "78.0",
-  label: "V78.0",
+  version: "78.1",
+  label: "V78.1",
   build: "2026.07.08",
-  codename: "Launch Ready",
+  codename: "Store Prep",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
   cloud: true
 };
-window.APP_VERSION = `v${window.APP_INFO.version}-launch-ready`;
+window.APP_VERSION = `v${window.APP_INFO.version}-store-prep`;
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7759,8 +7759,8 @@ instalarV73();
 
 // V76.5 — Premium Polish / atividade objetiva
 (function initV765PremiumPolish(){
-  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-launch-ready`;
-  const VERSION_LABEL = window.APP_INFO?.label || 'V78.0';
+  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-store-prep`;
+  const VERSION_LABEL = window.APP_INFO?.label || 'V78.1';
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
   function getUser(){ try{ return window.currentUser || currentUser || null; }catch{ return window.currentUser || null; } }
@@ -7843,8 +7843,8 @@ instalarV73();
 
 // V77.0 — Launch polish: splash, conquistas e níveis
 (function initV770LaunchPolish(){
-  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-launch-ready`;
-  const VERSION_LABEL = window.APP_INFO?.label || 'V78.0';
+  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-store-prep`;
+  const VERSION_LABEL = window.APP_INFO?.label || 'V78.1';
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
   function getUser(){ try{ return window.currentUser || currentUser || null; }catch{ return window.currentUser || null; } }
@@ -7951,19 +7951,19 @@ instalarV73();
 })();
 
 
-// V78.0 — Launch Ready: versão centralizada e limpeza final
+// V78.1 — Store Prep: versão centralizada e limpeza final
 (function initV780LaunchReady(){
   window.APP_INFO = window.APP_INFO || {
-    version: "78.0",
-    label: "V78.0",
+    version: "78.1",
+    label: "V78.1",
     build: "2026.07.08",
-    codename: "Launch Ready",
+    codename: "Store Prep",
     environment: "Production",
     backend: "Supabase",
     push: "Firebase",
     cloud: true
   };
-  window.APP_VERSION = `v${window.APP_INFO.version}-launch-ready`;
+  window.APP_VERSION = `v${window.APP_INFO.version}-store-prep`;
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
   function totalApostas(){
@@ -8003,9 +8003,215 @@ instalarV73();
     };
   }
   ready(()=>{
-    document.body.classList.add('v780-launch-ready');
+    document.body.classList.add('v780-store-prep');
     syncVersion(); exposeSupportInfo();
     setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000);
     console.log('APP_VERSION', `${window.APP_INFO.label} (${window.APP_INFO.codename})`);
+  });
+})();
+
+// V78.1 — Store Prep: splash, boas-vindas, transições e sons opcionais
+(function initV781StorePrep(){
+  const INFO = {
+    version: "78.1",
+    label: "V78.1",
+    build: "2026.07.08",
+    codename: "Store Prep",
+    environment: "Production",
+    backend: "Supabase",
+    push: "Firebase",
+    cloud: true
+  };
+  window.APP_INFO = INFO;
+  window.APP_VERSION = `v${INFO.version}-store-prep`;
+
+  const $ = (id) => document.getElementById(id);
+  const ready = (fn) => document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", fn) : fn();
+  const getBool = (key, fallback=false) => {
+    const v = localStorage.getItem(key);
+    if(v === null) return fallback;
+    return v === "1" || v === "true";
+  };
+  const setBool = (key, val) => localStorage.setItem(key, val ? "1" : "0");
+
+  function syncVersionEverywhere(){
+    const label = INFO.label;
+    document.querySelectorAll('.v72-pill,.v54-pill,[data-app-version],.version-badge').forEach(el => {
+      const t = (el.textContent || '').trim();
+      if(!t || /^V\d+/i.test(t) || el.hasAttribute('data-app-version')) el.textContent = label;
+    });
+    const about = $('sobreAppV57');
+    if(about){
+      about.textContent = `${label} · ${INFO.codename} · ${safeTotalApostas()} aposta(s) · ${safeTotalPremios()} prémio(s) · ${INFO.backend} · ${INFO.push}`;
+    }
+    console.log('APP_VERSION', `${INFO.label} (${INFO.codename})`);
+  }
+
+  function safeTotalApostas(){
+    try{
+      const ap = window.apostas || apostas || {};
+      return Object.values(ap).reduce((n,l)=>n+(Array.isArray(l)?l.length:0),0);
+    }catch{return 0;}
+  }
+  function safeTotalPremios(){
+    try{
+      if(Array.isArray(window.historicoPremios)) return window.historicoPremios.length;
+      if(Array.isArray(window.historico)) return window.historico.length;
+      const raw = localStorage.getItem('historicoPremios') || localStorage.getItem('jsc_historico_premios');
+      const j = raw ? JSON.parse(raw) : [];
+      return Array.isArray(j) ? j.length : 0;
+    }catch{return 0;}
+  }
+
+  function firstName(){
+    try{
+      const user = window.currentUser || currentUser;
+      const meta = user?.user_metadata || {};
+      const name = meta.full_name || meta.name || localStorage.getItem('jsc_alias_utilizador') || user?.email || 'Paulo';
+      return String(name).trim().split(/\s+/)[0] || 'Paulo';
+    }catch{return 'Paulo';}
+  }
+
+  function showSplashOnce(){
+    // A V77 já tinha splash. Se ele já apareceu nesta sessão, não duplicamos.
+    if(sessionStorage.getItem('jsc_v770_splash_seen')) return;
+    if(sessionStorage.getItem('jsc_v781_splash_seen')) return;
+    sessionStorage.setItem('jsc_v781_splash_seen','1');
+    const el = document.createElement('div');
+    el.className = 'v781-splash';
+    el.innerHTML = `
+      <div class="v781-splash-card">
+        <div class="v781-splash-logo">🍀</div>
+        <strong>Assistente Jogos Santa Casa</strong>
+        <span>A sincronizar a tua sorte...</span>
+        <div class="v781-splash-bar"><i></i></div>
+      </div>`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.classList.add('is-leaving'), 1250);
+    setTimeout(()=>el.remove(), 1700);
+  }
+
+  function showWelcomeOnce(){
+    if(localStorage.getItem('jsc_v781_welcome_seen')) return;
+    const app = $('appBox');
+    if(!app || app.style.display === 'none') return;
+    localStorage.setItem('jsc_v781_welcome_seen','1');
+    const overlay = document.createElement('div');
+    overlay.className = 'v781-welcome';
+    overlay.innerHTML = `
+      <div class="v781-welcome-card" role="dialog" aria-modal="true" aria-label="Bem-vindo">
+        <button class="v781-welcome-x" type="button" aria-label="Fechar">×</button>
+        <div class="v781-welcome-logo">🍀</div>
+        <h2>Bem-vindo, ${firstName()}!</h2>
+        <p>A tua app já está preparada para guardar apostas, sincronizar na cloud e avisar-te quando houver novidades.</p>
+        <div class="v781-welcome-list">
+          <span>☁️ Cloud sincronizada</span>
+          <span>🔔 Notificações inteligentes</span>
+          <span>🏆 Conquistas e níveis</span>
+          <span>📱 Pronta para instalar</span>
+        </div>
+        <button class="v781-welcome-primary" type="button">Começar</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector('.v781-welcome-x')?.addEventListener('click', close);
+    overlay.querySelector('.v781-welcome-primary')?.addEventListener('click', close);
+    overlay.addEventListener('click', (e)=>{ if(e.target === overlay) close(); });
+  }
+
+  function enhancePageTransitions(){
+    const nav = $('v75AppNav');
+    if(!nav || nav.__v781Transitions) return;
+    nav.__v781Transitions = true;
+    nav.addEventListener('click', (ev)=>{
+      const btn = ev.target.closest('button[data-v75-nav]');
+      if(!btn) return;
+      document.body.classList.remove('v781-page-enter');
+      void document.body.offsetWidth;
+      document.body.classList.add('v781-page-enter');
+      setTimeout(()=>document.body.classList.remove('v781-page-enter'), 520);
+      playUiSound('nav');
+    }, true);
+  }
+
+  function ensureSoundSettings(){
+    const settings = $('settingsPanelV74');
+    if(!settings || $('v781SoundCard')) return;
+    const enabled = getBool('jsc_sounds_enabled', false);
+    const card = document.createElement('div');
+    card.id = 'v781SoundCard';
+    card.className = 'v781-sound-card';
+    card.innerHTML = `
+      <div>
+        <strong>🔊 Sons da app</strong>
+        <span>Pequenos sons opcionais para ações importantes.</span>
+      </div>
+      <div class="v781-sound-actions">
+        <button id="v781SoundToggle" type="button">${enabled ? 'Sons ON' : 'Sons OFF'}</button>
+        <button id="v781SoundTest" type="button">Testar</button>
+      </div>`;
+    const tools = settings.querySelector('.ferramentas-grid') || settings.querySelector('.v74-tools-grid') || settings;
+    tools.appendChild(card);
+    $('v781SoundToggle')?.addEventListener('click', ()=>{
+      const now = !getBool('jsc_sounds_enabled', false);
+      setBool('jsc_sounds_enabled', now);
+      $('v781SoundToggle').textContent = now ? 'Sons ON' : 'Sons OFF';
+      if(now) playUiSound('ok', true);
+    });
+    $('v781SoundTest')?.addEventListener('click', ()=>playUiSound('ok', true));
+  }
+
+  function playUiSound(type='ok', force=false){
+    if(!force && !getBool('jsc_sounds_enabled', false)) return;
+    try{
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if(!Ctx) return;
+      const ctx = new Ctx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const freq = type === 'nav' ? 420 : type === 'warn' ? 260 : 620;
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.045, ctx.currentTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.16);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime + 0.18);
+    }catch{}
+  }
+
+  function addSupportCopy(){
+    window.copyAppInfo = function(){
+      const info = [
+        'Assistente Jogos Santa Casa',
+        `Versão: ${INFO.label}`,
+        `Build: ${INFO.build}`,
+        `Codename: ${INFO.codename}`,
+        `Backend: ${INFO.backend}`,
+        `Push: ${INFO.push}`,
+        `Apostas: ${safeTotalApostas()}`,
+        `Prémios: ${safeTotalPremios()}`,
+        `URL: ${location.href}`,
+        `UserAgent: ${navigator.userAgent}`
+      ].join('\n');
+      navigator.clipboard?.writeText(info);
+      return info;
+    };
+  }
+
+  function tick(){
+    syncVersionEverywhere();
+    enhancePageTransitions();
+    ensureSoundSettings();
+    addSupportCopy();
+  }
+
+  ready(()=>{
+    document.body.classList.add('v781-store-prep');
+    showSplashOnce();
+    tick();
+    setTimeout(()=>{ tick(); showWelcomeOnce(); }, 1600);
+    setTimeout(tick, 3200);
+    setInterval(tick, 30000);
   });
 })();
