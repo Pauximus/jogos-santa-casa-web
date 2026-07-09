@@ -8161,24 +8161,24 @@ instalarV73();
 
 
 /* =========================================================
-   V80.4 — Scanner de Talões (Beta) + mobile polish
+   V80.5 — Scanner Seguro de Talões + mobile polish
    Talão a talão: abre câmara/galeria, faz OCR e preenche os campos.
    O utilizador confirma manualmente antes de guardar.
    ========================================================= */
 (function initScannerTalaoV803(){
   const info = window.APP_INFO || (window.APP_INFO = {});
-  info.version = "80.4";
-  info.label = "V80.4";
-  info.codename = "Scanner Mobile Fix";
-  info.slug = "scanner-mobile-fix";
-  window.APP_VERSION = "v80.4-scanner-mobile-fix";
+  info.version = "80.5";
+  info.label = "V80.5";
+  info.codename = "Scanner Seguro";
+  info.slug = "scanner-seguro";
+  window.APP_VERSION = "v80.5-scanner-seguro";
 
   const OCR_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 
   function injectMobilePolishV804(){
-    if (document.getElementById("v804MobilePolish")) return;
+    if (document.getElementById("v805MobilePolish")) return;
     const st = document.createElement("style");
-    st.id = "v804MobilePolish";
+    st.id = "v805MobilePolish";
     st.textContent = `
       @media (max-width: 700px){
         .tabs{
@@ -8306,75 +8306,116 @@ instalarV73();
     const linhas = t.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
     let jogo = "";
-    if (/TOTOLOTO|TOT0LOTO|LOTO\b/.test(t) && !/EUROMILH/.test(t.slice(t.lastIndexOf("TOTOLOTO") + 1))) jogo = "totoloto";
-    if (/TOTOLOTO/.test(t)) jogo = "totoloto";
+    if (/TOTOLOTO|TOT0LOTO|LOTO\b/.test(t)) jogo = "totoloto";
     if (/EUROMILH/.test(t) && !jogo) jogo = "euromilhoes";
     if (/M1LH[ÃA]O|MILH[ÃA]O/.test(t) && !jogo) jogo = "milhao";
 
-    // TOTÓLOTO: procurar linha da aposta, normalmente "1. 07 09 12 29 31".
-    if (jogo === "totoloto" || (!jogo && typeof jogoAtual !== "undefined" && jogoAtual === "totoloto")) {
+    const jogoEfetivo = jogo || ((typeof jogoAtual !== "undefined") ? jogoAtual : "");
+
+    function isLinhaRuido(linha){
+      return /TOTAL|PAGAR|VALOR|CONTROLO|VIRN|EURO|EUR|\d{4}[\/.-]\d{1,2}[\/.-]\d{1,2}|\d{1,2}:\d{2}|\d+[,.]\d{2}|CAIXA|TERMINAL|REGULAMENTO|BOAS CAUSAS/.test(linha);
+    }
+
+    function soNumerosChaveTotoloto(linha){
+      if (!linha || isLinhaRuido(linha)) return null;
+      // Aceita apenas linhas do tipo "1. 07 09 12 29 31" ou "07 09 12 29 31".
+      // Não aceita datas, controlos nem linhas com texto técnico.
+      const cleaned = linha
+        .replace(/^[^\d]{0,8}/, "")
+        .replace(/\bAP\b|SIMPLES|BIL|SORT|SORTE/g, " ")
+        .replace(/[=_-]+/g, " ")
+        .trim();
+      if (!cleaned) return null;
+
+      const tokens = (cleaned.match(/\b\d{1,2}\b/g) || []).map(n => Number(n));
+      if (tokens.length < 5 || tokens.length > 7) return null;
+
+      let nums = tokens;
+      // Em talões, o primeiro número pode ser o índice da aposta: "1."
+      if (tokens.length === 6 && tokens[0] >= 1 && tokens[0] <= 9) nums = tokens.slice(1);
+      if (nums.length !== 5) return null;
+      if (!nums.every(n => n >= 1 && n <= 49)) return null;
+      if (new Set(nums).size !== 5) return null;
+
+      // Evita sequências suspeitas captadas de datas/controlo.
+      const joined = linha.replace(/\s+/g, " ");
+      if (/202\d|690|190|\//.test(joined)) return null;
+
+      return nums;
+    }
+
+    function procurarNumeroSorte(){
+      // Preferir a linha explícita do número da sorte e não números soltos do talão.
+      for (const linha of linhas) {
+        if (!/N[UÚ]MERO|SORTE/.test(linha)) continue;
+        if (/SORT(E|EIO)\s*\d{2,4}/.test(linha) && !/N[UÚ]MERO\s+DA\s+SORTE/.test(linha)) continue;
+        const m = linha.match(/(?:N[ÚU]MERO\s+DA\s+SORTE|SORTE)\D{0,12}(\d{1,2})\b/);
+        if (m) {
+          const n = Number(m[1]);
+          if (n >= 1 && n <= 13) return n;
+        }
+        const ns = numsDaLinha(linha).filter(n => n >= 1 && n <= 13);
+        if (ns.length) return ns[ns.length - 1];
+      }
+      const m = t.match(/N[ÚU]MERO\s+DA\s+SORTE\D{0,12}(\d{1,2})\b/);
+      if (m) {
+        const n = Number(m[1]);
+        if (n >= 1 && n <= 13) return n;
+      }
+      return null;
+    }
+
+    // TOTÓLOTO seguro: só preenche quando encontra uma linha clara da chave.
+    if (jogoEfetivo === "totoloto") {
       const candidatos = [];
       linhas.forEach((linha, idx) => {
-        const nsAll = numsDaLinha(linha);
-        let ns = nsAll.filter(n => n >= 1 && n <= 49);
-        if (ns.length >= 5) {
-          let score = 0;
-          const looksAposta = /^\s*1\s*[.)]?\s+/.test(linha) || /\bAP\b|SIMPLES|BIL|SORT/.test(linha);
-          if (looksAposta) score += 8;
-          if (idx > 0 && /SIMPLES|BIL|SORT|AP/.test(linhas[idx - 1])) score += 5;
-          if (idx < linhas.length - 1 && /N[UÚ]MERO|SORTE/.test(linhas[idx + 1])) score += 4;
-          if (/TOTAL|PAGAR|VALOR|CONTROLO|VIRN|202\d|12[:.]\d/.test(linha)) score -= 9;
-
-          // Em talões Totoloto a linha vem como: "1. 07 09 12 29 31".
-          // O primeiro "1" é o número da aposta, não pertence à chave.
-          let nums = ns;
-          if (ns.length >= 6 && /^\s*1\s*[.)]?/.test(linha)) nums = ns.slice(1, 6);
-          else if (ns.length > 5) nums = ns.slice(0, 5);
-
-          candidatos.push({ nums: nums.slice(0, 5), score, linha });
-        }
+        const nums = soNumerosChaveTotoloto(linha);
+        if (!nums) return;
+        let score = 0;
+        if (/^\s*\d\s*[.)]\s*/.test(linha)) score += 8;
+        if (idx > 0 && /TOTOLOTO|TOT0LOTO|AP\s*SIMPLES|SIMPLES|BIL|SORT/.test(linhas[idx - 1])) score += 6;
+        if (idx > 1 && /TOTOLOTO|TOT0LOTO|AP\s*SIMPLES|SIMPLES|BIL|SORT/.test(linhas[idx - 2])) score += 3;
+        if (idx < linhas.length - 1 && /N[UÚ]MERO\s+DA\s+SORTE|SORTE/.test(linhas[idx + 1])) score += 6;
+        if (idx < linhas.length - 2 && /N[UÚ]MERO\s+DA\s+SORTE|SORTE/.test(linhas[idx + 2])) score += 3;
+        candidatos.push({ nums, score, linha, idx });
       });
       candidatos.sort((a,b) => b.score - a.score);
-      const nums = candidatos[0]?.nums || [];
+      const best = candidatos[0];
+      const extra = procurarNumeroSorte();
 
-      let extra = null;
-      const linhaSorte = linhas.find(l => /N[UÚ]MERO|SORTE/.test(l));
-      if (linhaSorte) {
-        const nsSorte = numsDaLinha(linhaSorte).filter(n => n >= 1 && n <= 13);
-        if (nsSorte.length) extra = nsSorte[nsSorte.length - 1];
+      // Se não houver confiança suficiente, não preenche campos errados.
+      if (!best || best.score < 6) {
+        return { erro: "baixa_confianca", jogo: "totoloto" };
       }
-      const mExtra = t.match(/N[ÚU]MERO\s+DA\s+SORTE\s*(\d{1,2})/) || t.match(/SORTE\D{0,10}(\d{1,2})/);
-      if (!extra && mExtra) extra = Number(mExtra[1]);
-
-      if (nums.length === 5 && extra && extra >= 1 && extra <= 13) return { jogo: "totoloto", nums, extras: [extra] };
-      if (nums.length === 5) return { jogo: "totoloto", nums, extras: [] };
+      if (!extra) {
+        return { erro: "sem_numero_sorte", jogo: "totoloto", nums: best.nums };
+      }
+      return { jogo: "totoloto", nums: best.nums, extras: [extra], confidence: best.score, linha: best.linha };
     }
 
-    // EUROMILHÕES: beta. Procura 5 números 1-50 + 2 estrelas 1-12.
-    if (jogo === "euromilhoes" || (!jogo && typeof jogoAtual !== "undefined" && jogoAtual === "euromilhoes")) {
-      const all = (t.match(/\b\d{1,2}\b/g) || []).map(Number);
-      for (let i = 0; i <= all.length - 7; i++) {
-        const nums = all.slice(i, i + 5);
-        const extras = all.slice(i + 5, i + 7);
-        if (nums.every(n => n >= 1 && n <= 50) && new Set(nums).size === 5 && extras.every(n => n >= 1 && n <= 12)) {
-          return { jogo: "euromilhoes", nums, extras };
+    // EUROMILHÕES: beta conservadora. Só aceita uma linha limpa com 5 números + 2 estrelas.
+    if (jogoEfetivo === "euromilhoes") {
+      const candidatos = [];
+      linhas.forEach((linha, idx) => {
+        if (isLinhaRuido(linha)) return;
+        const all = numsDaLinha(linha);
+        if (all.length < 7 || all.length > 8) return;
+        let arr = all;
+        if (arr.length === 8 && arr[0] >= 1 && arr[0] <= 9) arr = arr.slice(1);
+        const nums = arr.slice(0,5);
+        const extras = arr.slice(5,7);
+        if (nums.length === 5 && extras.length === 2 && nums.every(n=>n>=1&&n<=50) && extras.every(n=>n>=1&&n<=12) && new Set(nums).size===5) {
+          let score = 6;
+          if (idx > 0 && /EUROMILH|AP|SIMPLES|BIL|SORT/.test(linhas[idx-1])) score += 4;
+          candidatos.push({ nums, extras, score, linha });
         }
-      }
+      });
+      candidatos.sort((a,b)=>b.score-a.score);
+      if (candidatos[0]) return { jogo: "euromilhoes", nums: candidatos[0].nums, extras: candidatos[0].extras, confidence: candidatos[0].score };
+      return { erro: "baixa_confianca", jogo: "euromilhoes" };
     }
 
-    // Fallback: usar jogo atual e procurar a primeira sequência compatível.
-    const cfg = (typeof jogos !== "undefined" && typeof jogoAtual !== "undefined") ? jogos[jogoAtual] : null;
-    if (cfg && !cfg.codigo && !cfg.lotaria) {
-      const all = (t.match(/\b\d{1,2}\b/g) || []).map(Number);
-      for (let i = 0; i <= all.length - (cfg.numeros + cfg.extras); i++) {
-        const nums = all.slice(i, i + cfg.numeros);
-        const extras = all.slice(i + cfg.numeros, i + cfg.numeros + cfg.extras);
-        if (nums.every(n => n >= 1 && n <= cfg.maxNum) && extras.every(n => n >= 1 && n <= cfg.maxExtra)) {
-          return { jogo: jogoAtual, nums, extras };
-        }
-      }
-    }
-
+    // Fallback seguro: não preencher se o OCR não for claro.
     return null;
   }
 
@@ -8408,10 +8449,15 @@ instalarV73();
       });
       const text = result?.data?.text || "";
       const aposta = extrairApostaDoTexto(text);
-      if (!aposta) {
-        console.warn("OCR não encontrou aposta. Texto lido:", text);
-        setScannerMsg("Não consegui detetar a aposta. Tenta aproximar mais, com boa luz e só um talão.", "warn");
-        alert("Não consegui ler a aposta. Tenta tirar nova foto mais direita e com melhor luz.");
+      if (!aposta || aposta.erro) {
+        console.warn("OCR não encontrou aposta com confiança. Texto lido:", text, aposta);
+        const extraMsg = aposta?.erro === "sem_numero_sorte"
+          ? "Consegui ver a chave, mas não consegui confirmar o Nº da Sorte."
+          : "Não consegui detetar a aposta com confiança.";
+        setScannerMsg(`${extraMsg} Tenta aproximar mais, com boa luz, e enquadra só a zona dos números.`, "warn");
+        alert(`${extraMsg}
+
+Tira nova foto mais direita, com boa luz, e apanha apenas a zona da aposta.`);
         return;
       }
       preencherCamposOCR(aposta);
@@ -8428,7 +8474,7 @@ instalarV73();
   }
 
   function tickScanner(){
-    try { injectMobilePolishV804(); injectScannerUI(); } catch(e) { console.warn("Scanner V80.4", e); }
+    try { injectMobilePolishV804(); injectScannerUI(); } catch(e) { console.warn("Scanner V80.5", e); }
   }
   document.addEventListener("DOMContentLoaded", tickScanner);
   window.setTimeout(tickScanner, 200);
