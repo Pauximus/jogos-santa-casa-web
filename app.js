@@ -1,14 +1,16 @@
 window.APP_INFO = {
-  version: "78.1",
-  label: "V78.1",
-  build: "2026.07.08",
-  codename: "Store Prep",
+  name: "Assistente Jogos Santa Casa",
+  version: "80.0",
+  label: "V80.0",
+  build: "2026.07.09",
+  codename: "Store Ready",
+  slug: "store-ready",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
   cloud: true
 };
-window.APP_VERSION = `v${window.APP_INFO.version}-store-prep`;
+window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -2637,7 +2639,7 @@ setInterval(() => {
 
 
 // V68.1 - Auto Update robusto, sem loop infinito
-const VERSAO_ATUAL = "v68.1-update-fix";
+const VERSAO_ATUAL = window.APP_VERSION || "v80.0-store-ready";
 async function limparCachesAppV681() {
   try {
     if (window.caches) {
@@ -7651,7 +7653,7 @@ instalarV73();
 
 // V76.4 — Dashboard Vivo / Login Premium UX
 (function initV764DashboardVivo(){
-  const VERSION_LABEL = 'V76.4';
+  const VERSION_LABEL = window.APP_INFO?.label || 'V80.0';
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
   function txt(id, value){ const el=byId(id); if(el) el.textContent = value; }
@@ -7759,8 +7761,8 @@ instalarV73();
 
 // V76.5 — Premium Polish / atividade objetiva
 (function initV765PremiumPolish(){
-  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-store-prep`;
-  const VERSION_LABEL = window.APP_INFO?.label || 'V78.1';
+  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-${window.APP_INFO.slug || 'store-ready'}`;
+  const VERSION_LABEL = window.APP_INFO?.label || 'V80.0';
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
   function getUser(){ try{ return window.currentUser || currentUser || null; }catch{ return window.currentUser || null; } }
@@ -7843,8 +7845,8 @@ instalarV73();
 
 // V77.0 — Launch polish: splash, conquistas e níveis
 (function initV770LaunchPolish(){
-  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-store-prep`;
-  const VERSION_LABEL = window.APP_INFO?.label || 'V78.1';
+  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-${window.APP_INFO.slug || 'store-ready'}`;
+  const VERSION_LABEL = window.APP_INFO?.label || 'V80.0';
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
   function getUser(){ try{ return window.currentUser || currentUser || null; }catch{ return window.currentUser || null; } }
@@ -7951,19 +7953,19 @@ instalarV73();
 })();
 
 
-// V78.1 — Store Prep: versão centralizada e limpeza final
+// V78.0 — Store Ready: versão centralizada e limpeza final
 (function initV780LaunchReady(){
   window.APP_INFO = window.APP_INFO || {
-    version: "78.1",
-    label: "V78.1",
+    version: "78.0",
+    label: "V80.0",
     build: "2026.07.08",
-    codename: "Store Prep",
+    codename: "Store Ready",
     environment: "Production",
     backend: "Supabase",
     push: "Firebase",
     cloud: true
   };
-  window.APP_VERSION = `v${window.APP_INFO.version}-store-prep`;
+  window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug || 'store-ready'}`;
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
   function totalApostas(){
@@ -8003,215 +8005,147 @@ instalarV73();
     };
   }
   ready(()=>{
-    document.body.classList.add('v780-store-prep');
+    document.body.classList.add('v780-${window.APP_INFO.slug || "store-ready"}');
     syncVersion(); exposeSupportInfo();
     setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000);
     console.log('APP_VERSION', `${window.APP_INFO.label} (${window.APP_INFO.codename})`);
   });
 })();
 
-// V78.1 — Store Prep: splash, boas-vindas, transições e sons opcionais
-(function initV781StorePrep(){
-  const INFO = {
-    version: "78.1",
-    label: "V78.1",
-    build: "2026.07.08",
-    codename: "Store Prep",
+
+// V80.0 — Store Ready: versão única, splash e diagnóstico centralizado
+(function initV800StoreReady(){
+  const info = window.APP_INFO = Object.assign({
+    name: "Assistente Jogos Santa Casa",
+    version: "80.0",
+    label: "V80.0",
+    build: "2026.07.09",
+    codename: "Store Ready",
+    slug: "store-ready",
     environment: "Production",
     backend: "Supabase",
     push: "Firebase",
     cloud: true
-  };
-  window.APP_INFO = INFO;
-  window.APP_VERSION = `v${INFO.version}-store-prep`;
+  }, window.APP_INFO || {});
 
-  const $ = (id) => document.getElementById(id);
-  const ready = (fn) => document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", fn) : fn();
-  const getBool = (key, fallback=false) => {
-    const v = localStorage.getItem(key);
-    if(v === null) return fallback;
-    return v === "1" || v === "true";
-  };
-  const setBool = (key, val) => localStorage.setItem(key, val ? "1" : "0");
+  // Força V80 como fonte única desta build.
+  info.version = "80.0";
+  info.label = "V80.0";
+  info.build = "2026.07.09";
+  info.codename = "Store Ready";
+  info.slug = "store-ready";
+  window.APP_VERSION = `v${info.version}-${info.slug}`;
 
-  function syncVersionEverywhere(){
-    const label = INFO.label;
-    document.querySelectorAll('.v72-pill,.v54-pill,[data-app-version],.version-badge').forEach(el => {
+  const byId = id => document.getElementById(id);
+  const totalApostasV800 = () => {
+    try { return Object.values(window.apostas || apostas || {}).reduce((t, a) => t + (Array.isArray(a) ? a.length : 0), 0); }
+    catch { return 0; }
+  };
+  const totalPremiosV800 = () => {
+    try { return (window.historico || historico || []).length || 0; }
+    catch { return 0; }
+  };
+
+  function setText(id, text){ const el = byId(id); if(el) el.textContent = text; }
+
+  function atualizarVersoesV800(){
+    document.querySelectorAll('[data-app-version], .v72-pill, .v54-pill, .version-badge').forEach(el => {
       const t = (el.textContent || '').trim();
-      if(!t || /^V\d+/i.test(t) || el.hasAttribute('data-app-version')) el.textContent = label;
+      if (el.hasAttribute('data-app-version') || /^V\d+(\.\d+)?/.test(t)) el.textContent = info.label;
     });
-    const about = $('sobreAppV57');
-    if(about){
-      about.textContent = `${label} · ${INFO.codename} · ${safeTotalApostas()} aposta(s) · ${safeTotalPremios()} prémio(s) · ${INFO.backend} · ${INFO.push}`;
+
+    setText('v67CloudVersion', window.APP_VERSION);
+
+    const sobre = byId('sobreAppV57');
+    if (sobre) {
+      sobre.textContent = `${info.label} · ${info.codename} · ${totalApostasV800()} aposta(s) · ${totalPremiosV800()} prémio(s) · ${info.backend} · ${info.push}`;
     }
-    console.log('APP_VERSION', `${INFO.label} (${INFO.codename})`);
+
+    const debug = byId('debugAppInfoV800');
+    if (debug) debug.textContent = gerarDiagnosticoV800();
+
+    const splashVersion = byId('appSplashVersionV800');
+    if (splashVersion) splashVersion.textContent = `${info.label} · ${info.codename}`;
   }
 
-  function safeTotalApostas(){
-    try{
-      const ap = window.apostas || apostas || {};
-      return Object.values(ap).reduce((n,l)=>n+(Array.isArray(l)?l.length:0),0);
-    }catch{return 0;}
-  }
-  function safeTotalPremios(){
-    try{
-      if(Array.isArray(window.historicoPremios)) return window.historicoPremios.length;
-      if(Array.isArray(window.historico)) return window.historico.length;
-      const raw = localStorage.getItem('historicoPremios') || localStorage.getItem('jsc_historico_premios');
-      const j = raw ? JSON.parse(raw) : [];
-      return Array.isArray(j) ? j.length : 0;
-    }catch{return 0;}
-  }
-
-  function firstName(){
-    try{
-      const user = window.currentUser || currentUser;
-      const meta = user?.user_metadata || {};
-      const name = meta.full_name || meta.name || localStorage.getItem('jsc_alias_utilizador') || user?.email || 'Paulo';
-      return String(name).trim().split(/\s+/)[0] || 'Paulo';
-    }catch{return 'Paulo';}
+  function gerarDiagnosticoV800(){
+    const ua = navigator.userAgent || '—';
+    const standalone = window.matchMedia?.('(display-mode: standalone)')?.matches || navigator.standalone || false;
+    return [
+      info.name,
+      `Versão: ${info.label}`,
+      `Build: ${info.build}`,
+      `Codename: ${info.codename}`,
+      `Ambiente: ${info.environment}`,
+      `Backend: ${info.backend}`,
+      `Push: ${info.push}`,
+      `Cloud: ${info.cloud ? 'Online' : 'Offline'}`,
+      `Apostas: ${totalApostasV800()}`,
+      `Prémios: ${totalPremiosV800()}`,
+      `Modo app: ${standalone ? 'Instalada' : 'Browser'}`,
+      `Browser/SO: ${ua}`
+    ].join('\n');
   }
 
-  function showSplashOnce(){
-    // A V77 já tinha splash. Se ele já apareceu nesta sessão, não duplicamos.
-    if(sessionStorage.getItem('jsc_v770_splash_seen')) return;
-    if(sessionStorage.getItem('jsc_v781_splash_seen')) return;
-    sessionStorage.setItem('jsc_v781_splash_seen','1');
-    const el = document.createElement('div');
-    el.className = 'v781-splash';
-    el.innerHTML = `
-      <div class="v781-splash-card">
-        <div class="v781-splash-logo">🍀</div>
-        <strong>Assistente Jogos Santa Casa</strong>
-        <span>A sincronizar a tua sorte...</span>
-        <div class="v781-splash-bar"><i></i></div>
-      </div>`;
-    document.body.appendChild(el);
-    setTimeout(()=>el.classList.add('is-leaving'), 1250);
-    setTimeout(()=>el.remove(), 1700);
+  window.JSC_APP_INFO = info;
+  window.JSC_DIAGNOSTICO = gerarDiagnosticoV800;
+
+  function splashV800(){
+    const el = byId('appSplashV800');
+    if (!el) return;
+    window.setTimeout(() => {
+      el.classList.add('is-leaving');
+      window.setTimeout(() => el.remove(), 420);
+    }, 850);
   }
 
-  function showWelcomeOnce(){
-    if(localStorage.getItem('jsc_v781_welcome_seen')) return;
-    const app = $('appBox');
-    if(!app || app.style.display === 'none') return;
-    localStorage.setItem('jsc_v781_welcome_seen','1');
-    const overlay = document.createElement('div');
-    overlay.className = 'v781-welcome';
-    overlay.innerHTML = `
-      <div class="v781-welcome-card" role="dialog" aria-modal="true" aria-label="Bem-vindo">
-        <button class="v781-welcome-x" type="button" aria-label="Fechar">×</button>
-        <div class="v781-welcome-logo">🍀</div>
-        <h2>Bem-vindo, ${firstName()}!</h2>
-        <p>A tua app já está preparada para guardar apostas, sincronizar na cloud e avisar-te quando houver novidades.</p>
-        <div class="v781-welcome-list">
-          <span>☁️ Cloud sincronizada</span>
-          <span>🔔 Notificações inteligentes</span>
-          <span>🏆 Conquistas e níveis</span>
-          <span>📱 Pronta para instalar</span>
-        </div>
-        <button class="v781-welcome-primary" type="button">Começar</button>
-      </div>`;
-    document.body.appendChild(overlay);
-    const close = () => overlay.remove();
-    overlay.querySelector('.v781-welcome-x')?.addEventListener('click', close);
-    overlay.querySelector('.v781-welcome-primary')?.addEventListener('click', close);
-    overlay.addEventListener('click', (e)=>{ if(e.target === overlay) close(); });
-  }
-
-  function enhancePageTransitions(){
-    const nav = $('v75AppNav');
-    if(!nav || nav.__v781Transitions) return;
-    nav.__v781Transitions = true;
-    nav.addEventListener('click', (ev)=>{
-      const btn = ev.target.closest('button[data-v75-nav]');
-      if(!btn) return;
-      document.body.classList.remove('v781-page-enter');
-      void document.body.offsetWidth;
-      document.body.classList.add('v781-page-enter');
-      setTimeout(()=>document.body.classList.remove('v781-page-enter'), 520);
-      playUiSound('nav');
-    }, true);
-  }
-
-  function ensureSoundSettings(){
-    const settings = $('settingsPanelV74');
-    if(!settings || $('v781SoundCard')) return;
-    const enabled = getBool('jsc_sounds_enabled', false);
-    const card = document.createElement('div');
-    card.id = 'v781SoundCard';
-    card.className = 'v781-sound-card';
-    card.innerHTML = `
-      <div>
-        <strong>🔊 Sons da app</strong>
-        <span>Pequenos sons opcionais para ações importantes.</span>
-      </div>
-      <div class="v781-sound-actions">
-        <button id="v781SoundToggle" type="button">${enabled ? 'Sons ON' : 'Sons OFF'}</button>
-        <button id="v781SoundTest" type="button">Testar</button>
-      </div>`;
-    const tools = settings.querySelector('.ferramentas-grid') || settings.querySelector('.v74-tools-grid') || settings;
-    tools.appendChild(card);
-    $('v781SoundToggle')?.addEventListener('click', ()=>{
-      const now = !getBool('jsc_sounds_enabled', false);
-      setBool('jsc_sounds_enabled', now);
-      $('v781SoundToggle').textContent = now ? 'Sons ON' : 'Sons OFF';
-      if(now) playUiSound('ok', true);
+  function prepararTransicoes(){
+    document.body.classList.add('v800-store-ready');
+    document.querySelectorAll('.v75-app-nav button').forEach(btn => {
+      if (btn.__v800Transition) return;
+      btn.__v800Transition = true;
+      btn.addEventListener('click', () => {
+        const app = byId('appBox');
+        if (!app) return;
+        app.classList.remove('v800-page-in');
+        void app.offsetWidth;
+        app.classList.add('v800-page-in');
+      });
     });
-    $('v781SoundTest')?.addEventListener('click', ()=>playUiSound('ok', true));
   }
 
-  function playUiSound(type='ok', force=false){
-    if(!force && !getBool('jsc_sounds_enabled', false)) return;
-    try{
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if(!Ctx) return;
-      const ctx = new Ctx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const freq = type === 'nav' ? 420 : type === 'warn' ? 260 : 620;
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.045, ctx.currentTime + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.16);
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.start(); osc.stop(ctx.currentTime + 0.18);
-    }catch{}
-  }
-
-  function addSupportCopy(){
-    window.copyAppInfo = function(){
-      const info = [
-        'Assistente Jogos Santa Casa',
-        `Versão: ${INFO.label}`,
-        `Build: ${INFO.build}`,
-        `Codename: ${INFO.codename}`,
-        `Backend: ${INFO.backend}`,
-        `Push: ${INFO.push}`,
-        `Apostas: ${safeTotalApostas()}`,
-        `Prémios: ${safeTotalPremios()}`,
-        `URL: ${location.href}`,
-        `UserAgent: ${navigator.userAgent}`
-      ].join('\n');
-      navigator.clipboard?.writeText(info);
-      return info;
-    };
+  function ensureDefinicoesSobre(){
+    const settings = byId('settingsPanelV74');
+    if (!settings || byId('debugAppInfoV800')) return;
+    const card = document.createElement('section');
+    card.className = 'card v800-about-card';
+    card.innerHTML = `
+      <div class="v54-head">
+        <div><h2>ℹ️ Sobre a aplicação</h2><p>Informação técnica para suporte e publicação.</p></div>
+        <span class="v54-pill" data-app-version>${info.label}</span>
+      </div>
+      <pre id="debugAppInfoV800"></pre>
+      <button type="button" class="mini-btn" id="copyAppInfoV800">📋 Copiar informações</button>
+    `;
+    settings.appendChild(card);
+    const btn = byId('copyAppInfoV800');
+    if (btn) btn.addEventListener('click', async () => {
+      const text = gerarDiagnosticoV800();
+      try { await navigator.clipboard.writeText(text); btn.textContent = '✅ Copiado'; }
+      catch { btn.textContent = 'Seleciona e copia'; }
+      window.setTimeout(() => { btn.textContent = '📋 Copiar informações'; }, 1800);
+    });
   }
 
   function tick(){
-    syncVersionEverywhere();
-    enhancePageTransitions();
-    ensureSoundSettings();
-    addSupportCopy();
+    try { atualizarVersoesV800(); prepararTransicoes(); ensureDefinicoesSobre(); }
+    catch(e){ console.warn('V80 Store Ready', e); }
   }
 
-  ready(()=>{
-    document.body.classList.add('v781-store-prep');
-    showSplashOnce();
-    tick();
-    setTimeout(()=>{ tick(); showWelcomeOnce(); }, 1600);
-    setTimeout(tick, 3200);
-    setInterval(tick, 30000);
-  });
+  document.addEventListener('DOMContentLoaded', () => { splashV800(); tick(); });
+  window.setTimeout(() => { splashV800(); tick(); }, 100);
+  window.setInterval(tick, 4000);
+
+  console.log(`🍀 ${info.name}`);
+  console.log('APP_VERSION', `${info.label} (${info.codename})`);
 })();

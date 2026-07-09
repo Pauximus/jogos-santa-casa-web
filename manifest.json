@@ -1,9 +1,9 @@
 {
   "name": "Assistente Jogos Santa Casa",
   "short_name": "Assistente",
-  "description": "Assistente instalável para acompanhar apostas, resultados, prémios, cloud e notificações dos Jogos Santa Casa.",
+  "description": "Assistente instalável para acompanhar apostas, resultados, prémios, cloud, Google Login e notificações dos Jogos Santa Casa.",
   "id": "/jogos-santa-casa-web/",
-  "start_url": "/jogos-santa-casa-web/?source=pwa&v=67.1",
+  "start_url": "/jogos-santa-casa-web/?source=pwa&v=800",
   "scope": "/jogos-santa-casa-web/",
   "display": "standalone",
   "display_override": [
@@ -72,6 +72,6 @@
     }
   ],
   "prefer_related_applications": false,
-  "version": "v68.1-update-fix",
+  "version": "v80.0-store-ready",
   "gcm_sender_id": "103953800507"
 }
