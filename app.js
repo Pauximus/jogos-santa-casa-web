@@ -1,4 +1,14 @@
-window.APP_VERSION = "v76.5-premium-polish";
+window.APP_INFO = {
+  version: "78.0",
+  label: "V78.0",
+  build: "2026.07.08",
+  codename: "Launch Ready",
+  environment: "Production",
+  backend: "Supabase",
+  push: "Firebase",
+  cloud: true
+};
+window.APP_VERSION = `v${window.APP_INFO.version}-launch-ready`;
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -7749,8 +7759,8 @@ instalarV73();
 
 // V76.5 — Premium Polish / atividade objetiva
 (function initV765PremiumPolish(){
-  window.APP_VERSION = "v76.5-premium-polish";
-  const VERSION_LABEL = 'V76.5';
+  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-launch-ready`;
+  const VERSION_LABEL = window.APP_INFO?.label || 'V78.0';
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
   function getUser(){ try{ return window.currentUser || currentUser || null; }catch{ return window.currentUser || null; } }
@@ -7778,7 +7788,7 @@ instalarV73();
   function updateVersion(){
     document.querySelectorAll('.v72-pill,.v54-pill').forEach(el=>{ if(/^V\d+/.test((el.textContent||'').trim())) el.textContent=VERSION_LABEL; });
     const about=document.getElementById('sobreAppV57');
-    if(about) about.textContent = `${window.APP_VERSION} · ${totalApostas()} aposta(s) · ${countPrizes()} prémio(s) · premium polish`;
+    if(about) about.textContent = `${window.APP_VERSION} · ${totalApostas()} aposta(s) · ${countPrizes()} prémio(s) · launch ready`;
   }
   function polishUserCard(){
     const emailEl=byId('userEmailV762');
@@ -7827,14 +7837,14 @@ instalarV73();
     else if(ap===0) sub.textContent = '👋 Começa por guardar a tua primeira aposta e o assistente trata do resto.';
     else sub.textContent = '🍀 O Assistente acompanha os resultados, sincroniza na cloud e avisa-te quando houver novidades.';
   }
-  function tick(){ try{ updateVersion(); polishUserCard(); updateActivity(); updateHeroMessage(); }catch(e){ console.warn('V76.5 premium polish', e); } }
+  function tick(){ try{ updateVersion(); polishUserCard(); updateActivity(); updateHeroMessage(); }catch(e){ console.warn('V76.5 launch ready', e); } }
   ready(()=>{ document.body.classList.add('v765-premium-polish'); setTimeout(tick,450); setTimeout(tick,1900); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,250)); });
 })();
 
 // V77.0 — Launch polish: splash, conquistas e níveis
 (function initV770LaunchPolish(){
-  window.APP_VERSION = "v77.0-launch-polish";
-  const VERSION_LABEL = 'V77.0';
+  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-launch-ready`;
+  const VERSION_LABEL = window.APP_INFO?.label || 'V78.0';
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
   function getUser(){ try{ return window.currentUser || currentUser || null; }catch{ return window.currentUser || null; } }
@@ -7888,7 +7898,7 @@ instalarV73();
   }
   function updateVersion(){
     document.querySelectorAll('.v72-pill,.v54-pill').forEach(el=>{ if(/^V\d+/.test((el.textContent||'').trim())) el.textContent=VERSION_LABEL; });
-    const about=byId('sobreAppV57'); if(about) about.textContent=`${window.APP_VERSION} · ${totalApostas()} aposta(s) · ${countPrizes()} prémio(s) · launch polish`;
+    const about=byId('sobreAppV57'); if(about) about.textContent=`${window.APP_VERSION} · ${totalApostas()} aposta(s) · ${countPrizes()} prémio(s) · launch ready`;
   }
   function ensureHomeProgress(){
     const hero=byId('dashboardInteligenteV73'); if(!hero) return;
@@ -7936,6 +7946,66 @@ instalarV73();
       const txt=byId('v764ActivityText'); if(txt) txt.textContent=`${pts} pts · ${totalApostas()} apostas · Cloud OK`;
     }
   }
-  function tick(){ try{ updateVersion(); ensureHomeProgress(); ensureAchievements(); updateHero(); }catch(e){ console.warn('V77 launch polish', e); } }
+  function tick(){ try{ updateVersion(); ensureHomeProgress(); ensureAchievements(); updateHero(); }catch(e){ console.warn('V77 launch ready', e); } }
   ready(()=>{ document.body.classList.add('v770-launch-polish'); showSplash(); setTimeout(tick,500); setTimeout(tick,1800); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,300)); });
+})();
+
+
+// V78.0 — Launch Ready: versão centralizada e limpeza final
+(function initV780LaunchReady(){
+  window.APP_INFO = window.APP_INFO || {
+    version: "78.0",
+    label: "V78.0",
+    build: "2026.07.08",
+    codename: "Launch Ready",
+    environment: "Production",
+    backend: "Supabase",
+    push: "Firebase",
+    cloud: true
+  };
+  window.APP_VERSION = `v${window.APP_INFO.version}-launch-ready`;
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
+  function byId(id){ return document.getElementById(id); }
+  function totalApostas(){
+    try{ const ap = window.apostas || apostas || {}; return Object.values(ap).reduce((n,l)=>n+(Array.isArray(l)?l.length:0),0); }catch{ return 0; }
+  }
+  function countPrizes(){
+    try{
+      if(Array.isArray(window.historicoPremios)) return window.historicoPremios.length;
+      const raw=localStorage.getItem('historicoPremios') || localStorage.getItem('jsc_historico_premios');
+      const j=raw?JSON.parse(raw):[]; return Array.isArray(j)?j.length:0;
+    }catch{ return 0; }
+  }
+  function syncVersion(){
+    document.querySelectorAll('.v72-pill,.v54-pill,[data-app-version],.version-badge').forEach(el=>{
+      const t=(el.textContent||'').trim();
+      if(!t || /^V\d+/.test(t) || el.hasAttribute('data-app-version')) el.textContent=window.APP_INFO.label;
+    });
+    const about=byId('sobreAppV57');
+    if(about){
+      about.textContent = `${window.APP_INFO.label} · ${window.APP_INFO.codename} · ${totalApostas()} aposta(s) · ${countPrizes()} prémio(s) · ${window.APP_INFO.backend} · ${window.APP_INFO.push}`;
+    }
+  }
+  function exposeSupportInfo(){
+    window.copyAppInfo = function(){
+      const info = [
+        'Assistente Jogos Santa Casa',
+        `Versão: ${window.APP_INFO.label}`,
+        `Build: ${window.APP_INFO.build}`,
+        `Codename: ${window.APP_INFO.codename}`,
+        `Backend: ${window.APP_INFO.backend}`,
+        `Push: ${window.APP_INFO.push}`,
+        `URL: ${location.href}`,
+        `UserAgent: ${navigator.userAgent}`
+      ].join('\n');
+      navigator.clipboard?.writeText(info);
+      return info;
+    };
+  }
+  ready(()=>{
+    document.body.classList.add('v780-launch-ready');
+    syncVersion(); exposeSupportInfo();
+    setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000);
+    console.log('APP_VERSION', `${window.APP_INFO.label} (${window.APP_INFO.codename})`);
+  });
 })();
