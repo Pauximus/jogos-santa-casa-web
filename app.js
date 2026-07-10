@@ -8161,17 +8161,17 @@ instalarV73();
 
 
 /* =========================================================
-   V80.5 — Scanner Seguro de Talões + mobile polish
+   V80.6 — Scanner Rápido + menu móvel fixo
    Talão a talão: abre câmara/galeria, faz OCR e preenche os campos.
    O utilizador confirma manualmente antes de guardar.
    ========================================================= */
 (function initScannerTalaoV803(){
   const info = window.APP_INFO || (window.APP_INFO = {});
-  info.version = "80.5";
-  info.label = "V80.5";
-  info.codename = "Scanner Seguro";
-  info.slug = "scanner-seguro";
-  window.APP_VERSION = "v80.5-scanner-seguro";
+  info.version = "80.6";
+  info.label = "V80.6";
+  info.codename = "Scanner Rápido";
+  info.slug = "scanner-rapido";
+  window.APP_VERSION = "v80.6-scanner-rapido";
 
   const OCR_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 
@@ -8214,6 +8214,24 @@ instalarV73();
         #scannerTalaoWrapV803{display:flex!important;width:100%!important;margin-left:0!important;}
         #scanTalaoBtnV803{width:100%!important;min-height:48px!important;font-size:16px!important;}
         #scannerTalaoMsgV803{font-size:14px!important;line-height:1.25!important;}
+        .v75-app-nav{
+          position:fixed!important;
+          left:12px!important;
+          right:12px!important;
+          bottom:calc(10px + env(safe-area-inset-bottom))!important;
+          top:auto!important;
+          z-index:99999!important;
+          width:auto!important;
+          max-width:none!important;
+          margin:0!important;
+          border-radius:22px!important;
+          box-shadow:0 10px 30px rgba(15,23,42,.24)!important;
+          background:rgba(255,255,255,.94)!important;
+          backdrop-filter:blur(14px)!important;
+          -webkit-backdrop-filter:blur(14px)!important;
+        }
+        .v75-app-nav button{min-width:0!important;flex:1 1 0!important;padding:10px 4px!important;}
+        body{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important;}
       }
     `;
     document.head.appendChild(st);
@@ -8284,6 +8302,44 @@ instalarV73();
       s.onerror = () => reject(new Error("Não foi possível carregar o motor OCR."));
       document.head.appendChild(s);
     });
+  }
+
+  let ocrWorkerV806 = null;
+  let ocrLoggerV806 = null;
+
+  async function prepararImagemOCR(file){
+    const bitmap = await createImageBitmap(file);
+    const maxW = 1400;
+    const scale = Math.min(1, maxW / bitmap.width);
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const img = ctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    for (let i=0;i<d.length;i+=4){
+      const g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      const c = g < 155 ? Math.max(0, g * 0.72) : Math.min(255, 128 + (g-128)*1.38);
+      d[i]=d[i+1]=d[i+2]=c;
+    }
+    ctx.putImageData(img,0,0);
+    return canvas;
+  }
+
+  async function obterWorkerOCR(Tesseract, logger){
+    ocrLoggerV806 = logger;
+    if (ocrWorkerV806) return ocrWorkerV806;
+    ocrWorkerV806 = await Tesseract.createWorker("eng", 1, {
+      logger: m => ocrLoggerV806?.(m)
+    });
+    await ocrWorkerV806.setParameters({
+      preserve_interword_spaces: "1",
+      tessedit_pageseg_mode: "6"
+    });
+    return ocrWorkerV806;
   }
 
   function normalizarTextoOCR(texto){
@@ -8437,16 +8493,15 @@ instalarV73();
     const old = btn?.textContent || "📷 Ler talão";
     try {
       if (btn) { btn.disabled = true; btn.textContent = "📷 A ler..."; }
-      setScannerMsg("A carregar OCR... mantém a app aberta.");
-      const Tesseract = await carregarTesseract();
-      setScannerMsg("A analisar o talão... pode demorar alguns segundos.");
-      const result = await Tesseract.recognize(file, "por+eng", {
-        logger: m => {
-          if (m?.status === "recognizing text" && typeof m.progress === "number") {
-            setScannerMsg(`A ler texto... ${Math.round(m.progress * 100)}%`);
-          }
+      setScannerMsg("A preparar a fotografia...");
+      const [Tesseract, imagem] = await Promise.all([carregarTesseract(), prepararImagemOCR(file)]);
+      setScannerMsg("A iniciar leitura... na primeira utilização pode demorar um pouco.");
+      const worker = await obterWorkerOCR(Tesseract, m => {
+        if (m?.status === "recognizing text" && typeof m.progress === "number") {
+          setScannerMsg(`A ler texto... ${Math.round(m.progress * 100)}%`);
         }
       });
+      const result = await worker.recognize(imagem);
       const text = result?.data?.text || "";
       const aposta = extrairApostaDoTexto(text);
       if (!aposta || aposta.erro) {
@@ -8454,10 +8509,7 @@ instalarV73();
         const extraMsg = aposta?.erro === "sem_numero_sorte"
           ? "Consegui ver a chave, mas não consegui confirmar o Nº da Sorte."
           : "Não consegui detetar a aposta com confiança.";
-        setScannerMsg(`${extraMsg} Tenta aproximar mais, com boa luz, e enquadra só a zona dos números.`, "warn");
-        alert(`${extraMsg}
-
-Tira nova foto mais direita, com boa luz, e apanha apenas a zona da aposta.`);
+        setScannerMsg(`${extraMsg} Aproxima a câmara, mantém o talão direito e enquadra apenas a chave e os extras.`, "warn");
         return;
       }
       preencherCamposOCR(aposta);
@@ -8466,15 +8518,14 @@ Tira nova foto mais direita, com boa luz, e apanha apenas a zona da aposta.`);
       setScannerMsg(`Aposta lida: ${nums}${extras ? " + " + extras : ""}. Confirma os campos e clica em “Adicionar aposta”.`, "ok");
     } catch (err) {
       console.error("Scanner de talão falhou:", err);
-      setScannerMsg("Erro ao ler o talão. Podes continuar a inserir manualmente.", "error");
-      alert("Erro ao ler o talão: " + (err?.message || err));
+      setScannerMsg("Não foi possível concluir a leitura. Verifica a ligação e tenta uma fotografia mais aproximada.", "error");
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = old; }
     }
   }
 
   function tickScanner(){
-    try { injectMobilePolishV804(); injectScannerUI(); } catch(e) { console.warn("Scanner V80.5", e); }
+    try { injectMobilePolishV804(); injectScannerUI(); } catch(e) { console.warn("Scanner V80.6", e); }
   }
   document.addEventListener("DOMContentLoaded", tickScanner);
   window.setTimeout(tickScanner, 200);
