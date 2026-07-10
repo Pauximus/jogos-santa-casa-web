@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "80.3",
-  label: "V80.3",
+  version: "80.7",
+  label: "V80.7",
   build: "2026.07.09",
-  codename: "Scanner Beta",
-  slug: "scanner-beta",
+  codename: "Scanner Multi + Menu Global",
+  slug: "scanner-multi-menu-global",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -8167,11 +8167,11 @@ instalarV73();
    ========================================================= */
 (function initScannerTalaoV803(){
   const info = window.APP_INFO || (window.APP_INFO = {});
-  info.version = "80.6";
-  info.label = "V80.6";
-  info.codename = "Scanner Rápido";
-  info.slug = "scanner-rapido";
-  window.APP_VERSION = "v80.6-scanner-rapido";
+  info.version = "80.7";
+  info.label = "V80.7";
+  info.codename = "Scanner Multi + Menu Global";
+  info.slug = "scanner-multi-menu-global";
+  window.APP_VERSION = "v80.7-scanner-multi-menu-global";
 
   const OCR_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 
@@ -8467,12 +8467,47 @@ instalarV73();
         }
       });
       candidatos.sort((a,b)=>b.score-a.score);
-      if (candidatos[0]) return { jogo: "euromilhoes", nums: candidatos[0].nums, extras: candidatos[0].extras, confidence: candidatos[0].score };
+      // Remove duplicados e devolve todas as apostas válidas encontradas no mesmo talão.
+      const unicas = [];
+      const vistos = new Set();
+      candidatos.forEach(c => {
+        const chave = `${c.nums.join("-")}+${c.extras.join("-")}`;
+        if (!vistos.has(chave)) { vistos.add(chave); unicas.push(c); }
+      });
+      if (unicas.length === 1) return { jogo: "euromilhoes", nums: unicas[0].nums, extras: unicas[0].extras, confidence: unicas[0].score };
+      if (unicas.length > 1) return { jogo: "euromilhoes", apostas: unicas.map(c => ({ nums:c.nums, extras:c.extras, confidence:c.score })) };
       return { erro: "baixa_confianca", jogo: "euromilhoes" };
     }
 
     // Fallback seguro: não preencher se o OCR não for claro.
     return null;
+  }
+
+  function mostrarEscolhaApostasOCR(res){
+    const antigas = document.getElementById("scannerEscolhasV807");
+    if (antigas) antigas.remove();
+    const msg = document.getElementById("scannerTalaoMsgV803");
+    if (!msg || !Array.isArray(res?.apostas) || !res.apostas.length) return false;
+    const box = document.createElement("div");
+    box.id = "scannerEscolhasV807";
+    box.className = "scanner-escolhas-v807";
+    box.innerHTML = `<strong>Encontrei ${res.apostas.length} apostas. Escolhe uma para preencher:</strong>`;
+    res.apostas.forEach((ap, i) => {
+      const b = document.createElement("button");
+      const nums = ap.nums.map(n => String(n).padStart(2,"0")).join(" ");
+      const extras = ap.extras.map(n => String(n).padStart(2,"0")).join(" ");
+      b.type = "button";
+      b.textContent = `${i+1}) ${nums} + ${extras}`;
+      b.addEventListener("click", () => {
+        preencherCamposOCR({ jogo:res.jogo, nums:ap.nums, extras:ap.extras });
+        box.querySelectorAll("button").forEach(x => x.classList.remove("active"));
+        b.classList.add("active");
+        setScannerMsg(`Aposta ${i+1} preenchida. Confirma os campos e clica em “Adicionar aposta”.`, "ok");
+      });
+      box.appendChild(b);
+    });
+    msg.insertAdjacentElement("afterend", box);
+    return true;
   }
 
   function preencherCamposOCR(res){
@@ -8512,6 +8547,11 @@ instalarV73();
         setScannerMsg(`${extraMsg} Aproxima a câmara, mantém o talão direito e enquadra apenas a chave e os extras.`, "warn");
         return;
       }
+      if (Array.isArray(aposta.apostas) && aposta.apostas.length) {
+        mostrarEscolhaApostasOCR(aposta);
+        setScannerMsg(`Encontrei ${aposta.apostas.length} apostas no talão. Escolhe uma abaixo.`, "ok");
+        return;
+      }
       preencherCamposOCR(aposta);
       const nums = aposta.nums.map(n => String(n).padStart(2, "0")).join(" ");
       const extras = (aposta.extras || []).map(n => String(n).padStart(2, "0")).join(" ");
@@ -8530,4 +8570,48 @@ instalarV73();
   document.addEventListener("DOMContentLoaded", tickScanner);
   window.setTimeout(tickScanner, 200);
   window.setInterval(tickScanner, 3000);
+})();
+
+
+/* =========================================================
+   V80.7 — Menu móvel global definitivo
+   Retira a navegação de contentores animados/transformados e
+   coloca-a diretamente no body em ecrãs móveis.
+   ========================================================= */
+(function initMenuGlobalV807(){
+  const mq = window.matchMedia("(max-width: 760px)");
+  let originalParent = null;
+  let originalNext = null;
+
+  function syncNav(){
+    const nav = document.getElementById("v75AppNav");
+    const appBox = document.getElementById("appBox");
+    if (!nav || !appBox) return;
+    if (!originalParent) { originalParent = nav.parentNode; originalNext = nav.nextSibling; }
+    if (mq.matches) {
+      if (nav.parentNode !== document.body) document.body.appendChild(nav);
+      nav.classList.add("v807-global-mobile-nav");
+      document.body.classList.add("v807-has-global-nav");
+    } else {
+      nav.classList.remove("v807-global-mobile-nav");
+      document.body.classList.remove("v807-has-global-nav");
+      if (nav.parentNode === document.body) {
+        if (originalNext && originalNext.parentNode === originalParent) originalParent.insertBefore(nav, originalNext);
+        else originalParent.insertBefore(nav, originalParent.firstChild);
+      }
+    }
+  }
+
+  function cleanDuplicateNavs(){
+    const all = [...document.querySelectorAll("#v75AppNav, .v75-app-nav")];
+    const keep = document.getElementById("v75AppNav");
+    all.forEach(n => { if (n !== keep) n.remove(); });
+  }
+
+  function tick(){ cleanDuplicateNavs(); syncNav(); }
+  document.addEventListener("DOMContentLoaded", tick);
+  window.addEventListener("resize", tick, { passive:true });
+  if (mq.addEventListener) mq.addEventListener("change", tick);
+  setTimeout(tick, 50);
+  setInterval(tick, 2500);
 })();
