@@ -493,7 +493,7 @@ async function disableNativeToken(item, reason) {
 async function sendToNativeToken(item, notification) {
   const firebase = await getFirebaseAccess();
   if (!firebase) return { unavailable:true };
-  const logged = await logBeforeSend({ ...item, device_id:`fcm:${item.device_id}` }, notification);
+  const logged = await logBeforeSend(item, notification);
   if (!logged) return { skipped:true };
   const data = Object.fromEntries(Object.entries({
     tipo: notification.payload.tipo || notification.notification_type,
