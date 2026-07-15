@@ -1,13 +1,20 @@
 {
   "name": "assistente-jogos-santa-casa-web",
   "private": true,
-  "version": "72.2.0",
+  "version": "85.0.0",
   "type": "module",
   "scripts": {
     "push:engine": "node scripts/push-engine.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/local-notifications": "^8.2.0",
+    "@capacitor/push-notifications": "^8.1.1",
     "@supabase/supabase-js": "^2.45.0",
-    "web-push": "^3.6.7"
+    "google-auth-library": "^10.9.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.1"
   }
 }

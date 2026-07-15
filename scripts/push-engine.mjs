@@ -1,7 +1,7 @@
-import webpush from 'web-push';
+import { GoogleAuth } from 'google-auth-library';
 
-const APP_VERSION = 'v72.2-importacao-global-resultados';
-const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'];
+const APP_VERSION = 'v85.0-fcm-nativo';
+const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'FIREBASE_SERVICE_ACCOUNT_JSON'];
 for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env: ${key}`);
 }
@@ -355,11 +355,6 @@ function criarNotificacaoPremio(resultado, resumoPerfil) {
   };
 }
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || 'mailto:pauximus@gmail.com',
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
 
 function lisbonParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -389,7 +384,7 @@ function buildNotification(mode = process.env.PUSH_MODE || 'scheduled', now = ne
       notification_type: 'teste_push',
       payload: {
         title: '🧪 Teste Push — Assistente Jogos Santa Casa',
-        body: process.env.PUSH_TEST_MESSAGE || `Teste V68 OK. Push Engine ativo com a app fechada.`,
+        body: process.env.PUSH_TEST_MESSAGE || `Teste V85 OK. Firebase Cloud Messaging nativo ativo com a app fechada.`,
         tipo: 'teste',
         tag: `jsc-teste-${testId}`,
         url: './',
@@ -458,11 +453,68 @@ function buildNotification(mode = process.env.PUSH_MODE || 'scheduled', now = ne
   return null;
 }
 
-async function getSubscriptions() {
-  return await supabaseRequest('push_subscriptions?select=id,profile_id,device_id,endpoint,p256dh,auth,enabled&enabled=eq.true&limit=1000', {
-    method: 'GET',
-    headers: { Accept: 'application/json' }
-  }) || [];
+
+async function getNativeTokens() {
+  try {
+    return await supabaseRequest('native_push_tokens?select=id,profile_id,device_id,token,platform,enabled&enabled=eq.true&limit=1000', {
+      method: 'GET', headers: { Accept: 'application/json' }
+    }) || [];
+  } catch (e) {
+    if (e.status === 404 || e.code === '42P01') {
+      console.warn('native_push_tokens ainda não existe; executar database/migrations/0008_native_push_tokens.sql');
+      return [];
+    }
+    throw e;
+  }
+}
+
+let firebaseAccess = null;
+async function getFirebaseAccess() {
+  if (firebaseAccess && firebaseAccess.expiresAt > Date.now() + 60000) return firebaseAccess;
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (!raw) return null;
+  let credentials;
+  try { credentials = JSON.parse(raw); }
+  catch { throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON não contém JSON válido.'); }
+  const auth = new GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/firebase.messaging'] });
+  const client = await auth.getClient();
+  const token = await client.getAccessToken();
+  firebaseAccess = { token: token?.token || token, projectId: credentials.project_id, expiresAt: Date.now() + 45 * 60 * 1000 };
+  return firebaseAccess;
+}
+
+async function disableNativeToken(item, reason) {
+  console.log(`Disabling FCM token ${item.id}: ${reason}`);
+  await supabaseRequest(`native_push_tokens?id=eq.${encodeURIComponent(item.id)}`, {
+    method: 'PATCH', body: JSON.stringify({ enabled:false, updated_at:new Date().toISOString() })
+  });
+}
+
+async function sendToNativeToken(item, notification) {
+  const firebase = await getFirebaseAccess();
+  if (!firebase) return { unavailable:true };
+  const logged = await logBeforeSend({ ...item, device_id:`fcm:${item.device_id}` }, notification);
+  if (!logged) return { skipped:true };
+  const data = Object.fromEntries(Object.entries({
+    tipo: notification.payload.tipo || notification.notification_type,
+    game: notification.game || '',
+    draw_number: notification.draw_number || '',
+    tag: notification.payload.tag || '',
+    url: notification.payload.url || './',
+    version: APP_VERSION
+  }).map(([k,v])=>[k,String(v)]));
+  const res = await fetch(`https://fcm.googleapis.com/v1/projects/${firebase.projectId}/messages:send`, {
+    method:'POST',
+    headers:{ Authorization:`Bearer ${firebase.token}`, 'Content-Type':'application/json' },
+    body:JSON.stringify({ message:{ token:item.token, notification:{ title:notification.payload.title, body:notification.payload.body }, data, android:{ priority:'high', notification:{ channel_id:'jsc_alertas', sound:'default', tag:notification.payload.tag || undefined } } } })
+  });
+  const text = await res.text();
+  if (res.ok) return { sent:true };
+  if (res.status === 404 || /UNREGISTERED|registration-token-not-registered/i.test(text)) {
+    await disableNativeToken(item, text.slice(0,160));
+    return { disabled:true };
+  }
+  throw new Error(`FCM HTTP ${res.status}: ${text}`);
 }
 
 async function logBeforeSend(sub, notification) {
@@ -486,47 +538,14 @@ async function logBeforeSend(sub, notification) {
   }
 }
 
-async function disableSubscription(sub, reason) {
-  console.log(`Disabling subscription ${sub.id}: ${reason}`);
-  await supabaseRequest(`push_subscriptions?id=eq.${encodeURIComponent(sub.id)}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ enabled: false, updated_at: new Date().toISOString() })
-  });
-}
-
-async function sendToSubscription(sub, notification) {
-  const shouldSend = await logBeforeSend(sub, notification);
-  if (!shouldSend) {
-    console.log(`Skipped duplicate for ${sub.profile_id} / ${notification.game} / ${notification.draw_number} / ${notification.notification_type}`);
-    return { skipped: true };
-  }
-
-  const pushSub = {
-    endpoint: sub.endpoint,
-    keys: { p256dh: sub.p256dh, auth: sub.auth }
-  };
-
-  try {
-    await webpush.sendNotification(pushSub, JSON.stringify(notification.payload), { TTL: 60 * 60 * 6 });
-    return { sent: true };
-  } catch (err) {
-    if (err.statusCode === 404 || err.statusCode === 410) {
-      await disableSubscription(sub, `expired ${err.statusCode}`);
-      return { disabled: true };
-    }
-    console.error('Push failed:', err.statusCode, err.body || err.message);
-    throw err;
-  }
-}
-
 async function main() {
   console.log(`Assistente Jogos Santa Casa — ${APP_VERSION}`);
   const mode = process.env.PUSH_MODE || 'scheduled';
   const runId = await createRunLog(mode);
   let notification = null;
   let importStats = null;
-  let subscriptions = [];
-  const stats = { sent: 0, skipped: 0, disabled: 0, failed: 0 };
+  let nativeTokens = [];
+  const stats = { sent: 0, skipped: 0, disabled: 0, failed: 0, nativeSent: 0 };
 
   try {
     notification = buildNotification(mode);
@@ -593,42 +612,27 @@ async function main() {
       return;
     }
 
-    subscriptions = await getSubscriptions();
+    nativeTokens = await getNativeTokens();
     console.log(`Notification: ${notification.payload.title}`);
     console.log(`Type: ${notification.notification_type} | Game: ${notification.game} | Draw: ${notification.draw_number}`);
-    console.log(`Enabled subscriptions: ${subscriptions.length}`);
+    console.log(`FCM tokens ativos: ${nativeTokens.length}`);
 
-    if (!subscriptions.length) {
-      console.log('No enabled push subscriptions. Abre a app, permite notificações e clica em Registar Push Cloud.');
+    if (!nativeTokens.length) {
+      console.log('Nenhum token FCM ativo. Abre a app, permite notificações e inicia sessão.');
     }
 
-    if (notificacoesPremio.length) {
-      console.log(`Prize notifications: ${notificacoesPremio.length}`);
-      for (const premioNotif of notificacoesPremio) {
-        const alvo = subscriptions.filter(s => s.profile_id === premioNotif.target_profile_id);
-        for (const sub of alvo) {
-          try {
-            const result = await sendToSubscription(sub, premioNotif);
-            if (result.sent) stats.sent++;
-            else if (result.skipped) stats.skipped++;
-            else if (result.disabled) stats.disabled++;
-          } catch (e) {
-            stats.failed++;
-            console.error(`Failed prize subscription ${sub.id}:`, e.message || e);
-          }
-        }
-      }
-    } else {
-      for (const sub of subscriptions) {
+    const nativeNotifications = notificacoesPremio.length ? notificacoesPremio : [notification];
+    for (const nativeNotif of nativeNotifications) {
+      const alvos = nativeNotif.target_profile_id
+        ? nativeTokens.filter(t => t.profile_id === nativeNotif.target_profile_id)
+        : nativeTokens;
+      for (const item of alvos) {
         try {
-          const result = await sendToSubscription(sub, notification);
-          if (result.sent) stats.sent++;
+          const result = await sendToNativeToken(item, nativeNotif);
+          if (result.sent) { stats.sent++; stats.nativeSent++; }
           else if (result.skipped) stats.skipped++;
           else if (result.disabled) stats.disabled++;
-        } catch (e) {
-          stats.failed++;
-          console.error(`Failed subscription ${sub.id}:`, e.message || e);
-        }
+        } catch(e) { stats.failed++; console.error(`Failed FCM token ${item.id}:`, e.message || e); }
       }
     }
 
@@ -639,7 +643,7 @@ async function main() {
       draw_number: notification.draw_number,
       notification_type: notification.notification_type,
       notification_title: notificacoesPremio.length ? `🏆 ${notificacoesPremio.length} utilizador(es) com prémio` : notification.payload.title,
-      subscriptions_count: subscriptions.length,
+      subscriptions_count: nativeTokens.length,
       sent: stats.sent,
       skipped: stats.skipped,
       disabled: stats.disabled,
@@ -651,7 +655,7 @@ async function main() {
     await finishRunLog(runId, {
       status: 'error',
       message: err.message || String(err),
-      subscriptions_count: subscriptions.length,
+      subscriptions_count: nativeTokens.length,
       sent: stats.sent,
       skipped: stats.skipped,
       disabled: stats.disabled,

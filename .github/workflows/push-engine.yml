@@ -1,4 +1,4 @@
-name: Push Engine
+name: Push Engine FCM
 
 on:
   workflow_dispatch:
@@ -8,26 +8,26 @@ on:
         required: true
         default: "test"
         type: choice
-        options:
-          - test
-          - scheduled
-          - reminder
-          - soon
-          - results
+        options: [test, scheduled, reminder, soon, results]
       message:
         description: "Mensagem do teste (opcional)"
         required: false
         default: ""
   schedule:
-    # UTC. No verão em Portugal, Lisboa está UTC+1.
-    # Terça/sexta = EuroMilhões. Quarta/sábado = Totoloto.
-    # Scheduler inteligente. Corre em janelas úteis para lembretes e resultados.
-    # Em modo scheduled, o script decide se deve enviar algo ou ficar idle.
+    # Portugal: janelas de lembretes e resultados.
     - cron: "*/30 17-23 * * 2,3,5,6"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: push-engine-fcm
+  cancel-in-progress: false
 
 jobs:
   push-engine:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,19 +35,17 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
 
-      - name: Run Push Engine
+      - name: Run Push Engine FCM
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
-          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           PUSH_MODE: ${{ github.event.inputs.mode || 'scheduled' }}
           PUSH_FORCE_TEST: ${{ github.event.inputs.mode == 'test' && '1' || '0' }}
           PUSH_TEST_ID: ${{ github.run_id }}-${{ github.run_attempt }}
