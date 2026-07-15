@@ -3,8 +3,8 @@ const CACHE_NAME = `jogos-santa-casa-v${APP_VERSION.replace(/\./g, "-")}`;
 const APP_SHELL = [
   "./",
   "index.html",
-  "style.css?v=860",
-  "app.js?v=860",
+  "style.css?v=900",
+  "app.js?v=900",
   "manifest.webmanifest?v=860",
   "icons/icon-192.png",
   "icons/icon-512.png",

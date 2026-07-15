@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "88.0",
-  label: "V88.0",
+  version: "90.0",
+  label: "V90.0",
   build: "2026.07.15",
-  codename: "Logo e estado inteligente",
-  slug: "logo-estado-inteligente",
+  codename: "Finalização do Dashboard",
+  slug: "finalizacao-dashboard",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -7811,7 +7811,7 @@ instalarV73();
     if(insight){
       if(prizes>0) insight.textContent=`🎉 Encontrámos ${prizes} prémio(s) no teu histórico. Confirma e marca os que já levantaste.`;
       else if(ap===0) insight.textContent='👋 Bem-vindo! Adiciona a tua primeira aposta para ativar estatísticas, prémios e alertas.';
-      else insight.textContent=`🍀 Tens ${ap} aposta(s) ativas. A cloud está sincronizada ${cloudAgo} e o assistente continua a acompanhar os resultados.`;
+      else insight.textContent=`🍀 Tens ${ap} aposta(s) ativas. A cloud está sincronizada e o assistente continua a acompanhar os resultados.`;
     }
   }
   function tick(){ try{ updateUserCard(); updateDashboard(); }catch(e){ console.warn('V76.4 dashboard vivo', e); } }
@@ -8227,11 +8227,11 @@ instalarV73();
    ========================================================= */
 (function initScannerTalaoV803(){
   const info = window.APP_INFO || (window.APP_INFO = {});
-  info.version = "88.0";
-  info.label = "V88.0";
+  info.version = "90.0";
+  info.label = "V90.0";
   info.codename = "Android Native + ML Kit";
   info.slug = "android-native-mlkit";
-  window.APP_VERSION = "v88.0-logo-estado-inteligente";
+  window.APP_VERSION = "v90.0-finalizacao-dashboard";
 
   const OCR_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 
@@ -9132,15 +9132,15 @@ instalarV73();
 
 
 // =========================================================
-// V88.0 — Logo oficial e estados reais do dashboard
+// V89.0 — Dashboard Inteligente 2.0
 // =========================================================
 (() => {
   const V88 = {
-    version: "88.0",
-    label: "V88.0",
+    version: "90.0",
+    label: "V90.0",
     build: "2026.07.15",
-    codename: "Logo e estado inteligente",
-    slug: "logo-estado-inteligente"
+    codename: "Finalização do Dashboard",
+    slug: "finalizacao-dashboard"
   };
 
   function canonicalVersionV88() {
@@ -9253,8 +9253,18 @@ instalarV73();
       if (error) throw error;
       const result = data?.[0];
       if (result) {
-        const draw = result.sorteio ? `Sorteio ${result.sorteio}` : formatWhenV88(result.data_sorteio);
-        setDashboardCard('v73UltimoResultado', gameNameV88(result.jogo), draw || 'Resultado oficial disponível');
+        const rawDraw = String(result.sorteio || '').trim();
+        const invalidDraw = !rawDraw || /^(último|ultimo)\s+sorteio$/i.test(rawDraw) || /^(último|ultimo)$/i.test(rawDraw);
+        const dateValue = result.data_sorteio || result.data || result.created_at || result.updated_at;
+        let detail = '';
+        if (!invalidDraw) detail = /^sorteio\s+/i.test(rawDraw) ? rawDraw : `Sorteio ${rawDraw}`;
+        if (!detail && dateValue) {
+          const d = new Date(dateValue);
+          detail = Number.isNaN(d.getTime())
+            ? String(dateValue)
+            : d.toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon', day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        setDashboardCard('v73UltimoResultado', gameNameV88(result.jogo), detail || 'Resultado oficial disponível');
       } else {
         setDashboardCard('v73UltimoResultado', 'Sem resultados', 'Ainda não existem resultados importados.');
       }
@@ -9277,6 +9287,220 @@ instalarV73();
     document.addEventListener('DOMContentLoaded', startV88, { once: true });
   } else {
     startV88();
+  }
+})();
+
+
+
+// =========================================================
+// V89.0 — Acabamentos do Dashboard Inteligente 2.0
+// =========================================================
+(() => {
+  const cleanSyncTextV89 = () => {
+    const insight = document.getElementById('v73Insight');
+    if (!insight) return;
+    insight.textContent = insight.textContent
+      .replace(/A cloud está sincronizada\s+(a sincronizar|—)/gi, 'A cloud está sincronizada')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  };
+
+  const cleanResultTextV89 = () => {
+    const result = document.getElementById('v73UltimoResultado');
+    const detail = result?.parentElement?.querySelector('small');
+    if (!detail) return;
+    detail.textContent = detail.textContent
+      .replace(/^Sorteio\s+(último|ultimo)\s+sorteio$/i, 'Resultado oficial disponível')
+      .replace(/^Sorteio\s+Sorteio\s+/i, 'Sorteio ')
+      .trim();
+  };
+
+  const polishV89 = () => {
+    cleanSyncTextV89();
+    cleanResultTextV89();
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', polishV89);
+  else polishV89();
+  window.setTimeout(polishV89, 800);
+  window.setTimeout(polishV89, 2500);
+  window.setInterval(polishV89, 30000);
+})();
+
+
+// =========================================================
+// V90.0 — Finalização do Dashboard para publicação
+// Apenas acabamentos dos cartões Resultado, Cloud e Push.
+// =========================================================
+(() => {
+  const byIdV90 = id => document.getElementById(id);
+
+  const setCardV90 = (id, title, detail) => {
+    const titleEl = byIdV90(id);
+    if (!titleEl) return;
+    if (title && titleEl.textContent !== title) titleEl.textContent = title;
+    const detailEl = titleEl.parentElement?.querySelector('small');
+    if (detailEl && detail && detailEl.textContent !== detail) detailEl.textContent = detail;
+  };
+
+  const asArrayV90 = value => {
+    if (Array.isArray(value)) return value.filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+    if (value === null || value === undefined || value === '') return [];
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (_) {}
+      return trimmed.split(/[,\s;|]+/).filter(Boolean);
+    }
+    return [value];
+  };
+
+  const gameNameV90 = value => {
+    const key = String(value || '').toLowerCase().replace(/\s+/g, '_');
+    const names = {
+      euromilhoes: 'Euromilhões',
+      totoloto: 'Totoloto',
+      eurodreams: 'EuroDreams',
+      milhao: 'M1lhão',
+      m1lhao: 'M1lhão',
+      lotaria_classica: 'Lotaria Clássica',
+      lotaria_popular: 'Lotaria Popular'
+    };
+    return names[key] || String(value || 'Resultado');
+  };
+
+  const formatDateV90 = value => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('pt-PT', {
+      timeZone: 'Europe/Lisbon',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const formatTimeV90 = value => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const today = new Date();
+    const sameDay = d.toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' }) ===
+      today.toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' });
+    const time = d.toLocaleTimeString('pt-PT', {
+      timeZone: 'Europe/Lisbon',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    return sameDay ? `hoje às ${time}` : `${formatDateV90(value)} às ${time}`;
+  };
+
+  const resultDetailV90 = result => {
+    const parts = [];
+    const rawDraw = String(result?.sorteio || result?.concurso || '').trim();
+    if (rawDraw && !/^(último|ultimo)(\s+sorteio)?$/i.test(rawDraw)) {
+      parts.push(/^sorteio\s+/i.test(rawDraw) ? rawDraw : `Sorteio ${rawDraw}`);
+    } else {
+      const date = formatDateV90(result?.data_sorteio || result?.data || result?.created_at);
+      if (date) parts.push(date);
+    }
+
+    const numeros = asArrayV90(result?.numeros || result?.resultado);
+    const extras = asArrayV90(result?.extras || result?.estrelas);
+    if (numeros.length) {
+      let line = numeros.join(' · ');
+      if (extras.length) line += `  +  ${extras.join(' · ')}`;
+      parts.push(line);
+    } else if (Array.isArray(result?.premios) && result.premios.length) {
+      const first = result.premios[0];
+      const number = first?.numero || first?.codigo;
+      if (number) parts.push(`1.º prémio: ${number}`);
+    } else if (result?.codigo) {
+      parts.push(String(result.codigo));
+    }
+
+    return parts.join('  •  ') || 'Resultado oficial disponível';
+  };
+
+  async function refreshFinalDashboardV90() {
+    window.APP_INFO = Object.assign(window.APP_INFO || {}, {
+      version: '90.0',
+      label: 'V90.0',
+      build: '2026.07.15',
+      codename: 'Finalização do Dashboard',
+      slug: 'finalizacao-dashboard'
+    });
+    window.APP_VERSION = 'v90.0-finalizacao-dashboard';
+
+    document.querySelectorAll('[data-app-version], .v72-pill, .v54-pill, .version-badge').forEach(el => {
+      const current = String(el.textContent || '').trim();
+      if (el.hasAttribute('data-app-version') || /^V\d+(?:\.\d+)?/i.test(current)) {
+        if (el.textContent !== 'V90.0') el.textContent = 'V90.0';
+      }
+    });
+
+    let user = null;
+    try { user = window.currentUser || currentUser || null; }
+    catch (_) { user = window.currentUser || null; }
+
+    if (user) {
+      setCardV90('v73CloudResumo', navigator.onLine ? 'Cloud sincronizada' : 'Cloud offline',
+        navigator.onLine ? 'Sincronização automática ativa.' : 'Liga-te à Internet para sincronizar.');
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('native_push_tokens')
+          .select('updated_at,last_seen_at,enabled')
+          .eq('profile_id', user.id)
+          .eq('enabled', true)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        if (error) throw error;
+        const token = data?.[0];
+        if (token) {
+          setCardV90('v73PushResumo', 'Notificações ativas',
+            `Dispositivo registado ${formatTimeV90(token.last_seen_at || token.updated_at)}`);
+        } else {
+          setCardV90('v73PushResumo', 'Notificações inativas', 'Ativa as notificações neste dispositivo.');
+        }
+      } catch (error) {
+        console.warn('V90: não foi possível confirmar o Push Engine', error);
+      }
+    }
+
+    try {
+      const { data, error } = await supabaseClient
+        .from('resultados_oficiais')
+        .select('*')
+        .order('data_sorteio', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      const result = data?.[0];
+      if (result) {
+        setCardV90('v73UltimoResultado', gameNameV90(result.jogo), resultDetailV90(result));
+      }
+    } catch (error) {
+      console.warn('V90: último resultado indisponível', error);
+    }
+  }
+
+  const startV90 = () => {
+    refreshFinalDashboardV90();
+    window.setTimeout(refreshFinalDashboardV90, 900);
+    window.setTimeout(refreshFinalDashboardV90, 2600);
+    window.setInterval(refreshFinalDashboardV90, 30000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refreshFinalDashboardV90();
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startV90, { once: true });
+  } else {
+    startV90();
   }
 })();
 
