@@ -1,8 +1,8 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "86.0",
-  label: "V86.0",
-  build: "2026.07.15",
+  version: "86.1",
+  label: "V86.1",
+  build: "2026.07.15.1",
   codename: "Estabilização FCM nativo",
   slug: "estabilizacao-fcm-nativo",
   environment: "Production",
@@ -8933,9 +8933,28 @@ instalarV73();
       catch(e){ console.error("V84: erro ao guardar token FCM", e); }
     });
     push.addListener("registrationError", err => console.error("V84: registo FCM falhou", err));
-    push.addListener("pushNotificationReceived", notif => {
-      console.log("V84: push recebido", notif);
+    push.addListener("pushNotificationReceived", async notif => {
+      console.log("V86.1: push recebido em primeiro plano", notif);
       try { localStorage.setItem("jsc_v840_ultimo_push", JSON.stringify({notif, at:new Date().toISOString()})); } catch{}
+      // O Android não mostra automaticamente a notificação FCM quando a app está aberta.
+      // Criamos uma notificação local equivalente para o utilizador a ver na mesma.
+      try {
+        const local = localPlugin();
+        if (local?.schedule) {
+          const data = notif?.data || {};
+          const title = notif?.title || data.title || "🍀 Assistente Jogos Santa Casa";
+          const body = notif?.body || data.body || "Tens uma nova notificação.";
+          await local.schedule({ notifications: [{
+            id: Math.floor(Date.now() % 2000000000),
+            title,
+            body,
+            channelId: "jsc_alertas",
+            extra: data
+          }] });
+        }
+      } catch (e) {
+        console.warn("V86.1: não foi possível mostrar push em primeiro plano", e);
+      }
     });
     push.addListener("pushNotificationActionPerformed", action => {
       console.log("V84: push aberto", action);
@@ -9050,55 +9069,18 @@ instalarV73();
 })();
 
 
-/* =========================================================
-   V84.2 — Versão canónica e atualização Android corrigida
-   - Impede o aviso PWA "v0.9.0" dentro da app Android.
-   - Garante que todos os rótulos mostram V84.2.
-   ========================================================= */
-(() => {
-  const VERSION = "84.2";
-  const LABEL = "V84.2";
-  const SLUG = "notificacoes-nativas-estaveis";
-  const FULL = `v${VERSION}-${SLUG}`;
-
-  const applyCanonicalVersion = () => {
-    const info = window.APP_INFO || (window.APP_INFO = {});
-    info.version = VERSION;
-    info.label = LABEL;
-    info.build = "2026.07.14";
-    info.codename = "Notificações nativas estáveis";
-    info.slug = SLUG;
-    window.APP_VERSION = FULL;
-
-    document.querySelectorAll('.v72-pill,.v54-pill').forEach(el => {
-      const txt = String(el.textContent || '').trim();
-      if (/^V\d+(?:\.\d+)?/i.test(txt)) el.textContent = LABEL;
-    });
-    const splash = document.getElementById('appSplashVersionV800');
-    if (splash) splash.textContent = `${LABEL} · Notificações nativas`;
-    const cloudVersion = document.getElementById('v67CloudVersion');
-    if (cloudVersion) cloudVersion.textContent = FULL;
-  };
-
-  applyCanonicalVersion();
-  document.addEventListener('DOMContentLoaded', applyCanonicalVersion);
-  setTimeout(applyCanonicalVersion, 100);
-  setTimeout(applyCanonicalVersion, 1000);
-  setInterval(applyCanonicalVersion, 3000);
-  console.log('🍀 V84.2 — versão canónica e atualização Android corrigidas');
-})();
 
 /* ================================================================
-   V86.0 — Versão canónica única e estabilização FCM nativo
+   V86.1 — Versão canónica única e estabilização FCM nativo
    Este bloco é deliberadamente o último do ficheiro: neutraliza
    substituições antigas deixadas por versões anteriores.
    ================================================================ */
 (function aplicarVersaoCanonicaV860(){
   const info = {
     name: "Assistente Jogos Santa Casa",
-    version: "86.0",
-    label: "V86.0",
-    build: "2026.07.15",
+    version: "86.1",
+    label: "V86.1",
+    build: "2026.07.15.1",
     codename: "Estabilização FCM nativo",
     slug: "estabilizacao-fcm-nativo",
     environment: "Production",
@@ -9138,6 +9120,6 @@ instalarV73();
   // desativado para impedir registos duplicados em push_subscriptions.
   window.JSC_NATIVE_PUSH_ONLY = true;
 
-  console.log("🍀 V86.0 — versão única e FCM nativo estabilizados");
+  console.log("🍀 V86.1 — versão única, FCM nativo e push em primeiro plano estabilizados");
 })();
 

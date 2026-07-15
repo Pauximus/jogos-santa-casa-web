@@ -3,7 +3,7 @@
   "short_name": "Assistente",
   "description": "Assistente instalável para acompanhar apostas, resultados, prémios, cloud, Google Login e notificações dos Jogos Santa Casa.",
   "id": "/jogos-santa-casa-web/",
-  "start_url": "/jogos-santa-casa-web/?source=pwa&v=860",
+  "start_url": "/jogos-santa-casa-web/?source=pwa&v=861",
   "scope": "/jogos-santa-casa-web/",
   "display": "standalone",
   "display_override": [
@@ -72,5 +72,5 @@
     }
   ],
   "prefer_related_applications": false,
-  "version": "v86.0-estabilizacao-fcm-nativo"
+  "version": "v86.1-fcm-nativo-estabilizado"
 }

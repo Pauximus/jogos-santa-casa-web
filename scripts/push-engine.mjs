@@ -1,6 +1,6 @@
 import { GoogleAuth } from 'google-auth-library';
 
-const APP_VERSION = 'v86.0-estabilizacao-fcm-nativo';
+const APP_VERSION = 'v86.1-fcm-nativo-estabilizado';
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'FIREBASE_SERVICE_ACCOUNT_JSON'];
 for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env: ${key}`);
