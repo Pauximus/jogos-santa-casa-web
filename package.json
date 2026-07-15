@@ -1,7 +1,7 @@
 {
   "name": "assistente-jogos-santa-casa-web",
   "private": true,
-  "version": "85.0.0",
+  "version": "86.0.0",
   "type": "module",
   "scripts": {
     "push:engine": "node scripts/push-engine.mjs"

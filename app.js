@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "80.7",
-  label: "V80.7",
-  build: "2026.07.09",
-  codename: "Scanner Multi + Menu Global",
-  slug: "scanner-multi-menu-global",
+  version: "86.0",
+  label: "V86.0",
+  build: "2026.07.15",
+  codename: "Estabilização FCM nativo",
+  slug: "estabilizacao-fcm-nativo",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -27,6 +27,34 @@ const V67_2_PUSH_ENGINE = true;
 const V67_3_GITHUB_ACTIONS_PUSH = true;
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// V82.0 — Corrige o índice da linha do talão (1., 2., 3.) para nunca ser lido como número da aposta.
+const JSC_ANDROID_WEB_CLIENT_ID = "999107393170-c89u8udlnrgt3c24ckgcbhb386v1tcd9.apps.googleusercontent.com";
+
+function jscNativePlugin(nome) {
+  try {
+    return window.Capacitor?.Plugins?.[nome] || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function jscIsNativeAndroid() {
+  try {
+    return window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === "android";
+  } catch (_) {
+    return false;
+  }
+}
+
+function jscFileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("Não foi possível ler a fotografia."));
+    reader.readAsDataURL(file);
+  });
+}
 let logoutEmCurso = false;
 
 const jogos = {
@@ -348,23 +376,43 @@ async function loginGoogle() {
   esconderAuthMensagem();
   try {
     estado.textContent = "A abrir login Google...";
+
+    const pluginGoogleNativo = jscNativePlugin("NativeGoogleAuth");
+    const plataformaCapacitor = window.Capacitor?.getPlatform?.() || "web";
+    const ambienteAndroidNativo = jscIsNativeAndroid() || plataformaCapacitor === "android" || !!pluginGoogleNativo?.signIn;
+
+    if (ambienteAndroidNativo) {
+      const plugin = pluginGoogleNativo;
+      if (!plugin?.signIn) throw new Error("Plugin Google nativo não está disponível. A app Android não vai abrir o login pelo browser. Executa npx cap sync android e reinstala a app.");
+
+      const credencial = await plugin.signIn({ serverClientId: JSC_ANDROID_WEB_CLIENT_ID });
+      if (!credencial?.idToken) throw new Error("O Google não devolveu um ID Token.");
+
+      const { data, error } = await supabaseClient.auth.signInWithIdToken({
+        provider: "google",
+        token: credencial.idToken
+      });
+      if (error) throw error;
+
+      currentUser = data?.user || data?.session?.user || null;
+      if (!currentUser) throw new Error("A sessão Google não ficou disponível.");
+      await arrancarApp();
+      estado.textContent = "Sessão Google iniciada.";
+      return;
+    }
+
+    // Web/PWA continua a usar o fluxo OAuth existente.
     const redirectTo = window.location.origin + window.location.pathname;
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo,
-        queryParams: {
-          access_type: "offline",
-          prompt: "select_account"
-        }
+        queryParams: { access_type: "offline", prompt: "select_account" }
       }
     });
-    if (error) {
-      mostrarAuthMensagem("Erro ao entrar com Google: " + error.message, "bad");
-      estado.textContent = "Erro no login Google.";
-    }
+    if (error) throw error;
   } catch (err) {
-    mostrarAuthMensagem("Erro ao abrir login Google: " + (err.message || err), "bad");
+    mostrarAuthMensagem("Erro ao entrar com Google: " + (err?.message || err), "bad");
     estado.textContent = "Erro no login Google.";
   }
 }
@@ -2650,6 +2698,8 @@ async function limparCachesAppV681() {
 }
 async function verificarNovaVersao() {
   try {
+    // A app Android é atualizada pelo APK/Android Studio, não pelo manifest da PWA.
+    if (typeof jscIsNativeAndroid === "function" && jscIsNativeAndroid()) return;
     const r = await fetch(`manifest.json?ts=${Date.now()}`, { cache: "no-store" });
     const m = await r.json();
     const nova = m.version || VERSAO_ATUAL;
@@ -7607,7 +7657,17 @@ instalarV73();
     }
 
     try { history.replaceState(null, '', `${location.pathname}${location.search}#${page}`); } catch {}
-    if (scrollTop) setTimeout(() => ctx.nav.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
+    if (scrollTop) setTimeout(() => {
+      // Ao trocar de página, começa sempre no topo. A navegação é fixa no fundo,
+      // por isso scrollIntoView() mantinha o utilizador no final da página.
+      try { window.scrollTo({ top: 0, left: 0, behavior: 'auto' }); } catch { window.scrollTo(0, 0); }
+      try { document.documentElement.scrollTop = 0; } catch {}
+      try { document.body.scrollTop = 0; } catch {}
+      try { ctx.appBox.scrollTop = 0; } catch {}
+      document.querySelectorAll('.v75-page-active').forEach(el => {
+        try { el.scrollTop = 0; } catch {}
+      });
+    }, 30);
     window.JSC_CURRENT_PAGE = page;
   }
 
@@ -8167,11 +8227,11 @@ instalarV73();
    ========================================================= */
 (function initScannerTalaoV803(){
   const info = window.APP_INFO || (window.APP_INFO = {});
-  info.version = "80.7";
-  info.label = "V80.7";
-  info.codename = "Scanner Multi + Menu Global";
-  info.slug = "scanner-multi-menu-global";
-  window.APP_VERSION = "v80.7-scanner-multi-menu-global";
+  info.version = "81.0";
+  info.label = "V81.0";
+  info.codename = "Android Native + ML Kit";
+  info.slug = "android-native-mlkit";
+  window.APP_VERSION = "v81.0-android-native-mlkit";
 
   const OCR_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 
@@ -8374,30 +8434,38 @@ instalarV73();
 
     function soNumerosChaveTotoloto(linha){
       if (!linha || isLinhaRuido(linha)) return null;
-      // Aceita apenas linhas do tipo "1. 07 09 12 29 31" ou "07 09 12 29 31".
-      // Não aceita datas, controlos nem linhas com texto técnico.
-      const cleaned = linha
+
+      // O número antes do ponto é o ÍNDICE da aposta (ex.: "1. 07 09 12 29 31").
+      // É removido antes de extrair os cinco números, para nunca virar o número 01.
+      let cleaned = String(linha)
         .replace(/^[^\d]{0,8}/, "")
         .replace(/\bAP\b|SIMPLES|BIL|SORT|SORTE/g, " ")
-        .replace(/[=_-]+/g, " ")
+        .replace(/[=_]+/g, " ")
         .trim();
       if (!cleaned) return null;
 
-      const tokens = (cleaned.match(/\b\d{1,2}\b/g) || []).map(n => Number(n));
-      if (tokens.length < 5 || tokens.length > 7) return null;
+      const tinhaIndiceExplicito = /^\s*\d{1,2}\s*[.)º°:-]\s*/.test(cleaned);
+      if (tinhaIndiceExplicito) {
+        cleaned = cleaned.replace(/^\s*\d{1,2}\s*[.)º°:-]\s*/, "");
+      }
 
-      let nums = tokens;
-      // Em talões, o primeiro número pode ser o índice da aposta: "1."
-      if (tokens.length === 6 && tokens[0] >= 1 && tokens[0] <= 9) nums = tokens.slice(1);
-      if (nums.length !== 5) return null;
-      if (!nums.every(n => n >= 1 && n <= 49)) return null;
-      if (new Set(nums).size !== 5) return null;
+      let tokens = (cleaned.match(/\b\d{1,2}\b/g) || []).map(Number);
+
+      // Salvaguarda para OCR que perde o ponto, mas mantém seis valores na linha.
+      // Só remove o primeiro quando há exatamente 6 tokens e ele parece um índice 1–9.
+      if (!tinhaIndiceExplicito && tokens.length === 6 && tokens[0] >= 1 && tokens[0] <= 9) {
+        tokens = tokens.slice(1);
+      }
+
+      if (tokens.length !== 5) return null;
+      if (!tokens.every(n => n >= 1 && n <= 49)) return null;
+      if (new Set(tokens).size !== 5) return null;
 
       // Evita sequências suspeitas captadas de datas/controlo.
-      const joined = linha.replace(/\s+/g, " ");
+      const joined = String(linha).replace(/\s+/g, " ");
       if (/202\d|690|190|\//.test(joined)) return null;
 
-      return nums;
+      return tokens;
     }
 
     function procurarNumeroSorte(){
@@ -8425,15 +8493,29 @@ instalarV73();
     if (jogoEfetivo === "totoloto") {
       const candidatos = [];
       linhas.forEach((linha, idx) => {
-        const nums = soNumerosChaveTotoloto(linha);
-        if (!nums) return;
+        // Testa a linha isolada e, quando o ML Kit quebra o último número para a linha
+        // seguinte, testa também a junção das duas (sem juntar a linha do Nº da Sorte).
+        const variantes = [{ texto: linha, juntou: false }];
+        const prox = linhas[idx + 1] || "";
+        if (prox && !/N[UÚ]MERO\s+DA\s+SORTE|SORTE/.test(prox)) {
+          variantes.push({ texto: `${linha} ${prox}`, juntou: true });
+        }
+
+        let melhorLocal = null;
+        for (const variante of variantes) {
+          const encontrados = soNumerosChaveTotoloto(variante.texto);
+          if (encontrados) { melhorLocal = { nums: encontrados, ...variante }; break; }
+        }
+        if (!melhorLocal) return;
+        const nums = melhorLocal.nums;
         let score = 0;
-        if (/^\s*\d\s*[.)]\s*/.test(linha)) score += 8;
+        if (/^\s*\d{1,2}\s*[.)º°:-]\s*/.test(linha)) score += 10;
+        if (melhorLocal.juntou) score += 1;
         if (idx > 0 && /TOTOLOTO|TOT0LOTO|AP\s*SIMPLES|SIMPLES|BIL|SORT/.test(linhas[idx - 1])) score += 6;
         if (idx > 1 && /TOTOLOTO|TOT0LOTO|AP\s*SIMPLES|SIMPLES|BIL|SORT/.test(linhas[idx - 2])) score += 3;
         if (idx < linhas.length - 1 && /N[UÚ]MERO\s+DA\s+SORTE|SORTE/.test(linhas[idx + 1])) score += 6;
         if (idx < linhas.length - 2 && /N[UÚ]MERO\s+DA\s+SORTE|SORTE/.test(linhas[idx + 2])) score += 3;
-        candidatos.push({ nums, score, linha, idx });
+        candidatos.push({ nums, score, linha: melhorLocal.texto, idx });
       });
       candidatos.sort((a,b) => b.score - a.score);
       const best = candidatos[0];
@@ -8529,6 +8611,34 @@ instalarV73();
     try {
       if (btn) { btn.disabled = true; btn.textContent = "📷 A ler..."; }
       setScannerMsg("A preparar a fotografia...");
+
+      // Na app Android, usa Google ML Kit no próprio dispositivo.
+      if (jscIsNativeAndroid()) {
+        const plugin = jscNativePlugin("NativeMlKitText");
+        if (!plugin?.recognize) throw new Error("Plugin ML Kit não está disponível. Executa npx cap sync android.");
+        setScannerMsg("A ler o talão com Google ML Kit...");
+        const dataUrl = await jscFileToDataUrl(file);
+        const resultNative = await plugin.recognize({ dataUrl });
+        const textNative = String(resultNative?.text || "");
+        const apostaNative = extrairApostaDoTexto(textNative);
+        if (!apostaNative || apostaNative.erro) {
+          console.warn("ML Kit não encontrou aposta com confiança.", textNative, apostaNative);
+          setScannerMsg("O ML Kit leu o talão, mas não encontrou uma aposta válida. Aproxima a câmara e enquadra apenas as chaves.", "warn");
+          return;
+        }
+        if (Array.isArray(apostaNative.apostas) && apostaNative.apostas.length) {
+          mostrarEscolhaApostasOCR(apostaNative);
+          setScannerMsg(`Encontrei ${apostaNative.apostas.length} apostas no talão. Escolhe uma abaixo.`, "ok");
+          return;
+        }
+        preencherCamposOCR(apostaNative);
+        const numsNative = apostaNative.nums.map(n => String(n).padStart(2, "0")).join(" ");
+        const extrasNative = (apostaNative.extras || []).map(n => String(n).padStart(2, "0")).join(" ");
+        setScannerMsg(`Aposta lida pelo ML Kit: ${numsNative}${extrasNative ? " + " + extrasNative : ""}. Confirma antes de adicionar.`, "ok");
+        return;
+      }
+
+      // No browser/PWA mantém o Tesseract como alternativa.
       const [Tesseract, imagem] = await Promise.all([carregarTesseract(), prepararImagemOCR(file)]);
       setScannerMsg("A iniciar leitura... na primeira utilização pode demorar um pouco.");
       const worker = await obterWorkerOCR(Tesseract, m => {
@@ -8615,3 +8725,419 @@ instalarV73();
   setTimeout(tick, 50);
   setInterval(tick, 2500);
 })();
+
+/* =========================================================
+   V83.3 — Interface simplificada e navegação corrigida
+   - Remove leitura de talões/câmara.
+   - Mantém Cloud, dispositivo e Push automáticos, sem botões técnicos.
+   - Remove cartões redundantes de Notificações e Sobre a aplicação.
+   - Pergunta pelas notificações apenas na primeira abertura.
+   ========================================================= */
+(function initV830Simplificacao(){
+  const info = window.APP_INFO || (window.APP_INFO = {});
+  info.version = "83.0";
+  info.version = "83.3";
+  info.label = "V83.3";
+  info.codename = "Interface Simplificada";
+  info.slug = "interface-simplificada";
+  window.APP_VERSION = "v83.0-interface-simplificada";
+
+  const norm = value => String(value || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/\s+/g, " ").trim();
+
+  function injectStyles(){
+    if (document.getElementById("v830SimplificacaoCss")) return;
+    const style = document.createElement("style");
+    style.id = "v830SimplificacaoCss";
+    style.textContent = `
+      #scanTalaoBtnV803,#scanTalaoInputV803,#scannerTalaoWrapV803,
+      #scannerTalaoMsgV803,#scannerApostasEscolhaV803,
+      #ativarNotificacoesBtn,#notifModalRegistarPush{display:none!important;}
+      #v830NotifFirstRun{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+      #v830NotifFirstRun .v830-box{width:min(430px,100%);background:#fff;border-radius:22px;padding:24px;box-shadow:0 24px 70px rgba(15,23,42,.32);color:#0f172a}
+      #v830NotifFirstRun h2{margin:0 0 10px;font-size:24px}
+      #v830NotifFirstRun p{margin:0 0 18px;color:#64748b;line-height:1.45}
+      #v830NotifFirstRun .v830-actions{display:grid;gap:10px}
+      #v830NotifFirstRun button{min-height:48px;border-radius:13px;font-weight:800;font-size:15px;cursor:pointer}
+      #v830NotifAllow{border:0;background:#0f172a;color:#fff}
+      #v830NotifLater{border:1px solid #cbd5e1;background:#fff;color:#0f172a}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function removeScanner(){
+    ["scanTalaoBtnV803","scanTalaoInputV803","scannerTalaoWrapV803","scannerTalaoMsgV803","scannerApostasEscolhaV803"]
+      .forEach(id => document.getElementById(id)?.remove());
+  }
+
+  function removeClosestContainer(el){
+    if (!el) return;
+    const box = el.closest("section,.card,.settings-card,.v54-card,.v67-card,.panel,article");
+    if (box) box.remove(); else el.remove();
+  }
+
+  function simplifySettings(){
+    const panel = document.getElementById("settingsPanelV74");
+    if (!panel) return;
+
+    const exactIds = [
+      "v67CloudSyncBtn","v67CloudDeviceBtn","notifModalRegistarPush",
+      "copyAppInfoV800","debugAppInfoV800","notificacoesEstado"
+    ];
+    exactIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) removeClosestContainer(el);
+    });
+
+    const technicalPhrases = [
+      "sincronizar cloud","sincronizar agora","novo id dispositivo",
+      "novo id do dispositivo","registar push cloud","registrar push cloud",
+      "ver estado","copiar estado","copiar informacoes",
+      "sobre a aplicacao","informacao tecnica para suporte",
+      "notificacoes","notificacao de teste"
+    ];
+
+    [...panel.querySelectorAll("section,.card,.settings-card,.v54-card,.v67-card,article")].forEach(card => {
+      const heading = card.querySelector("h1,h2,h3,h4")?.textContent || "";
+      const buttons = [...card.querySelectorAll("button")].map(b => b.textContent || "").join(" ");
+      const sample = norm(`${heading} ${buttons}`);
+      if (technicalPhrases.some(p => sample.includes(p))) card.remove();
+    });
+
+    [...panel.querySelectorAll("button")].forEach(btn => {
+      const text = norm(btn.textContent);
+      if (technicalPhrases.some(p => text.includes(p))) btn.remove();
+    });
+  }
+
+  async function requestNotifications(){
+    let result = null;
+    try {
+      if (typeof ativarNotificacoesV37 === "function") result = await ativarNotificacoesV37();
+      else if (typeof ativarNotificacoesV35 === "function") result = await ativarNotificacoesV35();
+      else if (typeof pedirPermissaoNotificacoesV34 === "function") result = await pedirPermissaoNotificacoesV34();
+      else if (typeof pedirPermissaoNotificacoes === "function") result = await pedirPermissaoNotificacoes();
+      else if ("Notification" in window) {
+        const permission = await Notification.requestPermission();
+        localStorage.setItem("jsc_notificacoes", permission === "granted" ? "1" : "0");
+        result = permission;
+      }
+    } catch (err) {
+      console.warn("Pedido inicial de notificações falhou:", err);
+    }
+    return result;
+  }
+
+  function showFirstRunNotifications(){
+    const key = "jsc_v830_notificacoes_perguntadas";
+    if (localStorage.getItem(key) === "1") return;
+    if (!("Notification" in window)) { localStorage.setItem(key,"1"); return; }
+    if (Notification.permission !== "default") { localStorage.setItem(key,"1"); return; }
+    if (document.getElementById("v830NotifFirstRun")) return;
+
+    const modal = document.createElement("div");
+    modal.id = "v830NotifFirstRun";
+    modal.innerHTML = `
+      <div class="v830-box" role="dialog" aria-modal="true" aria-labelledby="v830NotifTitle">
+        <h2 id="v830NotifTitle">🔔 Ativar notificações?</h2>
+        <p>Podemos avisar quando existirem novos resultados ou quando uma aposta tiver prémio. Esta escolha pode ser alterada nas definições do telemóvel.</p>
+        <div class="v830-actions">
+          <button id="v830NotifAllow" type="button">Permitir notificações</button>
+          <button id="v830NotifLater" type="button">Agora não</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    document.getElementById("v830NotifAllow")?.addEventListener("click", async () => {
+      localStorage.setItem(key,"1");
+      await requestNotifications();
+      modal.remove();
+      try { if (Notification.permission === "granted" && typeof v671RegistarPushCloud === "function") await v671RegistarPushCloud(); } catch(e) { console.warn(e); }
+    });
+    document.getElementById("v830NotifLater")?.addEventListener("click", () => {
+      localStorage.setItem(key,"1");
+      localStorage.setItem("jsc_notificacoes","0");
+      modal.remove();
+    });
+  }
+
+  function tick(){
+    injectStyles();
+    removeScanner();
+    simplifySettings();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    tick();
+    window.setTimeout(showFirstRunNotifications, 900);
+  });
+  window.setTimeout(() => { tick(); showFirstRunNotifications(); }, 1200);
+  window.setInterval(tick, 2500);
+  new MutationObserver(() => tick()).observe(document.documentElement, {subtree:true,childList:true});
+
+  console.log("🍀 V83.3 — interface simplificada e scroll para o topo corrigido");
+})();
+
+
+// V84.0 — Notificações Android nativas: FCM + lembretes locais automáticos
+(() => {
+  const ASK_KEY = "jsc_v840_notificacoes_perguntadas";
+  const TOKEN_KEY = "jsc_v840_fcm_token";
+  const SCHEDULE_KEY = "jsc_v840_lembretes_agendados";
+  const NATIVE_TABLE = "native_push_tokens";
+
+  function nativeAndroid(){ return jscIsNativeAndroid(); }
+  function pushPlugin(){ return jscNativePlugin("PushNotifications"); }
+  function localPlugin(){ return jscNativePlugin("LocalNotifications"); }
+
+  async function guardarTokenFCM(token){
+    if (!token) return false;
+    localStorage.setItem(TOKEN_KEY, token);
+    if (!currentUser || !supabaseClient) return false;
+    await v67EnsureProfile();
+    await v67RegisterDevice();
+    const payload = {
+      profile_id: currentUser.id,
+      device_id: v67GetDeviceId(),
+      token,
+      platform: "android",
+      app_version: window.APP_VERSION,
+      enabled: true,
+      last_seen_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await supabaseClient.from(NATIVE_TABLE).upsert(payload, { onConflict: "token" });
+    if (error) throw error;
+    v67CloudSetStatus("Notificações nativas ativas", {
+      profileReady: true, deviceReady: true, pushReady: true,
+      pushEndpoint: `fcm:${token.slice(0,16)}…`, pushStatus: "FCM registado",
+      lastSync: agoraPt()
+    });
+    return true;
+  }
+
+  async function sincronizarTokenGuardado(){
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token || !currentUser) return false;
+    try { return await guardarTokenFCM(token); }
+    catch(e){ console.warn("V84: token FCM ainda não sincronizado:", e); return false; }
+  }
+
+  function adicionarListenersPush(){
+    const push = pushPlugin();
+    if (!push || push.__jscV84) return;
+    push.__jscV84 = true;
+    push.addListener("registration", async info => {
+      try { await guardarTokenFCM(String(info?.value || "")); }
+      catch(e){ console.error("V84: erro ao guardar token FCM", e); }
+    });
+    push.addListener("registrationError", err => console.error("V84: registo FCM falhou", err));
+    push.addListener("pushNotificationReceived", notif => {
+      console.log("V84: push recebido", notif);
+      try { localStorage.setItem("jsc_v840_ultimo_push", JSON.stringify({notif, at:new Date().toISOString()})); } catch{}
+    });
+    push.addListener("pushNotificationActionPerformed", action => {
+      console.log("V84: push aberto", action);
+      try { window.scrollTo({top:0, behavior:"instant"}); } catch{}
+    });
+  }
+
+  async function agendarLembretesLocais(){
+    const local = localPlugin();
+    if (!local) return false;
+    const pendentes = await local.getPending().catch(() => ({notifications:[]}));
+    const idsV84 = new Set([8401,8402,8411,8412,8421,8422,8431,8432,8441,8442,8451,8452]);
+    const apagar = (pendentes?.notifications || []).filter(n => idsV84.has(Number(n.id))).map(n => ({id:Number(n.id)}));
+    if (apagar.length) await local.cancel({notifications:apagar}).catch(()=>{});
+
+    const dias = [
+      {weekday:2, jogo:"EuroDreams", base:8400},
+      {weekday:3, jogo:"EuroMilhões", base:8410},
+      {weekday:4, jogo:"Totoloto", base:8420},
+      {weekday:5, jogo:"EuroDreams", base:8430},
+      {weekday:6, jogo:"EuroMilhões", base:8440},
+      {weekday:7, jogo:"Totoloto", base:8450}
+    ];
+    const notifications=[];
+    for (const d of dias){
+      notifications.push({
+        id:d.base+1,
+        title:`🍀 Hoje há ${d.jogo}`,
+        body:"Confirma as tuas apostas e garante que fica tudo registado.",
+        schedule:{ on:{ weekday:d.weekday, hour:10, minute:0 }, repeats:true, allowWhileIdle:true },
+        extra:{tipo:"dia_sorteio", jogo:d.jogo}
+      });
+      notifications.push({
+        id:d.base+2,
+        title:`⏰ Não te esqueças de apostar no ${d.jogo}`,
+        body:"O sorteio é hoje. Ainda vais a tempo de registar a tua chave.",
+        schedule:{ on:{ weekday:d.weekday, hour:18, minute:0 }, repeats:true, allowWhileIdle:true },
+        extra:{tipo:"lembrete_apostar", jogo:d.jogo}
+      });
+    }
+    await local.schedule({notifications});
+    localStorage.setItem(SCHEDULE_KEY, new Date().toISOString());
+    return true;
+  }
+
+  async function ativarNotificacoesNativas(){
+    if (!nativeAndroid()) return false;
+    const push = pushPlugin(), local = localPlugin();
+    if (!push || !local) throw new Error("Plugins nativos de notificações não estão disponíveis.");
+    adicionarListenersPush();
+
+    let p = await push.checkPermissions();
+    if (p.receive === "prompt") p = await push.requestPermissions();
+    if (p.receive !== "granted") throw new Error("Permissão de notificações não concedida.");
+
+    let lp = await local.checkPermissions();
+    if (lp.display === "prompt") lp = await local.requestPermissions();
+    if (lp.display !== "granted") throw new Error("Permissão para lembretes locais não concedida.");
+
+    await push.register();
+    await agendarLembretesLocais();
+    localStorage.setItem("jsc_notificacoes", "1");
+    return true;
+  }
+
+  function modalPrimeiraExecucao(){
+    if (!nativeAndroid() || localStorage.getItem(ASK_KEY)==="1" || document.getElementById("v840NotifFirstRun")) return;
+    const modal=document.createElement("div");
+    modal.id="v840NotifFirstRun";
+    modal.innerHTML=`<div class="v840-box" role="dialog" aria-modal="true" aria-labelledby="v840NotifTitle">
+      <h2 id="v840NotifTitle">🔔 Ativar notificações?</h2>
+      <p>Recebe avisos nos dias de sorteio, lembretes para apostar, resultados disponíveis e alertas quando houver prémio.</p>
+      <div class="v840-actions"><button id="v840Allow" type="button">Ativar notificações</button><button id="v840Later" type="button">Agora não</button></div>
+    </div>`;
+    modal.style.cssText="position:fixed;inset:0;z-index:2147483640;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.68);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)";
+    const box=modal.querySelector('.v840-box');
+    if(box) box.style.cssText="width:min(430px,100%);background:#fff;border:1px solid rgba(15,23,42,.10);border-radius:24px;padding:26px 22px;box-shadow:0 28px 80px rgba(15,23,42,.45);color:#0f172a;text-align:left";
+    const title=modal.querySelector('h2');
+    if(title) title.style.cssText="margin:0 0 12px;font-size:28px;line-height:1.15;color:#0f172a;font-weight:900";
+    const text=modal.querySelector('p');
+    if(text) text.style.cssText="margin:0 0 22px;font-size:18px;line-height:1.45;color:#475569;font-weight:600";
+    const actions=modal.querySelector('.v840-actions');
+    if(actions) actions.style.cssText="display:grid;gap:11px";
+    const allow=modal.querySelector('#v840Allow');
+    if(allow) allow.style.cssText="width:100%;min-height:58px;border:0;border-radius:16px;background:#0f172a;color:#fff;font-size:18px;font-weight:900;padding:14px 18px";
+    const later=modal.querySelector('#v840Later');
+    if(later) later.style.cssText="width:100%;min-height:56px;border:1px solid #cbd5e1;border-radius:16px;background:#fff;color:#0f172a;font-size:17px;font-weight:800;padding:13px 18px";
+    document.body.appendChild(modal);
+    document.getElementById("v840Allow")?.addEventListener("click",async()=>{
+      try { await ativarNotificacoesNativas(); localStorage.setItem(ASK_KEY,"1"); modal.remove(); }
+      catch(e){ alert("Não foi possível ativar as notificações: "+(e?.message||e)); }
+    });
+    document.getElementById("v840Later")?.addEventListener("click",()=>{ localStorage.setItem(ASK_KEY,"1"); modal.remove(); });
+  }
+
+  async function init(){
+    if (!nativeAndroid()) return;
+    document.getElementById("v830NotifFirstRun")?.remove();
+    adicionarListenersPush();
+    await sincronizarTokenGuardado();
+    if (localStorage.getItem("jsc_notificacoes")==="1") {
+      try { await ativarNotificacoesNativas(); } catch(e){ console.warn("V84: reativação silenciosa falhou",e); }
+    } else setTimeout(modalPrimeiraExecucao,900);
+  }
+
+  window.jscAtivarNotificacoesNativas = ativarNotificacoesNativas;
+  window.jscAgendarLembretesLocais = agendarLembretesLocais;
+  document.addEventListener("DOMContentLoaded",()=>setTimeout(init,500));
+  setTimeout(init,1600);
+  setInterval(sincronizarTokenGuardado,30000);
+  console.log("🍀 V84.1 — modal de notificações corrigido");
+})();
+
+
+/* =========================================================
+   V84.2 — Versão canónica e atualização Android corrigida
+   - Impede o aviso PWA "v0.9.0" dentro da app Android.
+   - Garante que todos os rótulos mostram V84.2.
+   ========================================================= */
+(() => {
+  const VERSION = "84.2";
+  const LABEL = "V84.2";
+  const SLUG = "notificacoes-nativas-estaveis";
+  const FULL = `v${VERSION}-${SLUG}`;
+
+  const applyCanonicalVersion = () => {
+    const info = window.APP_INFO || (window.APP_INFO = {});
+    info.version = VERSION;
+    info.label = LABEL;
+    info.build = "2026.07.14";
+    info.codename = "Notificações nativas estáveis";
+    info.slug = SLUG;
+    window.APP_VERSION = FULL;
+
+    document.querySelectorAll('.v72-pill,.v54-pill').forEach(el => {
+      const txt = String(el.textContent || '').trim();
+      if (/^V\d+(?:\.\d+)?/i.test(txt)) el.textContent = LABEL;
+    });
+    const splash = document.getElementById('appSplashVersionV800');
+    if (splash) splash.textContent = `${LABEL} · Notificações nativas`;
+    const cloudVersion = document.getElementById('v67CloudVersion');
+    if (cloudVersion) cloudVersion.textContent = FULL;
+  };
+
+  applyCanonicalVersion();
+  document.addEventListener('DOMContentLoaded', applyCanonicalVersion);
+  setTimeout(applyCanonicalVersion, 100);
+  setTimeout(applyCanonicalVersion, 1000);
+  setInterval(applyCanonicalVersion, 3000);
+  console.log('🍀 V84.2 — versão canónica e atualização Android corrigidas');
+})();
+
+/* ================================================================
+   V86.0 — Versão canónica única e estabilização FCM nativo
+   Este bloco é deliberadamente o último do ficheiro: neutraliza
+   substituições antigas deixadas por versões anteriores.
+   ================================================================ */
+(function aplicarVersaoCanonicaV860(){
+  const info = {
+    name: "Assistente Jogos Santa Casa",
+    version: "86.0",
+    label: "V86.0",
+    build: "2026.07.15",
+    codename: "Estabilização FCM nativo",
+    slug: "estabilizacao-fcm-nativo",
+    environment: "Production",
+    backend: "Supabase",
+    push: "Firebase FCM nativo",
+    cloud: true
+  };
+
+  window.APP_INFO = Object.assign({}, window.APP_INFO || {}, info);
+  window.JSC_APP_INFO = window.APP_INFO;
+  window.APP_VERSION = `v${info.version}-${info.slug}`;
+
+  function aplicarRotulos(){
+    const splash = document.getElementById("appSplashVersionV800");
+    if (splash) splash.textContent = `${info.label} · ${info.codename}`;
+
+    document.querySelectorAll("[data-app-version]").forEach(el => {
+      el.textContent = info.label;
+    });
+
+    const cloudVersion = document.getElementById("v67CloudVersion");
+    if (cloudVersion) cloudVersion.textContent = window.APP_VERSION;
+
+    const sobre = document.getElementById("sobreAppV57");
+    if (sobre) sobre.textContent = `${info.label} · ${info.codename} · ${info.backend} · ${info.push}`;
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", aplicarRotulos, { once:true });
+  } else {
+    aplicarRotulos();
+  }
+  setTimeout(aplicarRotulos, 300);
+  setTimeout(aplicarRotulos, 1500);
+
+  // A app Android usa apenas Firebase/FCM nativo. O Web Push antigo fica
+  // desativado para impedir registos duplicados em push_subscriptions.
+  window.JSC_NATIVE_PUSH_ONLY = true;
+
+  console.log("🍀 V86.0 — versão única e FCM nativo estabilizados");
+})();
+

@@ -1,10 +1,11 @@
-const CACHE_NAME = "jogos-santa-casa-v73";
+const APP_VERSION = "86.0";
+const CACHE_NAME = `jogos-santa-casa-v${APP_VERSION.replace(/\./g, "-")}`;
 const APP_SHELL = [
   "./",
   "index.html",
-  "style.css?v=68.3",
-  "app.js?v=68.3",
-  "manifest.webmanifest?v=68.3",
+  "style.css?v=860",
+  "app.js?v=860",
+  "manifest.webmanifest?v=860",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/maskable-512.png",
@@ -15,7 +16,6 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(APP_SHELL))
-      .catch(() => null)
       .then(() => self.skipWaiting())
   );
 });
@@ -23,20 +23,21 @@ self.addEventListener("install", event => {
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("message", event => {
-  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET") return;
+
   const url = new URL(request.url);
-  const isSameOrigin = url.origin === self.location.origin;
+  if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
     event.respondWith(
@@ -51,56 +52,18 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if (!isSameOrigin) return;
   event.respondWith(
-    caches.match(request).then(cached => {
-      const network = fetch(request)
-        .then(response => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => null);
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(request)
+      .then(response => {
+        if (response?.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => null);
+        }
+        return response;
+      })
+      .catch(() => caches.match(request))
   );
 });
 
-self.addEventListener("push", event => {
-  let data = {};
-  try { data = event.data ? event.data.json() : {}; }
-  catch (e) { data = { title: "🍀 Assistente Jogos Santa Casa", body: event.data ? event.data.text() : "Nova notificação disponível." }; }
-
-  const tipo = data.tipo || "geral";
-  const vibrate = tipo === "premio" ? [280, 90, 280, 90, 420] : tipo === "sorteio" ? [150, 80, 150] : [120, 70, 120];
-  event.waitUntil(self.registration.showNotification(data.title || "🍀 Assistente Jogos Santa Casa", {
-    body: data.body || "Tens uma nova notificação do Assistente Jogos Santa Casa.",
-    icon: data.icon || "./icons/icon-192.png",
-    badge: data.badge || "./icons/icon-192.png",
-    tag: data.tag || `jsc-${tipo}`,
-    renotify: tipo === "premio",
-    vibrate,
-    requireInteraction: tipo === "premio",
-    data: { url: data.url || "./", tipo },
-    actions: data.actions || [{ action: "abrir", title: "Abrir app" }]
-  }));
-});
-
-self.addEventListener("notificationclick", event => {
-  event.notification.close();
-  let targetUrl = event.notification?.data?.url || "./";
-  if (event.action === "ver_premio") targetUrl = "./#secHistorico";
-  if (event.action === "ver_resultados") targetUrl = "./#secResultados";
-  event.waitUntil((async () => {
-    const windowClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
-    for (const client of windowClients) {
-      try {
-        if ("navigate" in client) await client.navigate(targetUrl);
-        if ("focus" in client) return client.focus();
-      } catch (e) {}
-    }
-    return clients.openWindow(targetUrl);
-  })());
-});
+// As notificações são exclusivamente nativas via Firebase Cloud Messaging.
+// Não existem handlers Web Push neste Service Worker.
