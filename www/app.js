@@ -1,7 +1,7 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "92.0",
-  label: "V92.0",
+  version: "92.1",
+  label: "V92.1",
   build: "2026.07.16",
   codename: "Estado Global Unificado",
   slug: "estado-global-unificado",
@@ -11,6 +11,8 @@ window.APP_INFO = {
   cloud: true
 };
 window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
+window.__V92_ACTIVE = true;
+
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -679,7 +681,7 @@ async function sincronizarTudo(opcoes = {}) {
       await verificar().catch(err => console.warn("Verificação de prémios incompleta:", err));
     }
 
-    syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
+    syncInfo.textContent = `Última sincronização: ${agoraPt()}`; window.dispatchEvent(new Event("jsc:data-changed"));
     if (!background) estado.textContent = "Sincronização concluída.";
     return true;
 
@@ -725,7 +727,7 @@ async function carregarApostasCloud(chamarVerificar = true) {
     });
 
     // Cloud é a fonte principal. LocalStorage fica só como cache.
-    apostas = novasApostas;
+    apostas = novasApostas; window.dispatchEvent(new Event("jsc:data-changed"));
 
     guardar();
     renderLista();
@@ -829,7 +831,7 @@ async function carregarHistoricoCloud(chamarRender = true) {
 
     if (error) throw error;
 
-    historico = (data || []).map(normalizarRegistoCloud);
+    historico = (data || []).map(normalizarRegistoCloud); window.dispatchEvent(new Event("jsc:data-changed"));
     guardarHistoricoLocal();
 
     if (chamarRender) renderHistorico();
@@ -1787,7 +1789,7 @@ async function limparHistorico() {
       ? "Histórico local e cloud limpo."
       : "Histórico local limpo.";
 
-    syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
+    syncInfo.textContent = `Última sincronização: ${agoraPt()}`; window.dispatchEvent(new Event("jsc:data-changed"));
 
   } catch (err) {
     console.warn("Não foi possível limpar o histórico na cloud:", err);
@@ -5559,7 +5561,7 @@ function moedaV54(n){return Number(n||0).toLocaleString("pt-PT",{style:"currency
 function parseDataV54(s){const m=String(s||"").match(/(\d{2})\/(\d{2})\/(\d{4})/);return m?new Date(+m[3],+m[2]-1,+m[1]):null}
 function mesKeyV54(item){const d=parseDataV54(item?.dataSorteio||item?.data||item?.dataRegisto);return d?`${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getFullYear()).slice(-2)}`:"Sem data"}
 function contarPorV54(lista,fn){const m=new Map();lista.forEach(x=>{const k=fn(x)||"—";m.set(k,(m.get(k)||0)+1)});return[...m.entries()].sort((a,b)=>b[1]-a[1])}
-function atualizarDashboardVivoV54(){
+function atualizarDashboardVivoV54(){ if(window.__V92_ACTIVE)return;
  const hist=histV54();const sorted=[...hist].sort((a,b)=>(parseDataV54(b.dataSorteio||b.data||b.dataRegisto)?.getTime()||0)-(parseDataV54(a.dataSorteio||a.data||a.dataRegisto)?.getTime()||0));const ultimo=sorted[0];const total=hist.reduce((s,h)=>s+(valorItemV54(h)||0),0);const jogoTop=contarPorV54(hist,h=>h.jogo||"—")[0]?.[0]||"—";
  document.getElementById("dvUltimoPremio")&&(dvUltimoPremio.textContent=ultimo?`${ultimo.jogo||"Jogo"} — ${moedaV54(valorItemV54(ultimo)||0)}`:"Ainda sem prémios");
  document.getElementById("dvUltimoPremioMeta")&&(dvUltimoPremioMeta.textContent=ultimo?`${ultimo.dataSorteio||ultimo.data||""} · ${ultimo.resultado||""}`:"Quando houver prémios, aparecem aqui.");
@@ -7369,7 +7371,7 @@ async function v73GerarSugestao(tipo='estatistica'){
   const sug=tipo==='aleatoria' ? v73SugestaoAleatoria(jogo) : await v73SugestaoEstatistica(jogo);
   v73RenderSugestao(tipo,jogo,sug);
 }
-async function atualizarDashboardInteligenteV73(){
+async function atualizarDashboardInteligenteV73(){ if(window.__V92_ACTIVE)return;
   const prox=v73NextDraw(); const hoje=v73GameToday(); const ap=v73ApostasResumo(); const cl=await v73CloudResumo();
   const nomeV73 = (aliasUtilizador || currentUser?.email?.split('@')?.[0] || 'Paulo');
   v73Text('v73Greeting', `${v73Saudacao()}, ${nomeV73} 👋`);
@@ -7814,7 +7816,7 @@ instalarV73();
       else insight.textContent=`🍀 Tens ${ap} aposta(s) ativas. A cloud está sincronizada e o assistente continua a acompanhar os resultados.`;
     }
   }
-  function tick(){ try{ updateUserCard(); updateDashboard(); }catch(e){ console.warn('V76.4 dashboard vivo', e); } }
+  function tick(){ if(window.__V92_ACTIVE)return; try{ updateUserCard(); updateDashboard(); }catch(e){ console.warn('V76.4 dashboard vivo', e); } }
   ready(()=>{ document.body.classList.add('v764-dashboard-vivo'); setTimeout(tick,400); setTimeout(tick,1800); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,300)); });
 })();
 
@@ -8072,7 +8074,7 @@ instalarV73();
       .replace(/[^a-z0-9_-]/g, '-');
     document.body.classList.add(`v780-${safeSlug}`);
     syncVersion(); exposeSupportInfo();
-    setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000);
+    if(!window.__V92_ACTIVE){ setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000); }
     // V80.2: sem log legado aqui para evitar versões duplicadas na consola.
   });
 })();
@@ -9125,7 +9127,7 @@ instalarV73();
 
   // Segurança absoluta: mesmo que outro módulo falhe, o splash nunca fica preso.
   window.setTimeout(removeSplash, 2200);
-  window.setInterval(applyCanonicalVersion, 5000);
+  if(!window.__V92_ACTIVE) window.setInterval(applyCanonicalVersion, 5000);
 
   console.log(`🍀 ${window.APP_INFO.label} — arranque estabilizado e FCM unificado`);
 })();
@@ -9195,7 +9197,7 @@ instalarV73();
     return map[key] || value || 'Resultado';
   }
 
-  async function updateDashboardV88() {
+  async function updateDashboardV88() { if(window.__V92_ACTIVE)return;
     canonicalVersionV88();
 
     let user = null;
@@ -9425,7 +9427,7 @@ instalarV73();
     return parts.join('  •  ') || 'Resultado oficial disponível';
   };
 
-  async function refreshFinalDashboardV90() {
+  async function refreshFinalDashboardV90() { if(window.__V92_ACTIVE)return;
     window.APP_INFO = Object.assign(window.APP_INFO || {}, {
       version: '91.0',
       label: 'V91.0',
@@ -9686,7 +9688,7 @@ instalarV73();
     }
   }
 
-  function instalarV91() {
+  function instalarV91() { if(window.__V92_ACTIVE)return;
     try { renderPremiosGestaoV58?.(); } catch {}
     try { atualizarStatsV91(); } catch(e) { console.warn('V91 estatísticas', e); }
     document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{
@@ -9707,11 +9709,18 @@ instalarV73();
 })();
 
 // =========================================================
-// V92.0 — Estado Global Unificado
+// V92.1 — Estado Global Unificado Estável
+  const versionGuardV921 = new MutationObserver(()=>{
+    document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{
+      if(el.hasAttribute('data-app-version')||/^V\d+/i.test((el.textContent||'').trim())) el.textContent='V92.1';
+    });
+  });
+  document.addEventListener('DOMContentLoaded',()=>versionGuardV921.observe(document.body,{subtree:true,childList:true,characterData:true}),{once:true});
+
 // Uma única fonte para Home, Prémios, Estatísticas e Perfil.
 // =========================================================
 (() => {
-  const V92 = { version:'92.0', label:'V92.0', build:'2026.07.16', codename:'Estado Global Unificado', slug:'estado-global-unificado' };
+  const V92 = { version:'92.1', label:'V92.1', build:'2026.07.16', codename:'Estado Global Unificado', slug:'estado-global-unificado' };
   window.APP_INFO = Object.assign(window.APP_INFO || {}, V92);
   window.APP_VERSION = 'v92.0-estado-global-unificado';
 
@@ -9933,7 +9942,7 @@ instalarV73();
     try{renderDashboard();}catch(e){console.warn('V92 dashboard',e)}
     try{renderPremiumAndProfile();}catch(e){console.warn('V92 perfil',e)}
     try{renderCounters();}catch(e){console.warn('V92 contadores',e)}
-    document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{if(el.hasAttribute('data-app-version')||/^V\d+/i.test((el.textContent||'').trim()))el.textContent='V92.0';});
+    document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{if(el.hasAttribute('data-app-version')||/^V\d+/i.test((el.textContent||'').trim()))el.textContent='V92.1';});
   }
   window.JSC_RENDER_V92=renderAll;
 
@@ -9949,6 +9958,9 @@ instalarV73();
   document.addEventListener('DOMContentLoaded',()=>setTimeout(renderAll,500),{once:true});
   document.addEventListener('click',()=>setTimeout(renderAll,150));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderAll();});
-  setTimeout(renderAll,1200); setTimeout(renderAll,3000); setInterval(renderAll,10000);
+  setTimeout(renderAll,500); setTimeout(renderAll,1800);
+  window.addEventListener('jsc:data-changed', renderAll);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderAll();});
+  setInterval(renderAll,60000);
 })();
 
