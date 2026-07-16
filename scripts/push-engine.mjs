@@ -1,6 +1,6 @@
 import { GoogleAuth } from 'google-auth-library';
 
-const APP_VERSION = 'v90.0-finalizacao-dashboard';
+const APP_VERSION = 'v91.0-correcoes-finais-testes';
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'FIREBASE_SERVICE_ACCOUNT_JSON'];
 for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env: ${key}`);
@@ -400,7 +400,7 @@ function buildNotification(mode = process.env.PUSH_MODE || 'scheduled', now = ne
   const explicitResults = mode === 'results';
   const explicitSoon = mode === 'soon';
   const reminderWindow = p.hour >= 18 && p.hour <= 21;
-  const resultsWindow = p.hour >= 22 || p.hour <= 1;
+  const resultsWindow = p.hour >= 20 || p.hour <= 1;
 
   if (explicitSoon) {
     return {
@@ -425,7 +425,7 @@ function buildNotification(mode = process.env.PUSH_MODE || 'scheduled', now = ne
       notification_type: 'resultado_disponivel',
       payload: {
         title: `🎉 Resultados disponíveis — ${game.name}`,
-        body: `Já podes abrir o Assistente Jogos Santa Casa e analisar as tuas apostas de hoje.`,
+        body: `Os resultados já podem estar disponíveis. Abre a app para verificar as tuas apostas.`,
         tipo: 'resultado',
         tag: `jsc-${game.id}-resultado-${p.isoDate}`,
         url: './',
@@ -441,7 +441,7 @@ function buildNotification(mode = process.env.PUSH_MODE || 'scheduled', now = ne
       notification_type: 'lembrete_sorteio',
       payload: {
         title: `🍀 Hoje há ${game.name}`,
-        body: 'Não te esqueças de confirmar ou registar as tuas apostas.',
+        body: 'Não te esqueças de confirmar ou registar as tuas apostas. Boa sorte! 🍀',
         tipo: 'sorteio',
         tag: `jsc-${game.id}-lembrete-${p.isoDate}`,
         url: './',

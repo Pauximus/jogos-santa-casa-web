@@ -16,6 +16,7 @@ on:
   schedule:
     # Portugal: janelas de lembretes e resultados.
     - cron: "*/30 17-23 * * 2,3,5,6"
+    - cron: "*/30 0 * * 3,4,6,0"
 
 permissions:
   contents: read

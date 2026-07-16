@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "90.0",
-  label: "V90.0",
+  version: "91.0",
+  label: "V91.0",
   build: "2026.07.15",
-  codename: "Finalização do Dashboard",
-  slug: "finalizacao-dashboard",
+  codename: "Correções finais e testes",
+  slug: "correcoes-finais-testes",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -9427,13 +9427,13 @@ instalarV73();
 
   async function refreshFinalDashboardV90() {
     window.APP_INFO = Object.assign(window.APP_INFO || {}, {
-      version: '90.0',
-      label: 'V90.0',
+      version: '91.0',
+      label: 'V91.0',
       build: '2026.07.15',
       codename: 'Finalização do Dashboard',
       slug: 'finalizacao-dashboard'
     });
-    window.APP_VERSION = 'v90.0-finalizacao-dashboard';
+    window.APP_VERSION = 'v91.0-correcoes-finais-testes';
 
     document.querySelectorAll('[data-app-version], .v72-pill, .v54-pill, .version-badge').forEach(el => {
       const current = String(el.textContent || '').trim();
@@ -9502,5 +9502,207 @@ instalarV73();
   } else {
     startV90();
   }
+})();
+
+
+// =========================================================
+// V91.0 — Correções finais: lotarias, prémios e estatísticas
+// =========================================================
+(() => {
+  const norm = s => String(s || '').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+
+  function jogoKey(nome) {
+    const n = norm(nome);
+    if (n.includes('eurom')) return 'euromilhoes';
+    if (n.includes('toto')) return 'totoloto';
+    if (n.includes('dream')) return 'eurodreams';
+    if (n.includes('milhao') || n.includes('m1lhao')) return 'milhao';
+    if (n.includes('class')) return 'lotaria_classica';
+    if (n.includes('popular')) return 'lotaria_popular';
+    return n.replace(/\s+/g, '_');
+  }
+
+  function jogoNome(key) {
+    return ({
+      euromilhoes:'Euromilhões', totoloto:'Totoloto', eurodreams:'EuroDreams',
+      milhao:'M1lhão', lotaria_classica:'Lotaria Clássica', lotaria_popular:'Lotaria Popular'
+    })[jogoKey(key)] || key || '—';
+  }
+
+  function normalizarPremiosLotariaV91(premios) {
+    if (!premios) return [];
+    if (typeof premios === 'string') {
+      try { premios = JSON.parse(premios); }
+      catch { return premios.trim() ? [{ premio:'Prémio', numero:premios.trim() }] : []; }
+    }
+    if (Array.isArray(premios)) return premios;
+    if (typeof premios !== 'object') return [];
+    return Object.entries(premios).map(([chave, valor], idx) => {
+      if (valor && typeof valor === 'object') {
+        return {
+          premio: valor.premio || valor.tipo || valor.nome || chave,
+          numero: valor.numero || valor.codigo || valor.valor || '',
+          valor: valor.valorPremio || valor.montante || null
+        };
+      }
+      return { premio: chave || `${idx+1}.º prémio`, numero: valor };
+    });
+  }
+
+  if (typeof renderResultadoLotaria === 'function' && !renderResultadoLotaria.__v91) {
+    const anterior = renderResultadoLotaria;
+    renderResultadoLotaria = function(data) {
+      return anterior({ ...data, premios: normalizarPremiosLotariaV91(data?.premios) });
+    };
+    renderResultadoLotaria.__v91 = true;
+  }
+
+  function corrigirJogoPremio(item) {
+    const resultado = norm(item?.resultado || item?.acertos || item?.descricao || '');
+    const jogo = jogoKey(item?.jogo || item?.game || item?.tipo);
+    if (resultado.includes('n da sorte') || resultado.includes('numero da sorte')) {
+      return { ...item, jogo:'Totoloto', __v91Original:item };
+    }
+    return { ...item, jogo:jogoNome(jogo), __v91Original:item };
+  }
+
+  function chaveSemContaminacao(item) {
+    const aposta = String(item?.aposta || '').replace(/\s*\+\s*/g,' + ').replace(/\s+/g,' ').trim();
+    return [
+      jogoKey(item?.jogo),
+      norm(item?.sorteio),
+      norm(item?.dataSorteio || item?.data),
+      aposta,
+      norm(item?.resultado || item?.acertos),
+      Number(item?.valorPremio || item?.valor || 0)
+    ].join('|');
+  }
+
+  function historicoV91() {
+    let base = [];
+    try {
+      if (typeof baseHistoricoV64 === 'function') base = baseHistoricoV64() || [];
+      else if (Array.isArray(historico)) base = historico;
+    } catch {}
+    const vistos = new Set(), out = [];
+    base.map(corrigirJogoPremio).forEach(item => {
+      const k = chaveSemContaminacao(item);
+      if (!vistos.has(k)) { vistos.add(k); out.push(item); }
+    });
+    return out;
+  }
+
+  window.historicoCorrigidoV91 = historicoV91;
+
+  if (typeof historicoFiltradoGlobalV64 === 'function') historicoFiltradoGlobalV64 = historicoV91;
+  if (typeof histFiltradoV63 === 'function') histFiltradoV63 = historicoV91;
+  if (typeof histSeguroV59 === 'function') histSeguroV59 = historicoV91;
+  if (typeof histV58 === 'function') histV58 = historicoV91;
+  if (typeof histSeguroV61 === 'function') histSeguroV61 = historicoV91;
+
+  function apostasPorJogoV91() {
+    const cont = {};
+    let src = {};
+    try { src = window.apostas || apostas || {}; } catch {}
+    if (src && typeof src === 'object' && !Array.isArray(src)) {
+      Object.entries(src).forEach(([jogo, lista]) => {
+        if (!Array.isArray(lista)) return;
+        const key = jogoKey(jogo);
+        cont[key] = (cont[key] || 0) + lista.length;
+      });
+    }
+    return cont;
+  }
+
+  function confirmadosV91() {
+    try { return typeof confirmadosV59 === 'function' ? confirmadosV59() : {}; }
+    catch { return {}; }
+  }
+
+  function idPossiveisV91(item) {
+    const ids = [];
+    try { if (typeof idGlobalPremioV64 === 'function') ids.push(idGlobalPremioV64(item)); } catch {}
+    try { if (item?.__v91Original && typeof idGlobalPremioV64 === 'function') ids.push(idGlobalPremioV64(item.__v91Original)); } catch {}
+    try { if (typeof premioIdSeguroV59 === 'function') ids.push(premioIdSeguroV59(item)); } catch {}
+    return [...new Set(ids.filter(Boolean))];
+  }
+
+  function estaConfirmadoV91(item) {
+    const conf = confirmadosV91();
+    return idPossiveisV91(item).some(id => !!conf[id]);
+  }
+
+  function premiosConfirmadosV91() {
+    return historicoV91().filter(estaConfirmadoV91);
+  }
+
+  function valorV91(item) {
+    const direto = Number(item?.valorPremio || item?.valor || 0);
+    if (Number.isFinite(direto) && direto > 0) return direto;
+    const m = String(item?.premio || '').match(/(\d+(?:[.,]\d{1,2})?)/);
+    return m ? Number(m[1].replace(',','.')) : 0;
+  }
+
+  function maiorEntrada(cont) {
+    const e = Object.entries(cont || {});
+    if (!e.length) return null;
+    const max = Math.max(...e.map(([,n]) => n));
+    const empates = e.filter(([,n]) => n === max);
+    return empates.length > 1 ? [empates.map(([j]) => jogoNome(j)).join(' / '), max, true] : [empates[0][0], max, false];
+  }
+
+  function atualizarStatsV91() {
+    const porApostas = apostasPorJogoV91();
+    const confirmados = premiosConfirmadosV91();
+    const porPremios = {};
+    confirmados.forEach(i => {
+      const k = jogoKey(i.jogo);
+      porPremios[k] = (porPremios[k] || 0) + 1;
+    });
+
+    const maisApostado = maiorEntrada(porApostas);
+    const maisPremiado = maiorEntrada(porPremios);
+    const maior = [...confirmados].sort((a,b) => valorV91(b)-valorV91(a))[0];
+
+    const set = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
+    set('statJogoMaisApostado', maisApostado ? `${maisApostado[2] ? maisApostado[0] : jogoNome(maisApostado[0])} (${maisApostado[1]})` : '—');
+    set('statJogoMaisPremiado', maisPremiado ? `${maisPremiado[2] ? maisPremiado[0] : jogoNome(maisPremiado[0])} (${maisPremiado[1]})` : '—');
+    set('statMelhorPremio', maior ? `${jogoNome(maior.jogo)} — ${valorV91(maior).toLocaleString('pt-PT',{style:'currency',currency:'EUR'})}` : '—');
+    set('intelJogoDominante', maisApostado ? `${maisApostado[2] ? maisApostado[0] : jogoNome(maisApostado[0])} (${maisApostado[1]})` : '—');
+    set('intelMelhorJogo', maisPremiado ? `${maisPremiado[2] ? maisPremiado[0] : jogoNome(maisPremiado[0])} (${maisPremiado[1]})` : '—');
+
+    const totalApostas = Object.values(porApostas).reduce((a,b)=>a+b,0);
+    const totalPremios = confirmados.length;
+    const insight = document.getElementById('intelInsights');
+    if (insight && totalApostas) {
+      const dom = maisApostado;
+      const pct = dom ? Math.round((dom[1]/totalApostas)*100) : 0;
+      insight.innerHTML = `
+        <div class="intel-insight alvo"><b>🎯</b><span>Tens ${totalApostas} aposta(s) registada(s) e ${totalPremios} prémio(s) confirmado(s).</span></div>
+        ${dom ? `<div class="intel-insight info"><b>ℹ️</b><span>${dom[2] ? dom[0] : jogoNome(dom[0])} representa ${pct}% das tuas apostas.</span></div>` : ''}
+        ${maisPremiado ? `<div class="intel-insight bom"><b>✅</b><span>O teu jogo mais premiado é ${maisPremiado[2] ? maisPremiado[0] : jogoNome(maisPremiado[0])}.</span></div>` : ''}
+      `;
+    }
+  }
+
+  function instalarV91() {
+    try { renderPremiosGestaoV58?.(); } catch {}
+    try { atualizarStatsV91(); } catch(e) { console.warn('V91 estatísticas', e); }
+    document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{
+      if (/^V\d+/i.test((el.textContent||'').trim()) || el.hasAttribute('data-app-version')) el.textContent='V91.0';
+    });
+  }
+
+  window.APP_INFO = Object.assign(window.APP_INFO || {}, {
+    version:'91.0', label:'V91.0', build:'2026.07.16',
+    codename:'Correções finais e testes', slug:'correcoes-finais-testes'
+  });
+  window.APP_VERSION='v91.0-correcoes-finais-testes';
+
+  document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600));
+  setTimeout(instalarV91, 1600);
+  setInterval(instalarV91, 15000);
+  document.addEventListener('click', () => setTimeout(instalarV91, 250));
 })();
 
