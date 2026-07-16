@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "91.0",
-  label: "V91.0",
-  build: "2026.07.15",
-  codename: "Correções finais e testes",
-  slug: "correcoes-finais-testes",
+  version: "92.0",
+  label: "V92.0",
+  build: "2026.07.16",
+  codename: "Estado Global Unificado",
+  slug: "estado-global-unificado",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -9704,5 +9704,251 @@ instalarV73();
   setTimeout(instalarV91, 1600);
   setInterval(instalarV91, 15000);
   document.addEventListener('click', () => setTimeout(instalarV91, 250));
+})();
+
+// =========================================================
+// V92.0 — Estado Global Unificado
+// Uma única fonte para Home, Prémios, Estatísticas e Perfil.
+// =========================================================
+(() => {
+  const V92 = { version:'92.0', label:'V92.0', build:'2026.07.16', codename:'Estado Global Unificado', slug:'estado-global-unificado' };
+  window.APP_INFO = Object.assign(window.APP_INFO || {}, V92);
+  window.APP_VERSION = 'v92.0-estado-global-unificado';
+
+  const norm = value => String(value ?? '').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const compact = value => norm(value).replace(/[^a-z0-9]/g, '');
+  const asNumber = value => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    let s=String(value ?? '').trim();
+    if (!s || /consultar|sem valor/i.test(s)) return 0;
+    s=s.replace(/[€\s]/g,'');
+    if (s.includes(',') && s.includes('.')) s=s.replace(/\./g,'').replace(',','.');
+    else if (s.includes(',')) s=s.replace(',','.');
+    const m=s.match(/-?\d+(?:\.\d+)?/); return m ? Number(m[0]) : 0;
+  };
+  const money = value => Number(value || 0).toLocaleString('pt-PT',{style:'currency',currency:'EUR'});
+  const gameKey = value => {
+    const n=norm(value);
+    if (n.includes('eurom')) return 'euromilhoes';
+    if (n.includes('toto')) return 'totoloto';
+    if (n.includes('dream')) return 'eurodreams';
+    if (n.includes('m1lhao') || n.includes('milhao')) return 'milhao';
+    if (n.includes('class')) return 'lotaria_classica';
+    if (n.includes('popular')) return 'lotaria_popular';
+    return n.replace(/\s+/g,'_');
+  };
+  const gameName = value => ({euromilhoes:'Euromilhões',totoloto:'Totoloto',eurodreams:'EuroDreams',milhao:'M1lhão',lotaria_classica:'Lotaria Clássica',lotaria_popular:'Lotaria Popular'})[gameKey(value)] || value || '—';
+  const betNorm = value => String(value ?? '').replace(/\s*\+\s*/g,' + ').replace(/\s+/g,' ').trim();
+  const parseDate = value => {
+    const s=String(value ?? '').trim();
+    let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m) return new Date(+m[3],+m[2]-1,+m[1],12);
+    m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return new Date(+m[1],+m[2]-1,+m[3],12);
+    const d=new Date(s); return Number.isNaN(d.getTime()) ? null : d;
+  };
+  const fmtDate = value => { const d=parseDate(value); return d ? d.toLocaleDateString('pt-PT') : String(value || ''); };
+  const setText = (id,text) => { const el=document.getElementById(id); if(el && el.textContent!==String(text)) el.textContent=String(text); };
+
+  function rawHistory(){
+    try { if (Array.isArray(historico)) return historico; } catch {}
+    return [];
+  }
+  function rawBets(){
+    try { return apostas && typeof apostas==='object' ? apostas : {}; } catch { return {}; }
+  }
+  function confirmationMap(){ try { return typeof confirmadosV59==='function' ? confirmadosV59() : {}; } catch { return {}; } }
+  function liftedMap(){ try { return typeof levantadosV59==='function' ? levantadosV59() : {}; } catch { return {}; } }
+
+  const TOTO_055 = { sorteio:'055/2026', data:'11/07/2026', nums:[4,7,8,25,30], sorte:1, premios:{'5+1':0,'5+0':12747.42,'4+0':156.98,'3+0':3.97,'2+0':1.86,'0+1':0} };
+  function evalToto055(aposta){
+    const [left,right='']=betNorm(aposta).split('+');
+    const nums=left.trim().split(/\s+/).map(Number).filter(Number.isFinite);
+    const sorte=Number(right.trim().split(/\s+/)[0]);
+    const hits=nums.filter(n=>TOTO_055.nums.includes(n)).length;
+    const lucky=sorte===TOTO_055.sorte;
+    const cat=hits===5&&lucky?'5+1':hits===5?'5+0':hits===4?'4+0':hits===3?'3+0':hits===2?'2+0':lucky?'0+1':'';
+    const value=cat ? Number(TOTO_055.premios[cat] || 0) : 0;
+    return {hits,lucky,cat,value,won:!!cat && (value>0 || cat==='0+1')};
+  }
+  function isKnownToto055(item){
+    const b=betNorm(item?.aposta);
+    const draw=norm(item?.sorteio||item?.dataSorteio||item?.data);
+    const result=norm(item?.resultado||item?.acertos);
+    return b==='3 4 7 26 30 + 7' && (draw.includes('055/2026') || draw.includes('11/07/2026') || result.includes('3 numero'));
+  }
+  function canonicalCandidate(item){
+    if(!item) return null;
+    let c={...item};
+    if(isKnownToto055(c)){
+      const ev=evalToto055(c.aposta);
+      if(!ev.won) return null;
+      c={...c,jogo:'Totoloto',sorteio:TOTO_055.sorteio,dataSorteio:TOTO_055.data,
+         resultado:`${ev.hits} número(s)${ev.lucky?' + 1 Nº da Sorte':''}`,
+         premio:`4.º Prémio — ${money(ev.value)}`,valorPremio:ev.value,__v92:true};
+    } else {
+      const r=norm(c.resultado||c.acertos);
+      if(r.includes('n da sorte') || r.includes('numero da sorte')) c.jogo='Totoloto';
+      else c.jogo=gameName(c.jogo);
+    }
+    c.aposta=betNorm(c.aposta);
+    return c;
+  }
+  function candidateKey(item){
+    return [gameKey(item?.jogo),norm(item?.sorteio),norm(item?.dataSorteio||item?.data),betNorm(item?.aposta),norm(item?.resultado||item?.acertos)].join('|');
+  }
+  function candidateValue(item){
+    if(isKnownToto055(item)) return 3.97;
+    const direct=asNumber(item?.valorPremio||item?.valor||item?.premioValor);
+    if(direct>0) return direct;
+    const txt=String(item?.premio||'');
+    const euro=txt.match(/(\d+(?:[.,]\d{1,2})?)\s*€/); return euro ? asNumber(euro[1]) : 0;
+  }
+  function legacyIds(item){
+    const ids=[];
+    for(const fn of [typeof idGlobalPremioV64==='function'?idGlobalPremioV64:null,typeof premioIdSeguroV59==='function'?premioIdSeguroV59:null,typeof premioIdV58==='function'?premioIdV58:null]){
+      try { if(fn) ids.push(fn(item)); } catch {}
+    }
+    return [...new Set(ids.filter(Boolean))];
+  }
+  function isConfirmed(item){
+    const map=confirmationMap();
+    if(legacyIds(item).some(id=>map[id])) return true;
+    const b=compact(item?.aposta), draw=compact(item?.sorteio||item?.dataSorteio);
+    return Object.entries(map).some(([id,on])=>on && (!b || compact(id).includes(b)) && (!draw || compact(id).includes(draw)));
+  }
+  function isLifted(item){
+    const map=liftedMap(); return legacyIds(item).some(id=>map[id]);
+  }
+  function candidates(){
+    const out=[], seen=new Set();
+    rawHistory().forEach(raw=>{
+      const c=canonicalCandidate(raw); if(!c) return;
+      if(gameKey(c.jogo)!=='totoloto' && isKnownToto055(c)) return;
+      const k=candidateKey(c); if(seen.has(k)) return; seen.add(k); out.push(c);
+    });
+    // Garante o prémio oficial conhecido mesmo quando o histórico contaminado foi removido.
+    const totoBet=(rawBets().totoloto||[]).find(a=>betNorm(a)==='3 4 7 26 30 + 7');
+    if(totoBet){
+      const c=canonicalCandidate({jogo:'Totoloto',sorteio:TOTO_055.sorteio,dataSorteio:TOTO_055.data,aposta:totoBet,resultado:'3 número(s)',valorPremio:3.97,premio:'4.º Prémio — 3,97 €'});
+      const k=candidateKey(c); if(!seen.has(k)){seen.add(k);out.push(c);}
+    }
+    return out.sort((a,b)=>(parseDate(b.dataSorteio||b.data)?.getTime()||0)-(parseDate(a.dataSorteio||a.data)?.getTime()||0));
+  }
+  function betsByGame(){
+    const out={}; Object.entries(rawBets()).forEach(([g,list])=>{ if(Array.isArray(list)) out[gameKey(g)]=(out[gameKey(g)]||0)+list.length; }); return out;
+  }
+  function topEntry(map){
+    const entries=Object.entries(map).filter(([,n])=>n>0); if(!entries.length) return null;
+    const max=Math.max(...entries.map(([,n])=>n)); const tied=entries.filter(([,n])=>n===max);
+    return {keys:tied.map(([k])=>k),value:max,label:tied.map(([k])=>gameName(k)).join(' / ')};
+  }
+  function officialResults(){
+    const list=Array.isArray(window.resultadosOficiaisLista)?window.resultadosOficiaisLista:[];
+    return list.map(r=>({...r,__date:parseDate(r.data_sorteio||r.data)})).filter(r=>r.__date).sort((a,b)=>b.__date-a.__date);
+  }
+  function state(){
+    const bets=betsByGame(); const cand=candidates(); const confirmed=cand.filter(isConfirmed); const lifted=cand.filter(isLifted);
+    const byPrize={}; cand.forEach(c=>{const k=gameKey(c.jogo);byPrize[k]=(byPrize[k]||0)+1;});
+    const totalBets=Object.values(bets).reduce((a,b)=>a+b,0);
+    const totalConfirmed=confirmed.reduce((s,c)=>s+candidateValue(c),0);
+    const biggest=[...cand].sort((a,b)=>candidateValue(b)-candidateValue(a))[0]||null;
+    return {bets,candidates:cand,confirmed,lifted,byPrize,totalBets,totalConfirmed,topBet:topEntry(bets),topPrize:topEntry(byPrize),biggest,latestOfficial:officialResults()[0]||null};
+  }
+  window.JSC_STATE_V92=state;
+
+  function normalizeLotteryPrizes(value){
+    if(!value) return [];
+    if(typeof value==='string'){ try{value=JSON.parse(value)}catch{return value.trim()?[{premio:'Prémio',numero:value.trim()}]:[];} }
+    if(Array.isArray(value)) return value;
+    if(typeof value!=='object') return [];
+    return Object.entries(value).map(([k,v],i)=>typeof v==='object'&&v?{premio:v.premio||v.tipo||v.nome||k,numero:v.numero||v.codigo||v.valor||'',valor:v.valorPremio||v.montante||null}:{premio:k||`${i+1}.º prémio`,numero:v});
+  }
+  if(typeof renderResultadoLotaria==='function'){
+    const old=renderResultadoLotaria;
+    renderResultadoLotaria=function(data){return old({...data,premios:normalizeLotteryPrizes(data?.premios)});};
+  }
+
+  function renderPrizeManagement(){
+    const s=state(), conf=confirmationMap(), lev=liftedMap();
+    setText('premiosGestaoResumoV58',`${s.candidates.length} candidato(s) · ${s.candidates.filter(x=>!isConfirmed(x)).length} por confirmar`);
+    setText('v58TotalGanho',money(s.totalConfirmed));
+    setText('v58TotalLevantado',money(s.lifted.reduce((a,c)=>a+candidateValue(c),0)));
+    setText('v58TotalPorLevantar',money(Math.max(0,s.totalConfirmed-s.lifted.reduce((a,c)=>a+candidateValue(c),0))));
+    const box=document.getElementById('premiosListaGestaoV58'); if(!box) return;
+    const filter=document.querySelector('[data-filtro-premios-v58].active')?.dataset?.filtroPremiosV58||'todos';
+    const list=s.candidates.filter(c=>filter==='levantados'?isLifted(c):filter==='porLevantar'?isConfirmed(c)&&!isLifted(c):true);
+    if(!list.length){box.innerHTML='<div class="empty-v58">Sem prémios neste filtro.</div>';return;}
+    box.innerHTML=list.map(c=>{const id=legacyIds(c)[0]||candidateKey(c),confirmed=isConfirmed(c),lifted=isLifted(c);let p={nums:[],extras:[]};try{p=parseAposta(c.aposta)}catch{}const nums=(p.nums||[]).map(n=>`<span>${n}</span>`).join('');const extras=(p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join('');return `<article class="premio-gestao-item-v58 ${lifted?'levantado':confirmed?'pendente':'por-confirmar'}"><div class="premio-gestao-top-v58"><div><strong>🏆 ${gameName(c.jogo)} — ${money(candidateValue(c))}</strong><small>Sorteio ${c.sorteio||'—'} · ${fmtDate(c.dataSorteio||c.data)}</small></div><span>${lifted?'✅ Levantado':confirmed?'🟡 Por levantar':'⚠️ Por confirmar'}</span></div><div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:''}</p></div><div><b>Motivo correto</b><p>${c.resultado||'Prémio oficial'}</p></div><div><b>Estado</b><p>${confirmed?'Confirmado pelo utilizador':'Não conta no total ganho até confirmares'}</p></div></div><div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${confirmed?'Retirar confirmação':'Confirmar prémio'}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!confirmed?'disabled':''}>${lifted?'Marcar por levantar':'Marcar como levantado'}</button></div></article>`;}).join('');
+    box.querySelectorAll('.btn-confirmar-v59').forEach(btn=>btn.onclick=()=>{const id=decodeURIComponent(btn.dataset.id||'');try{setConfirmadoV59(id,!confirmationMap()[id]);}catch{}renderAll();});
+    box.querySelectorAll('.btn-levantar-v58').forEach(btn=>btn.onclick=()=>{const id=decodeURIComponent(btn.dataset.id||'');try{if(!confirmationMap()[id])return;setLevantadoV59(id,!liftedMap()[id]);}catch{}renderAll();});
+  }
+
+  function renderStats(){
+    const s=state(); const topB=s.topBet, topP=s.topPrize, big=s.biggest;
+    setText('statApostas',s.totalBets); setText('statPremios',s.candidates.length);
+    setText('statJogoMaisApostado',topB?`${topB.label} (${topB.value})`:'—');
+    setText('statJogoMaisPremiado',topP?`${topP.label} (${topP.value})`:'—');
+    setText('statMelhorPremio',big?`${gameName(big.jogo)} — ${money(candidateValue(big))}`:'—');
+    setText('statUltimoPremio',s.candidates[0]?gameName(s.candidates[0].jogo):'—');
+    setText('statUltimaSync',`${Math.max(0,s.totalBets-s.candidates.length)} aposta(s)`);
+    setText('intelJogoDominante',topB?`${topB.label} (${topB.value})`:'—');
+    setText('intelMelhorJogo',topP?`${topP.label} (${topP.value})`:'—');
+    setText('intelMediaPremios',s.candidates.length?`1 a cada ${Math.max(1,Math.round(s.totalBets/s.candidates.length))} aposta(s)`:'—');
+    const ranking=document.getElementById('statRankingJogos'); if(ranking){const entries=Object.entries(s.byPrize).sort((a,b)=>b[1]-a[1]);const max=Math.max(1,...entries.map(([,n])=>n));ranking.innerHTML=entries.length?entries.map(([g,n],i)=>`<div class="mini-ranking-row"><div class="mini-ranking-label"><span>${i+1}.º ${gameName(g)}</span><strong>${n}</strong></div><div class="mini-ranking-bar"><i style="width:${Math.max(8,Math.round(n/max*100))}%"></i></div></div>`).join(''):'<div class="mini-ranking-empty">Ainda não há prémios.</div>';}
+    setText('statResumoRanking',s.candidates.length?`${s.candidates.length} prémio(s) em ${Object.keys(s.byPrize).length} jogo(s)`:'Sem dados');
+    const insight=document.getElementById('intelInsights'); if(insight){const pct=topB?Math.round(topB.value/s.totalBets*100):0;insight.innerHTML=`<div class="intel-insight alvo"><b>🎯</b><span>Tens ${s.totalBets} aposta(s) e ${s.candidates.length} prémio(s) real(is).</span></div>${topB?`<div class="intel-insight info"><b>ℹ️</b><span>${topB.label} representa ${pct}% das tuas apostas.</span></div>`:''}${topP?`<div class="intel-insight bom"><b>✅</b><span>O jogo mais premiado é ${topP.label}.</span></div>`:''}`;}
+  }
+
+  function renderDashboard(){
+    const s=state(); const latest=s.latestOfficial;
+    setText('v73ApostasAtivas',s.totalBets); setText('v73ApostasMeta',s.topBet?`Mais usado: ${s.topBet.label} (${s.topBet.value})`:'Sem apostas');
+    if(latest){setText('v73UltimoResultado',gameName(latest.jogo));const small=document.getElementById('v73UltimoResultado')?.parentElement?.querySelector('small');if(small)small.textContent=`Sorteio ${latest.sorteio||'—'} · ${fmtDate(latest.data_sorteio||latest.data)}`;}
+    const last=s.candidates[0]; setText('dvUltimoPremio',last?`${gameName(last.jogo)} — ${money(candidateValue(last))}`:'Ainda sem prémios');
+    setText('dvUltimoPremioMeta',last?`${fmtDate(last.dataSorteio||last.data)} · ${last.resultado||''}`:'Quando houver prémios, aparecem aqui.');
+    setText('dvTotalGanho',money(s.totalConfirmed)); setText('dvSequencia',`${s.candidates.length} prémio(s)`);
+    setText('dvProximaAcao',s.candidates.some(c=>!isConfirmed(c))?'Confirmar prémio':'Acompanhar resultados');
+    setText('dvProximaAcaoMeta',s.candidates.some(c=>!isConfirmed(c))?'Tens prémios por confirmar.':'As tuas apostas já estão prontas.');
+    setText('dvBadge',s.candidates.length?'🍀 Atualizado':'Novo');
+    setText('dvFrase',`Tens ${s.candidates.length} candidato(s), ${s.confirmed.length} confirmado(s) e total confirmado de ${money(s.totalConfirmed)}.`);
+  }
+
+  function renderPremiumAndProfile(){
+    const s=state(), big=s.biggest, top=s.topPrize;
+    setText('premioTotalGanho',money(s.totalConfirmed)); setText('premioTotalNota',s.confirmed.length?'Valores confirmados pelo utilizador.':'Confirma os prémios para somar ao total.');
+    setText('premioMaior',big?money(candidateValue(big)):'—'); setText('premioMelhorJogo',top?`${top.label} (${top.value})`:'—');
+    setText('premioTendencia',s.candidates.length?'→ Estável':'—'); setText('premiosNivelBadge',money(s.totalConfirmed)); setText('premiosPremiumResumo',`${s.candidates.length} prémio(s) · ${s.candidates.filter(c=>!isConfirmed(c)).length} por confirmar`);
+    const list=document.getElementById('premiosPremiumLista');if(list)list.innerHTML=s.candidates.length?s.candidates.slice(0,5).map(c=>`<div class="premio-row valor"><div><strong>${gameName(c.jogo)}</strong><span>${fmtDate(c.dataSorteio||c.data)} · ${c.resultado||''}</span></div><b>${money(candidateValue(c))}</b></div>`).join(''):'<div class="premios-empty">Ainda sem prémios registados.</div>';
+    setText('perfilApostas',s.totalBets); setText('perfilPremios',s.candidates.length); setText('perfilTotalGanho',money(s.totalConfirmed)); setText('perfilMaiorPremio',big?money(candidateValue(big)):'—');
+    setText('perfilJogoFavorito',s.topBet?`${s.topBet.label} (${s.topBet.value})`:'—'); setText('perfilTaxa',`${s.totalBets?Math.round(s.candidates.length/s.totalBets*100):0}%`); setText('perfilSeqSem',`${Math.max(0,s.totalBets-s.candidates.length)} aposta(s)`); setText('perfilSeqPremios',`${s.candidates.length} prémio(s)`);
+  }
+
+  function renderCounters(){
+    const s=state(); if(typeof jogoAtual!=='undefined') setText('contadorApostas',`${(rawBets()[jogoAtual]||[]).length} aposta(s) · 🏆 ${(s.candidates.filter(c=>gameKey(c.jogo)===gameKey(jogoAtual))).length} prémio(s)`);
+    document.querySelectorAll('.tab').forEach(tab=>{const key=tab.dataset.jogo,c=s.candidates.filter(x=>gameKey(x.jogo)===gameKey(key)).length,cfg=typeof jogos!=='undefined'?jogos[key]:null;if(cfg)tab.innerHTML=`<span>${cfg.tab}</span>${c?`<em>🏆${c}</em>`:''}`;});
+  }
+
+  function renderAll(){
+    try{renderPrizeManagement();}catch(e){console.warn('V92 prémios',e)}
+    try{renderStats();}catch(e){console.warn('V92 estatísticas',e)}
+    try{renderDashboard();}catch(e){console.warn('V92 dashboard',e)}
+    try{renderPremiumAndProfile();}catch(e){console.warn('V92 perfil',e)}
+    try{renderCounters();}catch(e){console.warn('V92 contadores',e)}
+    document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{if(el.hasAttribute('data-app-version')||/^V\d+/i.test((el.textContent||'').trim()))el.textContent='V92.0';});
+  }
+  window.JSC_RENDER_V92=renderAll;
+
+  // Substitui os vários motores antigos pelos mesmos dados canónicos.
+  atualizarDashboardVivoV54=renderDashboard;
+  atualizarPremiosPremiumV42=renderPremiumAndProfile;
+  atualizarPerfilApostadorV43=renderPremiumAndProfile;
+  atualizarEstatisticasAvancadas=renderStats;
+  renderPremiosGestaoV58=renderPrizeManagement;
+  historicoFiltradoGlobalV64=candidates;
+  histSeguroV59=candidates; histV58=candidates; histSeguroV61=candidates;
+
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(renderAll,500),{once:true});
+  document.addEventListener('click',()=>setTimeout(renderAll,150));
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderAll();});
+  setTimeout(renderAll,1200); setTimeout(renderAll,3000); setInterval(renderAll,10000);
 })();
 

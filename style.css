@@ -3279,3 +3279,6 @@ body.v770-launch-polish .v72-pill,body.v770-launch-polish .v54-pill{box-shadow:0
   .v800-splash-logo img { width: 96px; height: 96px; }
   .brand-icon img { width: 54px; height: 54px; }
 }
+
+/* V92.0 — estado unificado: evita oscilações visuais durante recalculo */
+[data-v92-updating="1"]{transition:none!important}
