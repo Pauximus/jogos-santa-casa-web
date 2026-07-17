@@ -4,7 +4,9 @@
   "version": "91.0.0",
   "type": "module",
   "scripts": {
-    "push:engine": "node scripts/push-engine.mjs"
+    "push:engine": "node scripts/push-engine.mjs",
+    "doctor": "node scripts/jsc-doctor.mjs",
+    "sync:android": "npx cap copy android"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
