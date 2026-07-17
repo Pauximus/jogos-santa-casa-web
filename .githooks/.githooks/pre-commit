@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "A executar JSC Doctor antes do commit..."
+node scripts/jsc-doctor.mjs || exit $?

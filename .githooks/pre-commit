@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "A verificar o projeto antes do commit..."
+node scripts/verify-project.mjs || exit $?

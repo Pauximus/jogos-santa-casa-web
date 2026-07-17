@@ -8868,7 +8868,7 @@ instalarV73();
   });
   window.setTimeout(() => { tick(); showFirstRunNotifications(); }, 1200);
   window.setInterval(tick, 2500);
-  new MutationObserver(() => tick()).observe(document.documentElement, {subtree:true,childList:true});
+  // V92 organizada: observer autorrecursivo removido; o setInterval(tick, 2500) mantém a atualização periódica.
 
   console.log("🍀 Interface simplificada e scroll para o topo ativos");
 })();
