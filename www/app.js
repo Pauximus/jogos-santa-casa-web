@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "92.3.0",
-  label: "V92.3.0",
+  version: "93.0.0",
+  label: "V93.0.0",
   build: "2026.07.21",
-  codename: "Correção de Prémios #1 · Arranque e Toques Estáveis",
-  slug: "correcao-premios-1-arranque-toques-estaveis",
+  codename: "Base Estável · Motor Único",
+  slug: "base-estavel-motor-unico",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -2163,7 +2163,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 
 
 setTimeout(() => { try { iniciarNotificacoesV34(); atualizarEstatisticasAvancadas(); notificarPremiosSeNecessarioV34(); } catch(e) {} }, 500);
-window.__statsV33Interval = setInterval(() => { try { atualizarEstatisticasAvancadas(); notificarPremiosSeNecessarioV34(); } catch(e) {} }, 2000);
+window.__statsV33Interval = setTimeout(() => { try { atualizarEstatisticasAvancadas(); notificarPremiosSeNecessarioV34(); } catch(e) {} }, 2000);
 document.addEventListener("click", () => { setTimeout(() => { try { atualizarEstatisticasAvancadas(); } catch(e) {} }, 150); });
 
 
@@ -3096,7 +3096,7 @@ function atualizarEstatisticasInteligentesV39() {
 setTimeout(() => {
   try { atualizarEstatisticasInteligentesV39(); } catch(e) {}
 }, 1000);
-setInterval(() => {
+setTimeout(() => {
   try { atualizarEstatisticasInteligentesV39(); } catch(e) {}
 }, 3000);
 document.addEventListener("click", () => {
@@ -3288,7 +3288,7 @@ function atualizarDashboardPremiumV40() {
 setTimeout(() => {
   try { atualizarDashboardPremiumV40(); } catch(e) {}
 }, 1100);
-setInterval(() => {
+setTimeout(() => {
   try { atualizarDashboardPremiumV40(); } catch(e) {}
 }, 3000);
 document.addEventListener("click", () => {
@@ -3813,7 +3813,7 @@ function iniciarPremiosPremiumV42() {
 setTimeout(() => {
   try { iniciarPremiosPremiumV42(); } catch(e) {}
 }, 1400);
-setInterval(() => {
+setTimeout(() => {
   try { atualizarPremiosPremiumV42(); } catch(e) {}
 }, 3000);
 
@@ -4024,7 +4024,7 @@ function iniciarPerfilApostadorV43() {
 setTimeout(() => {
   try { iniciarPerfilApostadorV43(); } catch(e) {}
 }, 1600);
-setInterval(() => {
+setTimeout(() => {
   try { atualizarPerfilApostadorV43(); } catch(e) {}
 }, 3000);
 
@@ -4208,7 +4208,7 @@ function iniciarValoresPremiosFixV431(){atualizarValoresPremiosV431()}
 
 
 setTimeout(()=>{try{iniciarValoresPremiosFixV431()}catch(e){}},1800);
-setInterval(()=>{try{atualizarValoresPremiosV431()}catch(e){}},5000);
+setTimeout(()=>{try{atualizarValoresPremiosV431()}catch(e){}},5000);
 
 
 // V43.2 - Debug de valores dos prémios
@@ -4476,7 +4476,7 @@ async function atualizarValoresPremiosV433() {
 }
 
 setTimeout(() => { try { atualizarValoresPremiosV433(); } catch(e) {} }, 2500);
-setInterval(() => { try { atualizarValoresPremiosV433(); } catch(e) {} }, 5000);
+setTimeout(() => { try { atualizarValoresPremiosV433(); } catch(e) {} }, 5000);
 
 
 
@@ -4610,7 +4610,7 @@ function mostrarDebugValoresV432() {}
 function copiarDebugValoresV432() {}
 
 setTimeout(() => { try { atualizarValoresHistoricoCleanV434(); } catch(e) {} }, 1200);
-setInterval(() => { try { atualizarValoresHistoricoCleanV434(); } catch(e) {} }, 4000);
+setTimeout(() => { try { atualizarValoresHistoricoCleanV434(); } catch(e) {} }, 4000);
 
 
 
@@ -4638,7 +4638,7 @@ function iniciarResultadosPremiumV44(){try{atualizarValoresHistoricoCleanV434?.(
 
 
 setTimeout(()=>{try{iniciarResultadosPremiumV44()}catch(e){}},1400);
-setInterval(()=>{try{iniciarResultadosPremiumV44()}catch(e){}},2500);
+setTimeout(()=>{try{iniciarResultadosPremiumV44()}catch(e){}},2500);
 document.addEventListener("click",()=>setTimeout(()=>{try{iniciarResultadosPremiumV44()}catch(e){}},400));
 
 
@@ -4767,7 +4767,7 @@ function corpoPremioV45(item) {
 }
 if (typeof corpoPremioV41 === "function") corpoPremioV41 = corpoPremioV45;
 setTimeout(() => { try { atualizarResultadosPremiumDefinitivoV45(); } catch(e) {} }, 1000);
-setInterval(() => { try { atualizarResultadosPremiumDefinitivoV45(); } catch(e) {} }, 1800);
+setTimeout(() => { try { atualizarResultadosPremiumDefinitivoV45(); } catch(e) {} }, 1800);
 document.addEventListener("click", () => setTimeout(() => { try { atualizarResultadosPremiumDefinitivoV45(); } catch(e) {} }, 250));
 
 
@@ -4852,7 +4852,7 @@ function v46HookRenderFunctions(){
   });
 }
 function iniciarV46(){try{atualizarValoresHistoricoCleanV434?.();}catch{} v46HookRenderFunctions(); v46PatchResultados();}
-setTimeout(iniciarV46,600);setTimeout(iniciarV46,1600);setInterval(iniciarV46,1500);
+setTimeout(iniciarV46,600);setTimeout(iniciarV46,1600);setTimeout(iniciarV46,1500);
 try{const obs=new MutationObserver(()=>{clearTimeout(window.__v46mt);window.__v46mt=setTimeout(v46PatchResultados,120);});obs.observe(document.body,{childList:true,subtree:true,characterData:true});}catch{}
 
 
@@ -5305,7 +5305,7 @@ function iniciarWatcherV51() {
 
   setTimeout(() => refrescarUICompletaV51("arranque"), 900);
 
-  setInterval(() => {
+  setTimeout(() => {
     try {
       const atual = assinaturaHistoricoV51();
       if (atual !== __v51LastHistSignature) {
@@ -7519,7 +7519,7 @@ function instalarV73(){
   const b2=document.getElementById('v73GerarAleatoria'); if(b2 && !b2.dataset.v73){ b2.dataset.v73='1'; b2.addEventListener('click',()=>v73GerarSugestao('aleatoria')); }
   setTimeout(()=>{ atualizarDashboardInteligenteV73(); v73GerarSugestao('estatistica'); },700);
   setTimeout(()=>{ atualizarDashboardInteligenteV73(); },2500);
-  setInterval(()=>{ atualizarDashboardInteligenteV73(); },60000);
+  setTimeout(()=>{ atualizarDashboardInteligenteV73(); },60000);
   document.addEventListener('click',()=>setTimeout(()=>atualizarDashboardInteligenteV73(),400));
 }
 instalarV73();
@@ -7941,7 +7941,7 @@ instalarV73();
     }
   }
   function tick(){ if(window.__V92_ACTIVE)return; try{ updateUserCard(); updateDashboard(); }catch(e){ console.warn('V76.4 dashboard vivo', e); } }
-  ready(()=>{ document.body.classList.add('v764-dashboard-vivo'); setTimeout(tick,400); setTimeout(tick,1800); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,300)); });
+  ready(()=>{ document.body.classList.add('v764-dashboard-vivo'); setTimeout(tick,400); setTimeout(tick,1800); setTimeout(tick,30000); document.addEventListener('click',()=>setTimeout(tick,300)); });
 })();
 
 
@@ -8026,7 +8026,7 @@ instalarV73();
     else sub.textContent = '🍀 O Assistente acompanha os resultados, sincroniza na cloud e avisa-te quando houver novidades.';
   }
   function tick(){ try{ updateVersion(); polishUserCard(); updateActivity(); updateHeroMessage(); }catch(e){ console.warn('V76.5 launch ready', e); } }
-  ready(()=>{ document.body.classList.add('v765-premium-polish'); setTimeout(tick,450); setTimeout(tick,1900); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,250)); });
+  ready(()=>{ document.body.classList.add('v765-premium-polish'); setTimeout(tick,450); setTimeout(tick,1900); setTimeout(tick,30000); document.addEventListener('click',()=>setTimeout(tick,250)); });
 })();
 
 // V77.0 — Launch polish: splash, conquistas e níveis
@@ -8130,7 +8130,7 @@ instalarV73();
     }
   }
   function tick(){ try{ updateVersion(); ensureHomeProgress(); ensureAchievements(); updateHero(); }catch(e){ console.warn('V77 launch ready', e); } }
-  ready(()=>{ document.body.classList.add('v770-launch-polish'); showSplash(); setTimeout(tick,500); setTimeout(tick,1800); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,300)); });
+  ready(()=>{ document.body.classList.add('v770-launch-polish'); showSplash(); setTimeout(tick,500); setTimeout(tick,1800); setTimeout(tick,30000); document.addEventListener('click',()=>setTimeout(tick,300)); });
 })();
 
 
@@ -8193,151 +8193,52 @@ instalarV73();
       .replace(/[^a-z0-9_-]/g, '-');
     document.body.classList.add(`v780-${safeSlug}`);
     syncVersion(); exposeSupportInfo();
-    if(!window.__V92_ACTIVE){ setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000); }
+    if(!window.__V92_ACTIVE){ setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setTimeout(syncVersion, 30000); }
     // V80.2: sem log legado aqui para evitar versões duplicadas na consola.
   });
 })();
 
 
-// V80.0 — Store Ready: versão única, splash e diagnóstico centralizado
-(function initV800StoreReady(){
-  const info = window.APP_INFO = Object.assign({
-    name: "Assistente Jogos Santa Casa",
-    version: "80.3",
-    label: "V80.3",
-    build: "2026.07.09",
-    codename: "Scanner Beta",
-    slug: "scanner-beta",
-    environment: "Production",
-    backend: "Supabase",
-    push: "Firebase",
-    cloud: true
-  }, window.APP_INFO || {});
-
-  // V80.2: fonte única da versão desta build.
-  info.version = "80.3";
-  info.label = "V80.3";
-  info.build = "2026.07.09";
-  info.codename = "Scanner Beta";
-  info.slug = "scanner-beta";
-  window.APP_VERSION = `v${info.version}-${info.slug}`;
-
+// V93.0 — Informação técnica canónica, sem timers nem versões antigas.
+(function initV930About(){
   const byId = id => document.getElementById(id);
-  const totalApostasV800 = () => {
-    try { return Object.values(window.apostas || apostas || {}).reduce((t, a) => t + (Array.isArray(a) ? a.length : 0), 0); }
+  const totalApostasV930 = () => {
+    try { return Object.values(window.apostas || apostas || {}).reduce((t,a)=>t+(Array.isArray(a)?a.length:0),0); }
     catch { return 0; }
   };
-  const totalPremiosV800 = () => {
-    try { return (window.historico || historico || []).length || 0; }
+  const totalPremiosV930 = () => {
+    try { return (typeof window.JSC_CANDIDATES_V93 === "function" ? window.JSC_CANDIDATES_V93() : (window.historico || historico || [])).length || 0; }
     catch { return 0; }
   };
-
-  function setText(id, text){ const el = byId(id); if(el) el.textContent = text; }
-
-  function atualizarVersoesV800(){
-    document.querySelectorAll('[data-app-version], .v72-pill, .v54-pill, .version-badge').forEach(el => {
-      const t = (el.textContent || '').trim();
-      if (el.hasAttribute('data-app-version') || /^V\d+(\.\d+)?/.test(t)) el.textContent = info.label;
-    });
-
-    setText('v67CloudVersion', window.APP_VERSION);
-
-    const sobre = byId('sobreAppV57');
-    if (sobre) {
-      sobre.textContent = `${info.label} · ${info.codename} · ${totalApostasV800()} aposta(s) · ${totalPremiosV800()} prémio(s) · ${info.backend} · ${info.push}`;
-    }
-
-    const debug = byId('debugAppInfoV800');
-    if (debug) debug.textContent = gerarDiagnosticoV800();
-
-    const splashVersion = byId('appSplashVersionV800');
-    if (splashVersion) splashVersion.textContent = `${info.label} · ${info.codename}`;
-  }
-
-  function gerarDiagnosticoV800(){
-    const ua = navigator.userAgent || '—';
-    const standalone = window.matchMedia?.('(display-mode: standalone)')?.matches || navigator.standalone || false;
+  function diagnostico(){
+    const i=window.APP_INFO;
     return [
-      info.name,
-      `Versão: ${info.label}`,
-      `Build: ${info.build}`,
-      `Codename: ${info.codename}`,
-      `Ambiente: ${info.environment}`,
-      `Backend: ${info.backend}`,
-      `Push: ${info.push}`,
-      `Cloud: ${info.cloud ? 'Online' : 'Offline'}`,
-      `Apostas: ${totalApostasV800()}`,
-      `Prémios: ${totalPremiosV800()}`,
-      `Modo app: ${standalone ? 'Instalada' : 'Browser'}`,
-      `Browser/SO: ${ua}`
-    ].join('\n');
+      i.name, `Versão: ${i.label}`, `Build: ${i.build}`, `Codename: ${i.codename}`,
+      `Ambiente: ${i.environment}`, `Backend: ${i.backend}`, `Push: ${i.push}`,
+      `Cloud: ${i.cloud?'Online':'Offline'}`, `Apostas: ${totalApostasV930()}`,
+      `Prémios: ${totalPremiosV930()}`, `Browser/SO: ${navigator.userAgent||'—'}`
+    ].join("\n");
   }
-
-  window.JSC_APP_INFO = info;
-  window.JSC_DIAGNOSTICO = gerarDiagnosticoV800;
-
-  function splashV800(){
-    const el = byId('appSplashV800');
-    if (!el) return;
-    window.setTimeout(() => {
-      el.classList.add('is-leaving');
-      window.setTimeout(() => el.remove(), 420);
-    }, 850);
-  }
-
-  function prepararTransicoes(){
-    const safeSlug = String(info.slug || 'store-ready')
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9_-]/g, '-');
-    document.body.classList.add(`v800-${safeSlug}`);
-    document.querySelectorAll('.v75-app-nav button').forEach(btn => {
-      if (btn.__v800Transition) return;
-      btn.__v800Transition = true;
-      btn.addEventListener('click', () => {
-        const app = byId('appBox');
-        if (!app) return;
-        app.classList.remove('v800-page-in');
-        void app.offsetWidth;
-        app.classList.add('v800-page-in');
-      });
+  function ensureAbout(){
+    const settings=byId("settingsPanelV74");
+    if(!settings) return;
+    settings.querySelectorAll(".v800-about-card,#debugAppInfoV800").forEach(el=>{
+      const card=el.closest("section,.card,article"); if(card) card.remove(); else el.remove();
     });
+    let card=byId("v930AboutCard");
+    if(!card){
+      card=document.createElement("section");
+      card.id="v930AboutCard";
+      card.className="card";
+      card.innerHTML=`<div class="v54-head"><div><h2>ℹ️ Sobre a aplicação</h2><p>Informação técnica para suporte e publicação.</p></div><span class="v54-pill" data-app-version></span></div><pre id="debugAppInfoV930"></pre><button type="button" class="mini-btn" id="copyAppInfoV930">📋 Copiar informações</button>`;
+      settings.appendChild(card);
+      byId("copyAppInfoV930")?.addEventListener("click",()=>navigator.clipboard?.writeText(diagnostico()));
+    }
+    const pre=byId("debugAppInfoV930"); if(pre) pre.textContent=diagnostico();
   }
-
-  function ensureDefinicoesSobre(){
-    const settings = byId('settingsPanelV74');
-    if (!settings || byId('debugAppInfoV800')) return;
-    const card = document.createElement('section');
-    card.className = 'card v800-about-card';
-    card.innerHTML = `
-      <div class="v54-head">
-        <div><h2>ℹ️ Sobre a aplicação</h2><p>Informação técnica para suporte e publicação.</p></div>
-        <span class="v54-pill" data-app-version>${info.label}</span>
-      </div>
-      <pre id="debugAppInfoV800"></pre>
-      <button type="button" class="mini-btn" id="copyAppInfoV800">📋 Copiar informações</button>
-    `;
-    settings.appendChild(card);
-    const btn = byId('copyAppInfoV800');
-    if (btn) btn.addEventListener('click', async () => {
-      const text = gerarDiagnosticoV800();
-      try { await navigator.clipboard.writeText(text); btn.textContent = '✅ Copiado'; }
-      catch { btn.textContent = 'Seleciona e copia'; }
-      window.setTimeout(() => { btn.textContent = '📋 Copiar informações'; }, 1800);
-    });
-  }
-
-  function tick(){
-    try { atualizarVersoesV800(); prepararTransicoes(); ensureDefinicoesSobre(); }
-    catch(e){ console.warn('V80 Store Ready', e); }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => { splashV800(); tick(); });
-  window.setTimeout(() => { splashV800(); tick(); }, 100);
-  window.setInterval(tick, 4000);
-
-  console.log(`🍀 ${info.name} · APP_VERSION ${window.APP_VERSION} (${info.codename})`);
+  window.JSC_DIAGNOSTICO=diagnostico;
+  document.addEventListener("DOMContentLoaded",()=>setTimeout(ensureAbout,300),{once:true});
+  document.addEventListener("click",e=>{ if(e.target?.closest?.('[data-page="settings"],#navDefinicoes')) setTimeout(ensureAbout,100); });
 })();
 
 
@@ -8797,7 +8698,7 @@ instalarV73();
   }
   document.addEventListener("DOMContentLoaded", tickScanner);
   window.setTimeout(tickScanner, 200);
-  window.setInterval(tickScanner, 3000);
+  window.setTimeout(tickScanner, 3000);
 })();
 
 
@@ -8841,7 +8742,7 @@ instalarV73();
   window.addEventListener("resize", tick, { passive:true });
   if (mq.addEventListener) mq.addEventListener("change", tick);
   setTimeout(tick, 50);
-  setInterval(tick, 2500);
+  setTimeout(tick, 2500);
 })();
 
 /* =========================================================
@@ -8955,8 +8856,8 @@ instalarV73();
     window.setTimeout(showFirstRunNotifications, 900);
   });
   window.setTimeout(() => { tick(); showFirstRunNotifications(); }, 1200);
-  window.setInterval(tick, 2500);
-  // V92 organizada: observer autorrecursivo removido; o setInterval(tick, 2500) mantém a atualização periódica.
+  window.setTimeout(tick, 2500);
+  // V92 organizada: observer autorrecursivo removido; o setTimeout(tick, 2500) mantém a atualização periódica.
 
   console.log("🍀 Interface simplificada e scroll para o topo ativos");
 })();
@@ -9120,7 +9021,7 @@ instalarV73();
   window.jscAgendarLembretesLocais = agendarLembretesLocais;
   document.addEventListener("DOMContentLoaded",()=>setTimeout(init,500));
   setTimeout(init,1600);
-  setInterval(sincronizarTokenGuardado,30000);
+  setTimeout(sincronizarTokenGuardado,30000);
   console.log("🍀 V84.1 — modal de notificações corrigido");
 })();
 
@@ -9272,7 +9173,7 @@ instalarV73();
     canonicalVersionV88();
     window.setTimeout(updateDashboardV88, 500);
     window.setTimeout(updateDashboardV88, 2200);
-    window.setInterval(updateDashboardV88, 30000);
+    window.setTimeout(updateDashboardV88, 30000);
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) updateDashboardV88();
     });
@@ -9319,7 +9220,7 @@ instalarV73();
   else polishV89();
   window.setTimeout(polishV89, 800);
   window.setTimeout(polishV89, 2500);
-  window.setInterval(polishV89, 30000);
+  window.setTimeout(polishV89, 30000);
 })();
 
 
@@ -9486,7 +9387,7 @@ instalarV73();
     refreshFinalDashboardV90();
     window.setTimeout(refreshFinalDashboardV90, 900);
     window.setTimeout(refreshFinalDashboardV90, 2600);
-    window.setInterval(refreshFinalDashboardV90, 30000);
+    window.setTimeout(refreshFinalDashboardV90, 30000);
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) refreshFinalDashboardV90();
     });
@@ -9697,7 +9598,7 @@ instalarV73();
 
   document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600));
   setTimeout(instalarV91, 1600);
-  setInterval(instalarV91, 15000);
+  setTimeout(instalarV91, 15000);
   document.addEventListener('click', () => setTimeout(instalarV91, 250));
 })();
 
@@ -9771,9 +9672,20 @@ instalarV73();
     const result=norm(item?.resultado||item?.acertos);
     return b==='3 4 7 26 30 + 7' && (draw.includes('055/2026') || draw.includes('11/07/2026') || result.includes('3 numero'));
   }
+  function inferGameFromSavedBet(item){
+    const bet=betNorm(item?.aposta);
+    if(!bet) return "";
+    const matches=[];
+    Object.entries(rawBets()).forEach(([game,list])=>{
+      if(Array.isArray(list) && list.some(saved=>betNorm(saved)===bet)) matches.push(gameKey(game));
+    });
+    return matches.length===1 ? matches[0] : "";
+  }
   function canonicalCandidate(item){
     if(!item) return null;
     let c={...item};
+    const savedGame=inferGameFromSavedBet(c);
+    if(savedGame) c.jogo=gameName(savedGame);
     if(isKnownToto055(c)){
       const ev=evalToto055(c.aposta);
       if(!ev.won) return null;
@@ -9824,10 +9736,11 @@ instalarV73();
       const numbered=['euromilhoes','totoloto','eurodreams'].includes(key);
       // Jogos de números só entram como prémio real quando existe montante oficial positivo.
       if(numbered && candidateValue(c)<=0) return;
-      const k=candidateKey(c); if(seen.has(k)) return; seen.add(k); out.push(c);
+      const k=[norm(c.sorteio),norm(c.dataSorteio||c.data),betNorm(c.aposta),norm(c.resultado||c.acertos)].join('|'); if(seen.has(k)) return; seen.add(k); out.push(c);
     });
     return out.sort((a,b)=>(parseDate(b.dataSorteio||b.data)?.getTime()||0)-(parseDate(a.dataSorteio||a.data)?.getTime()||0));
   }
+  window.JSC_CANDIDATES_V93=candidates;
   function betsByGame(){
     const out={}; Object.entries(rawBets()).forEach(([g,list])=>{ if(Array.isArray(list)) out[gameKey(g)]=(out[gameKey(g)]||0)+list.length; }); return out;
   }
@@ -9927,9 +9840,9 @@ instalarV73();
     try{renderDashboard();}catch(e){console.warn('V92 dashboard',e)}
     try{renderPremiumAndProfile();}catch(e){console.warn('V92 perfil',e)}
     try{renderCounters();}catch(e){console.warn('V92 contadores',e)}
-    document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{if(el.hasAttribute('data-app-version')||/^V\d+/i.test((el.textContent||'').trim()))el.textContent='V92.2';});
+    document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{if(el.hasAttribute('data-app-version')||/^V\d+/i.test((el.textContent||'').trim()))el.textContent=window.APP_INFO.label;});
   }
-  window.JSC_RENDER_V92=renderAll;
+  window.JSC_RENDER_V93=renderAll;
 
   // Substitui os vários motores antigos pelos mesmos dados canónicos.
   atualizarDashboardVivoV54=renderDashboard;
@@ -9946,6 +9859,58 @@ instalarV73();
   setTimeout(renderAll,500); setTimeout(renderAll,1800);
   window.addEventListener('jsc:data-changed', renderAll);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderAll();});
-  setInterval(renderAll,60000);
+  /* V93: render por eventos, sem relógio */
 })();
 
+
+
+// =========================================================
+// V93.0 — FECHO CANÓNICO
+// Nenhum módulo antigo pode voltar a alterar a versão ou criar cartões duplicados.
+// =========================================================
+(() => {
+  const canonical = Object.freeze({
+    name:"Assistente Jogos Santa Casa",
+    version:"93.0.0",
+    label:"V93.0.0",
+    build:"2026.07.21",
+    codename:"Base Estável · Motor Único",
+    slug:"base-estavel-motor-unico",
+    environment:"Production",
+    backend:"Supabase",
+    push:"Firebase",
+    cloud:true
+  });
+  const version=`v${canonical.version}-${canonical.slug}`;
+
+  try {
+    Object.defineProperty(window,"APP_INFO",{configurable:false,enumerable:true,get:()=>canonical,set:()=>{}});
+    Object.defineProperty(window,"APP_VERSION",{configurable:false,enumerable:true,get:()=>version,set:()=>{}});
+  } catch (_) {
+    window.APP_INFO=canonical;
+    window.APP_VERSION=version;
+  }
+
+  const applyVersion=()=>{
+    document.querySelectorAll("[data-app-version],.v72-pill,.v54-pill,.version-badge").forEach(el=>{
+      if(el.hasAttribute("data-app-version") || /^V\d+/i.test((el.textContent||"").trim())) {
+        if(el.textContent!==canonical.label) el.textContent=canonical.label;
+      }
+    });
+
+    const settings=document.getElementById("settingsPanelV74");
+    if(settings){
+      const cards=[...settings.querySelectorAll("section,.card,article")].filter(card=>
+        /sobre a aplicação/i.test(card.querySelector("h1,h2,h3")?.textContent||"")
+      );
+      const keep=document.getElementById("v930AboutCard") || cards.at(-1);
+      cards.forEach(card=>{ if(card!==keep) card.remove(); });
+    }
+  };
+
+  document.addEventListener("DOMContentLoaded",()=>setTimeout(applyVersion,700),{once:true});
+  document.addEventListener("click",()=>setTimeout(applyVersion,80));
+  window.addEventListener("jsc:data-changed",()=>setTimeout(applyVersion,50));
+  setTimeout(applyVersion,700);
+  setTimeout(applyVersion,1800);
+})();
