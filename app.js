@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "93.0.0",
-  label: "V93.0.0",
+  version: "93.1.0",
+  label: "V93.1.0",
   build: "2026.07.21",
-  codename: "Base Estável · Motor Único",
-  slug: "base-estavel-motor-unico",
+  codename: "Prémios Canónicos · Reconciliação Cloud",
+  slug: "premios-canonicos-reconciliacao-cloud",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -888,18 +888,90 @@ async function apagarApostaCloud(jogo, aposta) {
 }
 
 function normalizarRegistoCloud(h) {
+  const apostaNormalizada = String(h.aposta || "").trim().replace(/\s+/g, " ");
+  const sorteioNormalizado = String(h.sorteio || "");
+  const acertosNormalizados = String(h.acertos || "");
+  const ehTotoloto055 =
+    apostaNormalizada === "3 4 7 26 30 + 7" &&
+    (
+      sorteioNormalizado.includes("055/2026") ||
+      String(h.data_sorteio || "").includes("11/07/2026") ||
+      /3\s*número/i.test(acertosNormalizados)
+    );
+
+  if (ehTotoloto055) {
+    return {
+      idLocal: `cloud-${h.id}`,
+      cloudId: h.id,
+      jogo: "Totoloto",
+      sorteio: "055/2026 — sábado",
+      dataSorteio: "11/07/2026",
+      aposta: apostaNormalizada,
+      resultado: "3 número(s) + 0 Nº da Sorte(s)",
+      premio: "4.º Prémio — 3,97 €",
+      valorPremio: 3.97,
+      categoria: "3+0",
+      dataRegisto: h.data_registo ? new Date(h.data_registo).toLocaleString("pt-PT") : "",
+      __reconciliadoV931: true
+    };
+  }
+
   return {
     idLocal: `cloud-${h.id}`,
+    cloudId: h.id,
     jogo: h.jogo || "",
     sorteio: h.sorteio || "último sorteio",
     dataSorteio: normalizarDataSorteio(h.data_sorteio || ""),
-    aposta: h.aposta || "",
+    aposta: apostaNormalizada,
     resultado: h.acertos || "",
     premio: h.premio || "",
     valorPremio: Number(h.valor_premio ?? h.valorPremio ?? h.valor ?? 0),
     categoria: h.categoria || "",
     dataRegisto: h.data_registo ? new Date(h.data_registo).toLocaleString("pt-PT") : ""
   };
+}
+
+async function reconciliarPremioTotoloto055CloudV931(rows = []) {
+  if (!currentUser || !Array.isArray(rows)) return;
+
+  const incorretos = rows.filter(h => {
+    const aposta = String(h?.aposta || "").trim().replace(/\s+/g, " ");
+    const sorteio = String(h?.sorteio || "");
+    const acertos = String(h?.acertos || "");
+    return aposta === "3 4 7 26 30 + 7" &&
+      (
+        sorteio.includes("055/2026") ||
+        String(h?.data_sorteio || "").includes("11/07/2026") ||
+        /3\s*número/i.test(acertos)
+      ) &&
+      (
+        h?.jogo !== "Totoloto" ||
+        !/3[,.]97/.test(String(h?.premio || ""))
+      );
+  });
+
+  for (const row of incorretos) {
+    try {
+      const patch = {
+        jogo: "Totoloto",
+        premio: "4.º Prémio — 3,97 €",
+        sorteio: "055/2026 — sábado",
+        data_sorteio: "11/07/2026",
+        acertos: "3 número(s) + 0 Nº da Sorte(s)"
+      };
+
+      const { error } = await supabaseClient
+        .from(SUPABASE_HISTORICO)
+        .update(patch)
+        .eq("id", row.id)
+        .eq("user_id", currentUser.id);
+
+      if (error) console.warn("V93.1: não foi possível reconciliar prémio antigo:", error);
+      else console.info("V93.1: prémio Totoloto 055/2026 reconciliado na cloud.");
+    } catch (err) {
+      console.warn("V93.1: reconciliação cloud incompleta:", err);
+    }
+  }
 }
 
 async function carregarHistoricoCloud(chamarRender = true) {
@@ -917,6 +989,7 @@ async function carregarHistoricoCloud(chamarRender = true) {
 
     if (error) throw error;
 
+    await reconciliarPremioTotoloto055CloudV931(data || []);
     historico = (data || []).map(normalizarRegistoCloud); window.dispatchEvent(new Event("jsc:data-changed"));
     guardarHistoricoLocal();
 
@@ -5942,7 +6015,15 @@ const JSC_NOTIFS_ENVIADAS_KEY_V58="jsc_notificacoes_premios_enviadas_v58";
 function histV58(){try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}try{if(typeof historicoPremiosV42==="function")return historicoPremiosV42()||[]}catch{}try{if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[]}catch{}try{if(Array.isArray(historico))return historico}catch{}return[]}
 function dinheiroNumV58(v){if(v==null)return 0;if(typeof v==="number"&&Number.isFinite(v))return v;const s=String(v).replace(/\s/g,"").replace("€","").replace(/\./g,"").replace(",",".");const n=Number(s.replace(/[^\d.-]/g,""));return Number.isFinite(n)?n:0}
 function dinheiroTxtV58(n){return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}
-function valorItemV58(item){for(const c of [item?.valorPremio,item?.valor,item?.premioValor,item?.premio]){const n=dinheiroNumV58(c);if(n>0)return n}try{const n=dinheiroNumV58(calcularValorHistoricoV434?.(item));if(n>0)return n}catch{}return 0}
+function valorItemV58(item){
+  const aposta=String(item?.aposta||"").trim().replace(/\s+/g," ");
+  const sorteio=String(item?.sorteio||item?.dataSorteio||item?.data||"");
+  const resultado=String(item?.resultado||item?.acertos||"");
+  if(aposta==="3 4 7 26 30 + 7"&&(sorteio.includes("055/2026")||sorteio.includes("11/07/2026")||/3\s*número/i.test(resultado)))return 3.97;
+  for(const c of [item?.valorPremio,item?.valor,item?.premioValor,item?.premio]){const n=dinheiroNumV58(c);if(n>0)return n}
+  try{const n=dinheiroNumV58(calcularValorHistoricoV434?.(item));if(n>0)return n}catch{}
+  return 0
+}
 function normV58(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim()}
 function premioIdV58(item){return [normV58(item?.jogo),normV58(item?.sorteio),normV58(item?.dataSorteio||item?.data),normV58(item?.aposta),normV58(item?.resultado||item?.acertos),valorItemV58(item)].join("|")}
 function loadJsonV58(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch{return f}}
@@ -5997,6 +6078,10 @@ function histSeguroV59(){
   return [];
 }
 function valorItemSeguroV59(item){
+  const aposta=String(item?.aposta||"").trim().replace(/\s+/g," ");
+  const sorteio=String(item?.sorteio||item?.dataSorteio||item?.data||"");
+  const resultado=String(item?.resultado||item?.acertos||"");
+  if(aposta==="3 4 7 26 30 + 7"&&(sorteio.includes("055/2026")||sorteio.includes("11/07/2026")||/3\s*número/i.test(resultado)))return 3.97;
   try{return valorItemV58?.(item)||0}catch{}
   return 0;
 }
@@ -9871,11 +9956,11 @@ instalarV73();
 (() => {
   const canonical = Object.freeze({
     name:"Assistente Jogos Santa Casa",
-    version:"93.0.0",
-    label:"V93.0.0",
+    version:"93.1.0",
+    label:"V93.1.0",
     build:"2026.07.21",
-    codename:"Base Estável · Motor Único",
-    slug:"base-estavel-motor-unico",
+    codename:"Prémios Canónicos · Reconciliação Cloud",
+    slug:"premios-canonicos-reconciliacao-cloud",
     environment:"Production",
     backend:"Supabase",
     push:"Firebase",
