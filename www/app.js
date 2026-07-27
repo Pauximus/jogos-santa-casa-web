@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "93.1.1",
-  label: "V93.1.1",
+  version: "93.2.0",
+  label: "V93.2.0",
   build: "2026.07.21",
-  codename: "Prémios Canónicos · Estados Claros",
-  slug: "premios-canonicos-estados-claros",
+  codename: "Base Estável · Limpeza Segura",
+  slug: "base-estavel-limpeza-segura",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -13,6 +13,15 @@ window.APP_INFO = {
 
 window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
 window.__V92_ACTIVE = true;
+
+// =========================================================
+// V93.2.0 — LIMPEZA SEGURA
+// Referência estável: V93.1.1.
+// Foram removidos apenas módulos antigos de diagnóstico/instrumentação
+// e atribuições de versão que nunca podiam executar.
+// O motor funcional da aplicação foi preservado.
+// =========================================================
+
 
 
 // V92.3.0 — gestor único de arranque e interação.
@@ -4284,131 +4293,7 @@ setTimeout(()=>{try{iniciarValoresPremiosFixV431()}catch(e){}},1800);
 setTimeout(()=>{try{atualizarValoresPremiosV431()}catch(e){}},5000);
 
 
-// V43.2 - Debug de valores dos prémios
-function safeJsonV432(obj, max = 18000) {
-  try {
-    const txt = JSON.stringify(obj, null, 2);
-    return txt.length > max ? txt.slice(0, max) + "\n...CORTADO..." : txt;
-  } catch (e) {
-    return String(obj);
-  }
-}
-
-function compactarObjV432(obj, depth = 0) {
-  if (depth > 3) return "[max-depth]";
-  if (obj === null || obj === undefined) return obj;
-  if (typeof obj !== "object") return obj;
-  if (Array.isArray(obj)) return obj.slice(0, 4).map(x => compactarObjV432(x, depth + 1));
-  const out = {};
-  Object.entries(obj).slice(0, 80).forEach(([k,v]) => {
-    if (/valor|premio|prémio|amount|prize|escalao|escal|winner|rank|categoria|acerto|numero|estrela|sorte|data|sorteio|concurso|jogo|tipo/i.test(k)) {
-      out[k] = compactarObjV432(v, depth + 1);
-    } else if (depth < 1 && typeof v === "object") {
-      const s = JSON.stringify(v || {});
-      if (/valor|premio|prémio|amount|prize|escalao|winner|rank|categoria/i.test(s)) {
-        out[k] = compactarObjV432(v, depth + 1);
-      }
-    }
-  });
-  return out;
-}
-
-function fontesDebugV432() {
-  const fontes = {};
-  try { if (typeof resultadosOficiais !== "undefined") fontes.resultadosOficiais = resultadosOficiais; } catch {}
-  try { if (window.resultadosOficiais) fontes.window_resultadosOficiais = window.resultadosOficiais; } catch {}
-  try { if (window.resultados) fontes.window_resultados = window.resultados; } catch {}
-  try { if (window.ultimosResultados) fontes.window_ultimosResultados = window.ultimosResultados; } catch {}
-  try { if (typeof historicoPremiosV42 === "function") fontes.historicoPremiosV42 = historicoPremiosV42(); } catch {}
-  try { if (typeof obterHistoricoPremiosV41 === "function") fontes.obterHistoricoPremiosV41 = obterHistoricoPremiosV41(); } catch {}
-  try { fontes.localStorage_keys = Object.keys(localStorage).filter(k => /historico|resultado|premio|aposta/i.test(k)).map(k => ({ key:k, value: String(localStorage.getItem(k)).slice(0,800) })); } catch {}
-  return fontes;
-}
-
-function analisarValoresPremiosV432() {
-  const output = document.getElementById("debugValoresOutput");
-  const fontes = fontesDebugV432();
-
-  const hist = fontes.historicoPremiosV42 || fontes.obterHistoricoPremiosV41 || [];
-  const rel = {
-    appVersion: window.APP_VERSION,
-    data: new Date().toISOString(),
-    resumo: {
-      premiosHistorico: Array.isArray(hist) ? hist.length : "não-array",
-      fontesDisponiveis: Object.keys(fontes),
-      resultadosOficiaisKeys: fontes.resultadosOficiais ? Object.keys(fontes.resultadosOficiais) : []
-    },
-    historicoCompacto: compactarObjV432(hist),
-    resultadosCompacto: compactarObjV432(fontes.resultadosOficiais || fontes.window_resultadosOficiais || fontes.window_resultados || {}),
-    localStorage: fontes.localStorage_keys || []
-  };
-
-  window.DEBUG_VALORES_PREMIOS = rel;
-  localStorage.setItem("jsc_debug_valores_premios", safeJsonV432(rel, 60000));
-
-  if (output) output.textContent = safeJsonV432(rel, 28000);
-  console.log("DEBUG_VALORES_PREMIOS", rel);
-  return rel;
-}
-
-function mostrarDebugValoresV432() {
-  const card = document.getElementById("debugValoresCard");
-  if (card) card.hidden = false;
-  setTimeout(() => analisarValoresPremiosV432(), 100);
-}
-
-async function copiarDebugValoresV432() {
-  const rel = window.DEBUG_VALORES_PREMIOS || analisarValoresPremiosV432();
-  const txt = safeJsonV432(rel, 60000);
-  try {
-    await navigator.clipboard.writeText(txt);
-    alert("Relatório copiado. Cola-o aqui no chat.");
-  } catch {
-    prompt("Copia este relatório e cola no chat:", txt);
-  }
-}
-
-function iniciarDebugValoresV432() {
-  window.analisarValoresPremios = analisarValoresPremiosV432;
-  window.mostrarDebugValores = mostrarDebugValoresV432;
-  window.copiarDebugValores = copiarDebugValoresV432;
-
-  const fechar = document.getElementById("debugValoresFechar");
-  const analisar = document.getElementById("debugValoresAnalisar");
-  const copiar = document.getElementById("debugValoresCopiar");
-
-  if (fechar && !fechar.__v432) {
-    fechar.__v432 = true;
-    fechar.addEventListener("click", () => {
-      const card = document.getElementById("debugValoresCard");
-      if (card) card.hidden = true;
-    });
-  }
-  if (analisar && !analisar.__v432) {
-    analisar.__v432 = true;
-    analisar.addEventListener("click", analisarValoresPremiosV432);
-  }
-  if (copiar && !copiar.__v432) {
-    copiar.__v432 = true;
-    copiar.addEventListener("click", copiarDebugValoresV432);
-  }
-
-  // Mostra automaticamente se houver prémios a consultar
-  try {
-    const txt = document.body.innerText || "";
-    if (/A consultar|valor a consultar/i.test(txt)) {
-      const card = document.getElementById("debugValoresCard");
-      if (card) card.hidden = false;
-      setTimeout(analisarValoresPremiosV432, 1200);
-    }
-  } catch {}
-}
-
-
-setTimeout(() => {
-  try { iniciarDebugValoresV432(); } catch(e) {}
-}, 2200);
-
+// V93.2.0 — módulo legado removido: V43.2 - Debug de valores dos prémios
 
 // V43.3 - Backend/API debug + enriquecimento no momento certo
 function normalizarPremiosBackendV433(premios) {
@@ -4677,11 +4562,7 @@ function atualizarValoresHistoricoCleanV434() {
   setTimeout(atualizarTextoHistoricoVisualV434, 300);
 }
 
-// desativa debug automático da V43.2/V43.3
-function iniciarDebugValoresV432() {}
-function mostrarDebugValoresV432() {}
-function copiarDebugValoresV432() {}
-
+// V93.2.0: stubs de debug V43.2/V43.3 removidos.
 setTimeout(() => { try { atualizarValoresHistoricoCleanV434(); } catch(e) {} }, 1200);
 setTimeout(() => { try { atualizarValoresHistoricoCleanV434(); } catch(e) {} }, 4000);
 
@@ -4930,21 +4811,7 @@ try{const obs=new MutationObserver(()=>{clearTimeout(window.__v46mt);window.__v4
 
 
 
-// V47 - Debug da secção Resultados
-function safeJsonV47(obj,max=80000){try{const t=JSON.stringify(obj,null,2);return t.length>max?t.slice(0,max)+"\n...CORTADO...":t}catch(e){return String(obj)}}
-function compactV47(obj,depth=0){if(depth>4)return"[max-depth]";if(obj==null)return obj;if(typeof obj!=="object")return obj;if(Array.isArray(obj))return obj.slice(0,8).map(x=>compactV47(x,depth+1));const out={};for(const k of Object.keys(obj).slice(0,120)){let blob="";try{blob=JSON.stringify(obj[k]||"")}catch{} if(/resultado|result|premio|prémio|aposta|acerto|match|ganh|win|valor|jogo|sorteio|data|numero|estrela|sorte|estado|status/i.test(k)||/SEM PR|premio|prémio|aposta|acerto|ganh|valor|totoloto/i.test(blob)){out[k]=compactV47(obj[k],depth+1)}}return out}
-function histDebugV47(){try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}try{if(typeof histV45==="function")return histV45()||[]}catch{}try{if(typeof historicoV44==="function")return historicoV44()||[]}catch{}try{if(typeof historicoPremiosV42==="function")return historicoPremiosV42()||[]}catch{}return[]}
-function cardsDebugV47(){return Array.from(document.querySelectorAll("div,article,li,section")).filter(el=>{const t=el.innerText||"";return /Aposta\s*\d+\s*:/i.test(t)&&/SEM PR[ÉE]MIO|COM ACERTOS|Acertos:/i.test(t)&&t.length<2500}).slice(0,25).map((el,i)=>({i,tag:el.tagName,id:el.id||"",className:String(el.className||""),text:(el.innerText||"").slice(0,1300),html:(el.outerHTML||"").slice(0,2000),parent:el.parentElement?{tag:el.parentElement.tagName,id:el.parentElement.id||"",className:String(el.parentElement.className||""),text:(el.parentElement.innerText||"").slice(0,1000)}:null}))}
-function storageDebugV47(store){const out=[];try{for(let i=0;i<store.length;i++){const k=store.key(i);if(k&&/resultado|result|premio|historico|aposta|cache|jsc/i.test(k))out.push({key:k,value:String(store.getItem(k)).slice(0,2500)})}}catch{}return out}
-function funcsDebugV47(){return Object.keys(window).filter(k=>typeof window[k]==="function"&&/resultado|result|premio|aposta|render|mostrar|desenhar|atualizar|verificar|comparar/i.test(k)).slice(0,220).map(k=>({nome:k,preview:String(window[k]).slice(0,1000)}))}
-function varsDebugV47(){const vars={};Object.keys(window).filter(k=>/resultado|result|premio|aposta|historico|jogo|sorteio|match|ganh/i.test(k)&&!/^on/i.test(k)).slice(0,220).forEach(k=>{try{const v=window[k];vars[k]=typeof v==="function"?`[function] ${String(v).slice(0,500)}`:compactV47(v)}catch(e){vars[k]=`[erro ${String(e)}]`}});return vars}
-async function fetchDebugV47(url){try{const res=await fetch(url,{cache:"no-store"});const text=await res.text();let json=null;try{json=JSON.parse(text)}catch{}return{ok:res.ok,status:res.status,url,json:compactV47(json),text:json?undefined:text.slice(0,1200)}}catch(e){return{ok:false,url,error:String(e&&e.message?e.message:e)}}}
-async function analisarResultadosV47(){const rel={appVersion:window.APP_VERSION,data:new Date().toISOString(),location:location.href,resumo:{cardsResultados:cardsDebugV47().length,premiosHistorico:histDebugV47().length,funcoesSuspeitas:funcsDebugV47().length},cardsResultados:cardsDebugV47(),historico:compactV47(histDebugV47()),windowVars:varsDebugV47(),functions:funcsDebugV47(),localStorage:storageDebugV47(localStorage),sessionStorage:storageDebugV47(sessionStorage),scripts:Array.from(document.scripts).map(s=>s.src||"inline").filter(Boolean)};try{if(typeof BACKEND_API!=="undefined")rel.backendResultados=await fetchDebugV47(`${BACKEND_API}/resultados?debug=v47-${Date.now()}`)}catch{}try{if(typeof API!=="undefined")rel.apiTotoloto=await fetchDebugV47(`${API}/totoloto?debug=v47-${Date.now()}`)}catch{}window.DEBUG_RESULTADOS_V47=rel;try{localStorage.setItem("jsc_debug_resultados_v47",safeJsonV47(rel,120000))}catch{}const out=document.getElementById("debugResultadosOutput");if(out)out.textContent=safeJsonV47(rel,90000);console.log("DEBUG_RESULTADOS_V47",rel);return rel}
-async function copiarResultadosV47(){const rel=window.DEBUG_RESULTADOS_V47||await analisarResultadosV47();const txt=safeJsonV47(rel,120000);try{await navigator.clipboard.writeText(txt);alert("Relatório copiado. Cola-o aqui no chat.")}catch{prompt("Copia este relatório e cola no chat:",txt)}}
-function iniciarDebugResultadosV47(){window.analisarResultadosV47=analisarResultadosV47;window.copiarResultadosV47=copiarResultadosV47;const a=document.getElementById("debugResultadosAnalisar"),c=document.getElementById("debugResultadosCopiar"),f=document.getElementById("debugResultadosFechar");if(a&&!a.__v47){a.__v47=true;a.addEventListener("click",analisarResultadosV47)}if(c&&!c.__v47){c.__v47=true;c.addEventListener("click",copiarResultadosV47)}if(f&&!f.__v47){f.__v47=true;f.addEventListener("click",()=>{const card=document.getElementById("debugResultadosCard");if(card)card.hidden=true})}setTimeout(analisarResultadosV47,1800)}
-setTimeout(iniciarDebugResultadosV47,1000);
-
-
+// V93.2.0 — módulo legado removido: V47 - Debug da secção Resultados
 
 // V48 - Resultados definitivos: substitui o render na origem
 function valorTxtV48(v){try{if(typeof valorParaTextoV434==="function"){const t=valorParaTextoV434(v);if(t)return t}}catch{}try{if(typeof dinheiroV45==="function"){const t=dinheiroV45(v);if(t)return t}}catch{}if(v==null)return"";if(typeof v==="number"&&Number.isFinite(v))return v.toLocaleString("pt-PT",{style:"currency",currency:"EUR"});const s=String(v).trim();if(!s||/consultar/i.test(s))return"";if(/€/.test(s))return s;const n=Number(s.replace(",","."));return Number.isFinite(n)?n.toLocaleString("pt-PT",{style:"currency",currency:"EUR"}):s}
@@ -4962,271 +4829,9 @@ setTimeout(()=>{try{limparDebugV48()}catch{}try{verificar()}catch{}},900);
 
 
 
-// V49 - Instrumentação da verificação
-const DEBUG_V49_LOG = { obter: [], renderNumeros: [], guardarEventos: [], erros: [] };
+// V93.2.0 — módulo legado removido: V49 - Instrumentação da verificação
 
-function safeJsonV49(obj, max=120000){
-  try{ const t=JSON.stringify(obj,null,2); return t.length>max?t.slice(0,max)+"\n...CORTADO...":t; }catch(e){ return String(obj); }
-}
-function compactV49(obj, depth=0){
-  if(depth>5)return "[max-depth]";
-  if(obj==null||typeof obj!=="object")return obj;
-  if(Array.isArray(obj))return obj.slice(0,30).map(x=>compactV49(x,depth+1));
-  const out={};
-  Object.keys(obj).slice(0,180).forEach(k=>{
-    let b=""; try{b=JSON.stringify(obj[k]||"")}catch{}
-    if(/jogo|sorteio|data|numero|extra|codigo|premio|prémio|valor|aposta|acerto|categoria|evento|resultado|ganh|win|match/i.test(k) ||
-       /premio|prémio|valor|aposta|acerto|categoria|resultado|totoloto|6,81|2\+1/i.test(b)){
-      out[k]=compactV49(obj[k],depth+1);
-    }
-  });
-  return out;
-}
-function histV49(){
-  try{ if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[] }catch{}
-  try{ if(typeof historicoPremiosV42==="function")return historicoPremiosV42()||[] }catch{}
-  try{ if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[] }catch{}
-  try{ if(Array.isArray(historico))return historico }catch{}
-  return [];
-}
-function simularV49(data){
-  const rows=[];
-  try{
-    const jogo=jogoAtual;
-    const numeros=data?.numeros||[];
-    const extras=data?.extras||[];
-    const lista=apostas?.[jogo]||[];
-    lista.forEach((aposta,index)=>{
-      const p=parseAposta(aposta);
-      const acertosNums=(p.nums||[]).filter(n=>numeros.includes(n)).length;
-      const acertosExtras=(p.extras||[]).filter(e=>extras.includes(e)).length;
-      const categoria=`${acertosNums}+${acertosExtras}`;
-      let categoriaTem=null, histPremio=null, histPremioV48=null;
-      try{categoriaTem=categoriaTemPremio(jogo,acertosNums,acertosExtras)}catch(e){categoriaTem="ERRO "+e.message}
-      try{histPremioV48=typeof premioHistoricoParaApostaV48==="function"?premioHistoricoParaApostaV48(data.jogo,aposta,data.data):null}catch(e){histPremioV48="ERRO "+e.message}
-      try{
-        histPremio=histV49().find(h=>
-          String(h.jogo||"").toLowerCase().includes(String(data.jogo||"").toLowerCase().slice(0,4)) &&
-          String(h.aposta||"").replace(/\s+/g," ").trim()===String(aposta||"").replace(/\s+/g," ").trim()
-        ) || null;
-      }catch{}
-      rows.push({
-        index, jogoAtual:jogo, dataJogo:data?.jogo, sorteio:data?.sorteio, data:data?.data,
-        aposta, parsed:p, resultadoNumeros:numeros, resultadoExtras:extras,
-        acertosNums, acertosExtras, categoria,
-        premiosKeys:data?.premios?Object.keys(data.premios):[],
-        premioInfo:data?.premios?data.premios[categoria]:null,
-        premiosObj:compactV49(data?.premios||{}),
-        categoriaTemPremio:categoriaTem,
-        histPremioDireto:compactV49(histPremio),
-        histPremioV48:compactV49(histPremioV48),
-        decisao:!!(data?.premios?.[categoria]||categoriaTem||histPremio||histPremioV48)
-      });
-    });
-  }catch(e){ rows.push({erro:String(e&&e.stack?e.stack:e)}); }
-  return rows;
-}
-function pushV49(tipo,payload){
-  DEBUG_V49_LOG[tipo].push({ts:new Date().toISOString(), payload:compactV49(payload)});
-  if(DEBUG_V49_LOG[tipo].length>40)DEBUG_V49_LOG[tipo].shift();
-  window.DEBUG_V49_LOG=DEBUG_V49_LOG;
-}
-
-try{
-if(typeof obterResultadoAtual==="function"&&!obterResultadoAtual.__v49){
-  const orig=obterResultadoAtual;
-  obterResultadoAtual=async function(...args){
-    pushV49("obter",{fase:"start",jogoAtual});
-    const r=await orig.apply(this,args);
-    pushV49("obter",{fase:"end",jogoAtual,resultado:r,simulacao:simularV49(r)});
-    return r;
-  };
-  obterResultadoAtual.__v49=true;
-}}catch(e){DEBUG_V49_LOG.erros.push({hook:"obterResultadoAtual",erro:String(e)})}
-
-try{
-if(typeof renderResultadoNumerosExtra==="function"&&!renderResultadoNumerosExtra.__v49){
-  const orig=renderResultadoNumerosExtra;
-  renderResultadoNumerosExtra=function(data){
-    const simAntes=simularV49(data);
-    const eventos=orig.call(this,data);
-    pushV49("renderNumeros",{
-      jogoAtual,data,simAntes,eventosDevolvidos:eventos,
-      resultadoTexto:(resultado?.innerText||"").slice(0,6000),
-      resultadoHtml:(resultado?.innerHTML||"").slice(0,9000)
-    });
-    return eventos;
-  };
-  renderResultadoNumerosExtra.__v49=true;
-}}catch(e){DEBUG_V49_LOG.erros.push({hook:"renderResultadoNumerosExtra",erro:String(e)})}
-
-try{
-if(typeof guardarEventosHistorico==="function"&&!guardarEventosHistorico.__v49){
-  const orig=guardarEventosHistorico;
-  guardarEventosHistorico=async function(data,eventos){
-    pushV49("guardarEventos",{fase:"antes",data,eventos,historicoAntes:histV49()});
-    const r=await orig.call(this,data,eventos);
-    pushV49("guardarEventos",{fase:"depois",retorno:r,historicoDepois:histV49()});
-    return r;
-  };
-  guardarEventosHistorico.__v49=true;
-}}catch(e){DEBUG_V49_LOG.erros.push({hook:"guardarEventosHistorico",erro:String(e)})}
-
-async function executarDebugVerificarV49(){
-  const out=document.getElementById("debugVerificarOutput");
-  if(out)out.textContent="A verificar e analisar...";
-  try{ if(typeof verificar==="function") await verificar(); }catch(e){pushV49("erros",{fn:"verificar",erro:String(e&&e.stack?e.stack:e)})}
-  await new Promise(r=>setTimeout(r,700));
-  const rel={
-    appVersion:window.APP_VERSION,
-    data:new Date().toISOString(),
-    location:location.href,
-    jogoAtual,
-    apostasJogoAtual:apostas?.[jogoAtual]||[],
-    ultimoResultadoAtual:compactV49(window.ultimoResultadoAtual||{}),
-    ultimoResultadoBackendRow:compactV49(window.ultimoResultadoBackendRow||{}),
-    historico:compactV49(histV49()),
-    resultadoTextoAtual:(resultado?.innerText||"").slice(0,7000),
-    resultadoHtmlAtual:(resultado?.innerHTML||"").slice(0,10000),
-    log:DEBUG_V49_LOG
-  };
-  window.DEBUG_VERIFICAR_V49=rel;
-  try{localStorage.setItem("jsc_debug_verificar_v49",safeJsonV49(rel,150000))}catch{}
-  const txt=safeJsonV49(rel,120000);
-  if(out)out.textContent=txt;
-  console.log("DEBUG_VERIFICAR_V49",rel);
-  return rel;
-}
-async function copiarDebugVerificarV49(){
-  const rel=window.DEBUG_VERIFICAR_V49||await executarDebugVerificarV49();
-  const txt=safeJsonV49(rel,150000);
-  try{await navigator.clipboard.writeText(txt);alert("Relatório copiado. Cola-o aqui no chat.")}catch{prompt("Copia este relatório e cola no chat:",txt)}
-}
-function iniciarDebugVerificarV49(){
-  window.executarDebugVerificarV49=executarDebugVerificarV49;
-  window.copiarDebugVerificarV49=copiarDebugVerificarV49;
-  const b1=document.getElementById("debugVerificarExecutar"),b2=document.getElementById("debugVerificarCopiar"),b3=document.getElementById("debugVerificarFechar");
-  if(b1&&!b1.__v49){b1.__v49=true;b1.addEventListener("click",executarDebugVerificarV49)}
-  if(b2&&!b2.__v49){b2.__v49=true;b2.addEventListener("click",copiarDebugVerificarV49)}
-  if(b3&&!b3.__v49){b3.__v49=true;b3.addEventListener("click",()=>{const c=document.getElementById("debugVerificarCard");if(c)c.hidden=true})}
-  setTimeout(executarDebugVerificarV49,1800);
-}
-setTimeout(iniciarDebugVerificarV49,1000);
-
-
-
-// V50 - Debug Parser parseAposta/comparação
-function safeJsonV50(obj, max=120000){
-  try{const t=JSON.stringify(obj,null,2);return t.length>max?t.slice(0,max)+"\n...CORTADO...":t;}catch(e){return String(obj);}
-}
-function tipoArrayV50(arr){
-  if(!Array.isArray(arr)) return {isArray:false,tipo:typeof arr,valor:String(arr)};
-  return {isArray:true,length:arr.length,valores:arr,tipos:arr.map(v=>typeof v),numerosConvertidos:arr.map(v=>Number(v)),todosNumericos:arr.every(v=>Number.isFinite(Number(v)))};
-}
-function parseManualV50(aposta){
-  const raw=String(aposta||"").trim();
-  const partes=raw.split("+").map(p=>p.trim());
-  const nums=(partes[0]||"").split(/\s+/).filter(Boolean).map(Number).filter(Number.isFinite);
-  const extras=(partes[1]||"").split(/\s+/).filter(Boolean).map(Number).filter(Number.isFinite);
-  return {raw,partes,nums,extras};
-}
-function compararV50(aposta,data){
-  let parsedOriginal=null,erroParse=null;
-  try{parsedOriginal=typeof parseAposta==="function"?parseAposta(aposta):null;}catch(e){erroParse=String(e&&e.stack?e.stack:e);}
-  const manual=parseManualV50(aposta);
-  const resultadoNums=data?.numeros||[];
-  const resultadoExtras=data?.extras||[];
-  const pNums=parsedOriginal?.nums||[];
-  const pExtras=parsedOriginal?.extras||[];
-  const resNumsNum=resultadoNums.map(Number);
-  const resExtrasNum=resultadoExtras.map(Number);
-  return {
-    aposta,
-    parseApostaExiste:typeof parseAposta==="function",
-    erroParse,
-    parsedOriginal,
-    parsedOriginalTipos:{nums:tipoArrayV50(pNums),extras:tipoArrayV50(pExtras)},
-    parsedManual:manual,
-    parsedManualTipos:{nums:tipoArrayV50(manual.nums),extras:tipoArrayV50(manual.extras)},
-    resultado:{numeros:resultadoNums,extras:resultadoExtras,numerosTipos:tipoArrayV50(resultadoNums),extrasTipos:tipoArrayV50(resultadoExtras)},
-    contagemOriginal:{
-      nums:Array.isArray(pNums)?pNums.filter(n=>resultadoNums.includes(n)).length:null,
-      extras:Array.isArray(pExtras)?pExtras.filter(n=>resultadoExtras.includes(n)).length:null,
-      numsConvertido:Array.isArray(pNums)?pNums.filter(n=>resNumsNum.includes(Number(n))).length:null,
-      extrasConvertido:Array.isArray(pExtras)?pExtras.filter(n=>resExtrasNum.includes(Number(n))).length:null
-    },
-    contagemManual:{
-      nums:manual.nums.filter(n=>resultadoNums.includes(n)).length,
-      extras:manual.extras.filter(n=>resultadoExtras.includes(n)).length,
-      numsConvertido:manual.nums.filter(n=>resNumsNum.includes(Number(n))).length,
-      extrasConvertido:manual.extras.filter(n=>resExtrasNum.includes(Number(n))).length
-    },
-    comparacaoOriginal:{
-      nums:Array.isArray(pNums)?pNums.map(n=>({valor:n,tipo:typeof n,includesDireto:resultadoNums.includes(n),includesConvertido:resNumsNum.includes(Number(n)),comparacoes:resultadoNums.map(r=>({resultado:r,tipoResultado:typeof r,igualDireto:r===n,igualConvertido:Number(r)===Number(n)}))})):[],
-      extras:Array.isArray(pExtras)?pExtras.map(n=>({valor:n,tipo:typeof n,includesDireto:resultadoExtras.includes(n),includesConvertido:resExtrasNum.includes(Number(n)),comparacoes:resultadoExtras.map(r=>({resultado:r,tipoResultado:typeof r,igualDireto:r===n,igualConvertido:Number(r)===Number(n)}))})):[]
-    },
-    comparacaoManual:{
-      nums:manual.nums.map(n=>({valor:n,tipo:typeof n,includesDireto:resultadoNums.includes(n),includesConvertido:resNumsNum.includes(Number(n))})),
-      extras:manual.extras.map(n=>({valor:n,tipo:typeof n,includesDireto:resultadoExtras.includes(n),includesConvertido:resExtrasNum.includes(Number(n))}))
-    }
-  };
-}
-async function obterResultadoParaDebugV50(){
-  try{if(typeof obterResultadoAtual==="function") return await obterResultadoAtual();}catch(e){return {erroObterResultadoAtual:String(e&&e.stack?e.stack:e),fallback:window.ultimoResultadoAtual||null};}
-  return window.ultimoResultadoAtual||null;
-}
-async function executarDebugParserV50(){
-  const out=document.getElementById("debugParserOutput");
-  if(out)out.textContent="A analisar parser...";
-  const data=await obterResultadoParaDebugV50();
-  let listaApostas=[]; try{listaApostas=apostas?.[jogoAtual]||[]}catch{}
-  const analise=listaApostas.map(aposta=>compararV50(aposta,data));
-  const rel={
-    appVersion:window.APP_VERSION,
-    dataRelatorio:new Date().toISOString(),
-    location:location.href,
-    jogoAtual,
-    dataResultado:data,
-    apostasJogoAtual:listaApostas,
-    parseApostaFunctionPreview:(()=>{try{return typeof parseAposta==="function"?String(parseAposta).slice(0,3000):"parseAposta não existe"}catch(e){return String(e)}})(),
-    analise,
-    conclusaoAutomatica:analise.map(a=>{
-      const origVazio=(a.parsedOriginalTipos?.nums?.length||0)===0&&(a.parsedOriginalTipos?.extras?.length||0)===0;
-      const manualTemDados=(a.parsedManualTipos?.nums?.length||0)>0||(a.parsedManualTipos?.extras?.length||0)>0;
-      return {
-        aposta:a.aposta,
-        parserOriginalVazio:origVazio,
-        parserManualTemDados:manualTemDados,
-        possivelProblema:origVazio&&manualTemDados?"parseAposta devolve vazio":(a.contagemOriginal.nums!==a.contagemOriginal.numsConvertido||a.contagemOriginal.extras!==a.contagemOriginal.extrasConvertido)?"comparação string/number":"parser/comparação coerente",
-        contagemOriginal:a.contagemOriginal,
-        contagemManual:a.contagemManual
-      };
-    })
-  };
-  window.DEBUG_PARSER_V50=rel;
-  try{localStorage.setItem("jsc_debug_parser_v50",safeJsonV50(rel,150000));}catch{}
-  const txt=safeJsonV50(rel,120000);
-  if(out)out.textContent=txt;
-  console.log("DEBUG_PARSER_V50",rel);
-  return rel;
-}
-async function copiarDebugParserV50(){
-  const rel=window.DEBUG_PARSER_V50||await executarDebugParserV50();
-  const txt=safeJsonV50(rel,150000);
-  try{await navigator.clipboard.writeText(txt);alert("Relatório copiado. Cola-o aqui no chat.");}catch{prompt("Copia este relatório e cola no chat:",txt);}
-}
-function iniciarDebugParserV50(){
-  window.executarDebugParserV50=executarDebugParserV50;
-  window.copiarDebugParserV50=copiarDebugParserV50;
-  const b1=document.getElementById("debugParserExecutar"),b2=document.getElementById("debugParserCopiar"),b3=document.getElementById("debugParserFechar");
-  if(b1&&!b1.__v50){b1.__v50=true;b1.addEventListener("click",executarDebugParserV50);}
-  if(b2&&!b2.__v50){b2.__v50=true;b2.addEventListener("click",copiarDebugParserV50);}
-  if(b3&&!b3.__v50){b3.__v50=true;b3.addEventListener("click",()=>{const c=document.getElementById("debugParserCard");if(c)c.hidden=true;});}
-  setTimeout(executarDebugParserV50,1800);
-}
-setTimeout(iniciarDebugParserV50,1000);
-
-
+// V93.2.0 — módulo legado removido: V50 - Debug Parser parseAposta/comparação
 
 // V51 - Final: refresh total da UI após atualização de valores/histórico
 let __v51Refreshing = false;
@@ -6049,7 +5654,7 @@ function renderPremiosGestaoV58(){
  return `<article class="premio-gestao-item-v58 ${l?"levantado":"pendente"}">
  <div class="premio-gestao-top-v58"><div><strong>🏆 ${item.jogo||"Jogo"} — ${dinheiroTxtV58(val)}</strong><small>${item.sorteio||""} · ${item.dataSorteio||item.data||""}</small></div><span>${l?"✅ Levantado":"🟡 Por levantar"}</span></div>
  <div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:""}</p></div><div><b>Motivo do prémio</b><p>${ex.resumo}</p></div><div><b>Estado</b><p>${l?"Prémio já levantado":"Ainda por levantar"}</p></div></div>
- <button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}">${l?"Marcar por levantar":"Marcar como levantado"}</button></article>`}).join("");
+ <button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}">${l?"Reverter levantamento":"Marcar como levantado"}</button></article>`}).join("");
  el.querySelectorAll(".btn-levantar-v58").forEach(b=>{if(b.__v58)return;b.__v58=true;b.addEventListener("click",()=>{const id=decodeURIComponent(b.dataset.id||"");setLevantadoV58(id,!levantadosV58()[id]);renderPremiosGestaoV58()})});
 }
 function notificarPremiosNovosV58(){const lista=histV58(), env=notifEnviadasV58();let novas=0;lista.forEach(item=>{const id=premioIdV58(item);if(env[id])return;const val=valorItemV58(item);if(!val&&!item?.premio)return;try{if(typeof Notification!=="undefined"&&Notification.permission==="granted"){new Notification("🎉 Prémio encontrado!",{body:`${item.jogo||"Jogo"}: ${val?dinheiroTxtV58(val):(item.premio||"Prémio")}`,tag:`premio-${id}`,renotify:false})}}catch{}setNotifEnviadaV58(id);novas++});const r=document.getElementById("notifResumoV58");if(r)r.textContent=`${Object.keys(notifEnviadasV58()).length} prémio(s) já notificado(s) neste dispositivo.`;return novas}
@@ -6158,7 +5763,7 @@ function renderPremiosGestaoV58(){
       </div>
       <div class="acoes-premio-v59">
         <button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${isConf?"Retirar confirmação":"Confirmar prémio"}</button>
-        <button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!isConf?"disabled":""}>${isLev?"Marcar por levantar":"Marcar como levantado"}</button>
+        <button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!isConf?"disabled":""}>${isLev?"Reverter levantamento":"Marcar como levantado"}</button>
       </div>
     </article>`;
   }).join("");
@@ -6355,7 +5960,7 @@ function renderPremiosGestaoV58(){
       </div>
       <div class="acoes-premio-v59">
         <button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${isConf ? "Retirar confirmação" : "Confirmar prémio"}</button>
-        <button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!isConf ? "disabled" : ""}>${isLev ? "Marcar por levantar" : "Marcar como levantado"}</button>
+        <button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!isConf ? "disabled" : ""}>${isLev ? "Reverter levantamento" : "Marcar como levantado"}</button>
       </div>
     </article>`;
   }).join("");
@@ -6619,7 +6224,7 @@ function renderPremiosGestaoV58(){
  document.getElementById("v58TotalGanho")&&(v58TotalGanho.textContent=moneyV63(total));document.getElementById("v58TotalLevantado")&&(v58TotalLevantado.textContent=moneyV63(totalLev));document.getElementById("v58TotalPorLevantar")&&(v58TotalPorLevantar.textContent=moneyV63(Math.max(0,total-totalLev)));
  const el=document.getElementById("premiosListaGestaoV58");if(!el)return;const arr=lista.filter(i=>{const id=keyV63(i),c=!!conf[id],l=!!lev[id];return filtro==="levantados"?l:filtro==="porLevantar"?c&&!l:true});
  if(!arr.length){el.innerHTML='<div class="empty-v58">Sem prémios reais neste filtro.</div>';return}
- el.innerHTML=arr.map(i=>{const id=keyV63(i),c=!!conf[id],l=!!lev[id],p=parseApostaV63(i.aposta),nums=(p.nums||[]).map(n=>`<span>${n}</span>`).join(""),extras=(p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join("");return `<article class="premio-gestao-item-v58 ${l?'levantado':c?'pendente':'por-confirmar'}"><div class="premio-gestao-top-v58"><div><strong>🏆 ${i.jogo||'Jogo'} — ${moneyV63(valorV63(i))}</strong><small>${i.sorteio||''} · ${i.dataSorteio||i.data||''}</small></div><span>${l?'✅ Levantado':c?'🟡 Por levantar':'⚠️ Por confirmar'}</span></div><div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:''}</p></div><div><b>Motivo correto</b><p>${i.resultado||'Prémio recalculado'}</p></div><div><b>Confirmação</b><p>${c?'Confirmado pelo utilizador':'Não conta até confirmares'}</p></div></div><div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${c?'Retirar confirmação':'Confirmar prémio'}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!c?'disabled':''}>${l?'Marcar por levantar':'Marcar como levantado'}</button></div></article>`}).join("");
+ el.innerHTML=arr.map(i=>{const id=keyV63(i),c=!!conf[id],l=!!lev[id],p=parseApostaV63(i.aposta),nums=(p.nums||[]).map(n=>`<span>${n}</span>`).join(""),extras=(p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join("");return `<article class="premio-gestao-item-v58 ${l?'levantado':c?'pendente':'por-confirmar'}"><div class="premio-gestao-top-v58"><div><strong>🏆 ${i.jogo||'Jogo'} — ${moneyV63(valorV63(i))}</strong><small>${i.sorteio||''} · ${i.dataSorteio||i.data||''}</small></div><span>${l?'✅ Levantado':c?'🟡 Por levantar':'⚠️ Por confirmar'}</span></div><div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:''}</p></div><div><b>Motivo correto</b><p>${i.resultado||'Prémio recalculado'}</p></div><div><b>Confirmação</b><p>${c?'Confirmado pelo utilizador':'Não conta até confirmares'}</p></div></div><div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${c?'Retirar confirmação':'Confirmar prémio'}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!c?'disabled':''}>${l?'Reverter levantamento':'Marcar como levantado'}</button></div></article>`}).join("");
  el.querySelectorAll(".btn-confirmar-v59").forEach(b=>{if(b.__v63)return;b.__v63=true;b.addEventListener("click",()=>{const id=decodeURIComponent(b.dataset.id||"");if(typeof setConfirmadoV59==="function")setConfirmadoV59(id,!confirmadosV59()[id]);renderPremiosGestaoV58()})});
  el.querySelectorAll(".btn-levantar-v58").forEach(b=>{if(b.__v63)return;b.__v63=true;b.addEventListener("click",()=>{const id=decodeURIComponent(b.dataset.id||"");if(typeof confirmadosV59==="function"&&!confirmadosV59()[id])return;if(typeof setLevantadoV59==="function")setLevantadoV59(id,!levantadosV59()[id]);renderPremiosGestaoV58()})});
  const aviso=document.getElementById("avisoTotolotoV62");if(aviso)aviso.textContent="✅ V63: Totoloto corrigido. Sorteio 052 sem prémio foi removido; só ficam 050/051 quando há 2 números + Nº da Sorte.";
@@ -6714,7 +6319,7 @@ function renderPremiosGestaoV58(){
     return `<article class="premio-gestao-item-v58 ${l?"levantado":c?"pendente":"por-confirmar"}">
       <div class="premio-gestao-top-v58"><div><strong>🏆 ${item.jogo||"Jogo"} — ${moedaV64(val)}</strong><small>${item.sorteio||""} · ${item.dataSorteio||item.data||""}</small></div><span>${l?"✅ Levantado":c?"🟡 Por levantar":"⚠️ Por confirmar"}</span></div>
       <div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:""}</p></div><div><b>Motivo registado</b><p>${item.resultado||item.acertos||"Prémio candidato"}</p></div><div><b>Estado</b><p>${c?"Confirmado pelo utilizador":"Não conta até confirmares"}</p></div></div>
-      <div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${c?"Retirar confirmação":"Confirmar prémio"}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!c?"disabled":""}>${l?"Marcar por levantar":"Marcar como levantado"}</button></div>
+      <div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${c?"Retirar confirmação":"Confirmar prémio"}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!c?"disabled":""}>${l?"Reverter levantamento":"Marcar como levantado"}</button></div>
     </article>`
   }).join("");
   el.querySelectorAll(".btn-confirmar-v59").forEach(btn=>{if(btn.__v64)return;btn.__v64=true;btn.addEventListener("click",()=>{const id=decodeURIComponent(btn.dataset.id||"");if(typeof setConfirmadoV59==="function")setConfirmadoV59(id,!confirmadosV59()[id]);if(typeof setLevantadoV59==="function"&&!confirmadosV59()[id])setLevantadoV59(id,false);renderPremiosGestaoV58();atualizarResumosSegurosV64()})});
@@ -8278,7 +7883,7 @@ instalarV73();
       .replace(/[^a-z0-9_-]/g, '-');
     document.body.classList.add(`v780-${safeSlug}`);
     syncVersion(); exposeSupportInfo();
-    if(!window.__V92_ACTIVE){ setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setTimeout(syncVersion, 30000); }
+    /* V93.2.0: temporizações legadas de versão removidas */
     // V80.2: sem log legado aqui para evitar versões duplicadas na consola.
   });
 })();
@@ -9674,14 +9279,9 @@ instalarV73();
       if (/^V\d+/i.test((el.textContent||'').trim()) || el.hasAttribute('data-app-version')) el.textContent='V91.0';
     });
   }
-
-  if (!window.__V92_ACTIVE) window.APP_INFO = Object.assign(window.APP_INFO || {}, {
-    version:'91.0', label:'V91.0', build:'2026.07.16',
-    codename:'Correções finais e testes', slug:'correcoes-finais-testes'
-  });
-  if (!window.__V92_ACTIVE) window.APP_VERSION='v91.0-correcoes-finais-testes';
-
-  document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600));
+  // V93.2.0: atribuição APP_INFO V91 removida.
+  // V93.2.0: atribuição APP_VERSION V91 removida.
+document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600));
   setTimeout(instalarV91, 1600);
   setTimeout(instalarV91, 15000);
   document.addEventListener('click', () => setTimeout(instalarV91, 250));
@@ -9889,7 +9489,7 @@ instalarV73();
     const filter=document.querySelector('[data-filtro-premios-v58].active')?.dataset?.filtroPremiosV58||'todos';
     const list=s.candidates.filter(c=>filter==='levantados'?isLifted(c):filter==='porLevantar'?isConfirmed(c)&&!isLifted(c):true);
     if(!list.length){box.innerHTML='<div class="empty-v58">Sem prémios neste filtro.</div>';return;}
-    box.innerHTML=list.map(c=>{const id=legacyIds(c)[0]||candidateKey(c),confirmed=isConfirmed(c),lifted=isLifted(c);let p={nums:[],extras:[]};try{p=parseAposta(c.aposta)}catch{}const nums=(p.nums||[]).map(n=>`<span>${n}</span>`).join('');const extras=(p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join('');return `<article class="premio-gestao-item-v58 ${lifted?'levantado':confirmed?'pendente':'por-confirmar'}"><div class="premio-gestao-top-v58"><div><strong>🏆 ${gameName(c.jogo)} — ${money(candidateValue(c))}</strong><small>Sorteio ${c.sorteio||'—'} · ${fmtDate(c.dataSorteio||c.data)}</small></div><span>${lifted?'✅ Levantado':confirmed?'🟡 Por levantar':'⚠️ Por confirmar'}</span></div><div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:''}</p></div><div><b>Motivo correto</b><p>${c.resultado||'Prémio oficial'}</p></div><div><b>Estado</b><p>${confirmed?'Confirmado pelo utilizador':'Não conta no total ganho até confirmares'}</p></div></div><div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${confirmed?'Retirar confirmação':'Confirmar prémio'}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!confirmed?'disabled':''}>${lifted?'Marcar por levantar':'Marcar como levantado'}</button></div></article>`;}).join('');
+    box.innerHTML=list.map(c=>{const id=legacyIds(c)[0]||candidateKey(c),confirmed=isConfirmed(c),lifted=isLifted(c);let p={nums:[],extras:[]};try{p=parseAposta(c.aposta)}catch{}const nums=(p.nums||[]).map(n=>`<span>${n}</span>`).join('');const extras=(p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join('');return `<article class="premio-gestao-item-v58 ${lifted?'levantado':confirmed?'pendente':'por-confirmar'}"><div class="premio-gestao-top-v58"><div><strong>🏆 ${gameName(c.jogo)} — ${money(candidateValue(c))}</strong><small>Sorteio ${c.sorteio||'—'} · ${fmtDate(c.dataSorteio||c.data)}</small></div><span>${lifted?'✅ Levantado':confirmed?'🟡 Por levantar':'⚠️ Por confirmar'}</span></div><div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:''}</p></div><div><b>Motivo correto</b><p>${c.resultado||'Prémio oficial'}</p></div><div><b>Estado</b><p>${confirmed?'Confirmado pelo utilizador':'Não conta no total ganho até confirmares'}</p></div></div><div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${confirmed?'Retirar confirmação':'Confirmar prémio'}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!confirmed?'disabled':''}>${lifted?'Reverter levantamento':'Marcar como levantado'}</button></div></article>`;}).join('');
     box.querySelectorAll('.btn-confirmar-v59').forEach(btn=>btn.onclick=()=>{const id=decodeURIComponent(btn.dataset.id||'');try{setConfirmadoV59(id,!confirmationMap()[id]);}catch{}renderAll();});
     box.querySelectorAll('.btn-levantar-v58').forEach(btn=>btn.onclick=()=>{const id=decodeURIComponent(btn.dataset.id||'');try{if(!confirmationMap()[id])return;setLevantadoV59(id,!liftedMap()[id]);}catch{}renderAll();});
   }
@@ -9979,11 +9579,11 @@ instalarV73();
 (() => {
   const canonical = Object.freeze({
     name:"Assistente Jogos Santa Casa",
-    version:"93.1.1",
-    label:"V93.1.1",
+    version:"93.2.0",
+    label:"V93.2.0",
     build:"2026.07.21",
-    codename:"Prémios Canónicos · Estados Claros",
-    slug:"premios-canonicos-estados-claros",
+    codename:"Base Estável · Limpeza Segura",
+    slug:"base-estavel-limpeza-segura",
     environment:"Production",
     backend:"Supabase",
     push:"Firebase",
