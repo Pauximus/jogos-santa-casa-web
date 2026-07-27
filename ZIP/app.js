@@ -1,102 +1,16 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "92.3.0",
-  label: "V92.3.0",
-  build: "2026.07.21",
-  codename: "Correção de Prémios #1 · Arranque e Toques Estáveis",
-  slug: "correcao-premios-1-arranque-toques-estaveis",
+  version: "92.0",
+  label: "V92.0",
+  build: "2026.07.16",
+  codename: "Estado Global Unificado",
+  slug: "estado-global-unificado",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
   cloud: true
 };
-
 window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
-window.__V92_ACTIVE = true;
-
-
-// V92.3.0 — gestor único de arranque e interação.
-// Remove apenas elementos legados que cobrem o ecrã e bloqueiam toques.
-(() => {
-  const KNOWN_BLOCKERS = [
-    "#appSplashV800",
-    "#appSplash",
-    ".v770-splash",
-    ".v800-splash",
-    "#v830NotifFirstRun",
-    "#v840NotifFirstRun"
-  ];
-
-  const isStartupBlocker = el => {
-    if (!(el instanceof HTMLElement)) return false;
-    if (el.matches(KNOWN_BLOCKERS.join(","))) return true;
-
-    const token = `${el.id || ""} ${el.className || ""}`.toLowerCase();
-    const looksLegacy = /(splash|first.?run|startup|launch.?overlay|loading.?overlay)/.test(token);
-    if (!looksLegacy) return false;
-
-    const style = getComputedStyle(el);
-    const rect = el.getBoundingClientRect();
-    const coversScreen = rect.width >= innerWidth * 0.85 && rect.height >= innerHeight * 0.85;
-    const fixedLayer = style.position === "fixed" || style.position === "absolute";
-    const highLayer = Number.parseInt(style.zIndex || "0", 10) >= 1000;
-
-    return coversScreen && fixedLayer && highLayer;
-  };
-
-  const removeBlockers = () => {
-    document.querySelectorAll(KNOWN_BLOCKERS.join(",")).forEach(el => el.remove());
-
-    document.querySelectorAll("body *").forEach(el => {
-      try {
-        if (isStartupBlocker(el)) el.remove();
-      } catch (_) {}
-    });
-
-    document.documentElement?.removeAttribute("inert");
-    document.body?.removeAttribute("inert");
-
-    document.documentElement?.style.removeProperty("pointer-events");
-    document.documentElement?.style.removeProperty("touch-action");
-    document.body?.style.removeProperty("pointer-events");
-    document.body?.style.removeProperty("touch-action");
-  };
-
-  const start = () => {
-    removeBlockers();
-
-    const observer = new MutationObserver(mutations => {
-      for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          if (!(node instanceof HTMLElement)) continue;
-          try {
-            if (isStartupBlocker(node)) {
-              node.remove();
-              continue;
-            }
-            node.querySelectorAll?.(KNOWN_BLOCKERS.join(",")).forEach(el => el.remove());
-          } catch (_) {}
-        }
-      }
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-    window.setTimeout(() => observer.disconnect(), 6000);
-
-    window.setTimeout(removeBlockers, 250);
-    window.setTimeout(removeBlockers, 800);
-    window.setTimeout(removeBlockers, 1800);
-    window.setTimeout(removeBlockers, 3500);
-  };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
-  } else {
-    start();
-  }
-
-  window.addEventListener("load", removeBlockers, { once: true });
-})();
 
 const API = "https://jogos-santa-casa-api.onrender.com";
 const BACKEND_API = "https://jogos-santa-casa-backend.onrender.com";
@@ -692,7 +606,7 @@ function atualizarPerfilContaV763() {
 }
 
 async function mostrarAppAutenticada() {
-authBox.style.display = "none";
+  authBox.style.display = "none";
   userBox.style.display = "";
   appBox.style.display = "";
 
@@ -715,7 +629,7 @@ authBox.style.display = "none";
 }
 
 async function arrancarApp() {
-if (!currentUser) return;
+  if (!currentUser) return;
 
   carregarLocal();
   mostrarAppAutenticada();
@@ -734,7 +648,7 @@ if (!currentUser) return;
 }
 
 async function sincronizarTudo(opcoes = {}) {
-if (!currentUser) return false;
+  if (!currentUser) return false;
 
   const verificarDepois = opcoes.verificarDepois === true;
   const background = opcoes.background === true;
@@ -765,7 +679,7 @@ if (!currentUser) return false;
       await verificar().catch(err => console.warn("Verificação de prémios incompleta:", err));
     }
 
-    syncInfo.textContent = `Última sincronização: ${agoraPt()}`; window.dispatchEvent(new Event("jsc:data-changed"));
+    syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
     if (!background) estado.textContent = "Sincronização concluída.";
     return true;
 
@@ -811,7 +725,7 @@ async function carregarApostasCloud(chamarVerificar = true) {
     });
 
     // Cloud é a fonte principal. LocalStorage fica só como cache.
-    apostas = novasApostas; window.dispatchEvent(new Event("jsc:data-changed"));
+    apostas = novasApostas;
 
     guardar();
     renderLista();
@@ -896,8 +810,6 @@ function normalizarRegistoCloud(h) {
     aposta: h.aposta || "",
     resultado: h.acertos || "",
     premio: h.premio || "",
-    valorPremio: Number(h.valor_premio ?? h.valorPremio ?? h.valor ?? 0),
-    categoria: h.categoria || "",
     dataRegisto: h.data_registo ? new Date(h.data_registo).toLocaleString("pt-PT") : ""
   };
 }
@@ -917,7 +829,7 @@ async function carregarHistoricoCloud(chamarRender = true) {
 
     if (error) throw error;
 
-    historico = (data || []).map(normalizarRegistoCloud); window.dispatchEvent(new Event("jsc:data-changed"));
+    historico = (data || []).map(normalizarRegistoCloud);
     guardarHistoricoLocal();
 
     if (chamarRender) renderHistorico();
@@ -979,7 +891,7 @@ async function guardarPremioCloud(ev) {
 }
 
 function criarInterface() {
-jogoSelect.innerHTML = "";
+  jogoSelect.innerHTML = "";
   tabs.innerHTML = "";
 
   for (const [key, cfg] of Object.entries(jogos)) {
@@ -1271,41 +1183,6 @@ function renderResultadoNumerosExtra(data) {
   const extras = converterParaArray(data.extras);
   const eventos = [];
 
-  const numeroSeguro = valor => {
-    if (typeof valor === "number") return Number.isFinite(valor) ? valor : 0;
-    let s = String(valor ?? "").trim();
-    if (!s || /consultar|sem valor|indispon/i.test(s)) return 0;
-    s = s.replace(/[€\s]/g, "");
-    if (s.includes(",") && s.includes(".")) s = s.replace(/\./g, "").replace(",", ".");
-    else if (s.includes(",")) s = s.replace(",", ".");
-    const m = s.match(/-?\d+(?:\.\d+)?/);
-    return m ? Number(m[0]) : 0;
-  };
-
-  const normalizarPremio = info => {
-    if (info == null || info === false) return null;
-    if (typeof info === "number") {
-      return info > 0 ? { nome: "Prémio", valorNumero: info, valorTexto: info.toLocaleString("pt-PT", { style:"currency", currency:"EUR" }) } : null;
-    }
-    if (typeof info === "string") {
-      const valorNumero = numeroSeguro(info);
-      if (valorNumero <= 0) return null;
-      return { nome: "Prémio", valorNumero, valorTexto: valorNumero.toLocaleString("pt-PT", { style:"currency", currency:"EUR" }) };
-    }
-    if (typeof info !== "object") return null;
-
-    const nome = info.premio || info.categoria || info.nome || info.tipo || "Prémio";
-    const valorBruto = info.valorPremio ?? info.valor ?? info.montante ?? info.amount ?? 0;
-    const valorNumero = numeroSeguro(valorBruto);
-    const marcadoSemPremio = info.temPremio === false || info.premiado === false || info.ganhou === false;
-    if (marcadoSemPremio || valorNumero <= 0) return null;
-    return {
-      nome,
-      valorNumero,
-      valorTexto: valorNumero.toLocaleString("pt-PT", { style:"currency", currency:"EUR" })
-    };
-  };
-
   let html = renderCabecalhoResultado(data, `<div>Resultado: [${numeros.join(", ")}] + [${extras.join(", ")}]</div>`);
 
   if (!apostas[jogoAtual].length) html += `<div class="result-card warn">Sem apostas guardadas.</div>`;
@@ -1315,35 +1192,34 @@ function renderResultadoNumerosExtra(data) {
     const acertosNums = nums.filter(n => numeros.includes(n)).length;
     const acertosExtras = apostaExtras.filter(e => extras.includes(e)).length;
     const categoria = `${acertosNums}+${acertosExtras}`;
-    const premioInfoBruto = data.premios && typeof data.premios === "object" ? data.premios[categoria] : null;
-    const premioOficial = normalizarPremio(premioInfoBruto);
-    const categoriaElegivel = categoriaTemPremio(jogoAtual, acertosNums, acertosExtras);
-    const premiado = !!premioOficial;
+    const premioInfo = data.premios ? data.premios[categoria] : null;
+    const premiado = !!premioInfo || categoriaTemPremio(jogoAtual, acertosNums, acertosExtras);
     const comAcertos = acertosNums || acertosExtras;
 
     let titulo = "🔴 SEM PRÉMIO";
     let classe = "bad";
+    let premio = "";
+    let valor = "";
 
     if (premiado) {
-      titulo = `🏆 PREMIADO — ${premioOficial.nome} — ${premioOficial.valorTexto}`;
+      premio = premioInfo?.premio || "Prémio";
+      valor = premioInfo?.valor || "valor a consultar";
+      titulo = `🏆 PREMIADO — ${premio} — ${valor}`;
       classe = "ok";
+    } else if (comAcertos) {
+      titulo = "🟡 COM ACERTOS — sem prémio";
+      classe = "warn";
+    }
+
+    if (premiado) {
       eventos.push({
         jogo: data.jogo,
         aposta,
         resultado: `${acertosNums} número(s) + ${acertosExtras} ${data.extra_nome || "extra"}(s)`,
         sorteio: data.sorteio || "último sorteio",
         dataSorteio: data.data || "",
-        premio: `${premioOficial.nome} — ${premioOficial.valorTexto}`,
-        valorPremio: premioOficial.valorNumero,
-        categoria
+        premio: `${premio} — ${valor}`
       });
-    } else if (categoriaElegivel) {
-      // A categoria pode teoricamente ter prémio, mas sem valor oficial não entra no histórico.
-      titulo = "🟡 CATEGORIA COM PRÉMIO — valor oficial indisponível";
-      classe = "warn";
-    } else if (comAcertos) {
-      titulo = "🟡 COM ACERTOS — sem prémio";
-      classe = "warn";
     }
 
     html += `
@@ -1451,8 +1327,6 @@ async function guardarEventosHistorico(data, eventos) {
         aposta: ev.aposta,
         resultado: ev.resultado,
         premio: ev.premio,
-        valorPremio: Number(ev.valorPremio || 0),
-        categoria: ev.categoria || "",
         dataRegisto: new Date().toLocaleString("pt-PT")
       };
 
@@ -1913,7 +1787,7 @@ async function limparHistorico() {
       ? "Histórico local e cloud limpo."
       : "Histórico local limpo.";
 
-    syncInfo.textContent = `Última sincronização: ${agoraPt()}`; window.dispatchEvent(new Event("jsc:data-changed"));
+    syncInfo.textContent = `Última sincronização: ${agoraPt()}`;
 
   } catch (err) {
     console.warn("Não foi possível limpar o histórico na cloud:", err);
@@ -5685,7 +5559,7 @@ function moedaV54(n){return Number(n||0).toLocaleString("pt-PT",{style:"currency
 function parseDataV54(s){const m=String(s||"").match(/(\d{2})\/(\d{2})\/(\d{4})/);return m?new Date(+m[3],+m[2]-1,+m[1]):null}
 function mesKeyV54(item){const d=parseDataV54(item?.dataSorteio||item?.data||item?.dataRegisto);return d?`${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getFullYear()).slice(-2)}`:"Sem data"}
 function contarPorV54(lista,fn){const m=new Map();lista.forEach(x=>{const k=fn(x)||"—";m.set(k,(m.get(k)||0)+1)});return[...m.entries()].sort((a,b)=>b[1]-a[1])}
-function atualizarDashboardVivoV54(){ if(window.__V92_ACTIVE)return;
+function atualizarDashboardVivoV54(){
  const hist=histV54();const sorted=[...hist].sort((a,b)=>(parseDataV54(b.dataSorteio||b.data||b.dataRegisto)?.getTime()||0)-(parseDataV54(a.dataSorteio||a.data||a.dataRegisto)?.getTime()||0));const ultimo=sorted[0];const total=hist.reduce((s,h)=>s+(valorItemV54(h)||0),0);const jogoTop=contarPorV54(hist,h=>h.jogo||"—")[0]?.[0]||"—";
  document.getElementById("dvUltimoPremio")&&(dvUltimoPremio.textContent=ultimo?`${ultimo.jogo||"Jogo"} — ${moedaV54(valorItemV54(ultimo)||0)}`:"Ainda sem prémios");
  document.getElementById("dvUltimoPremioMeta")&&(dvUltimoPremioMeta.textContent=ultimo?`${ultimo.dataSorteio||ultimo.data||""} · ${ultimo.resultado||""}`:"Quando houver prémios, aparecem aqui.");
@@ -7495,7 +7369,7 @@ async function v73GerarSugestao(tipo='estatistica'){
   const sug=tipo==='aleatoria' ? v73SugestaoAleatoria(jogo) : await v73SugestaoEstatistica(jogo);
   v73RenderSugestao(tipo,jogo,sug);
 }
-async function atualizarDashboardInteligenteV73(){ if(window.__V92_ACTIVE)return;
+async function atualizarDashboardInteligenteV73(){
   const prox=v73NextDraw(); const hoje=v73GameToday(); const ap=v73ApostasResumo(); const cl=await v73CloudResumo();
   const nomeV73 = (aliasUtilizador || currentUser?.email?.split('@')?.[0] || 'Paulo');
   v73Text('v73Greeting', `${v73Saudacao()}, ${nomeV73} 👋`);
@@ -7940,7 +7814,7 @@ instalarV73();
       else insight.textContent=`🍀 Tens ${ap} aposta(s) ativas. A cloud está sincronizada e o assistente continua a acompanhar os resultados.`;
     }
   }
-  function tick(){ if(window.__V92_ACTIVE)return; try{ updateUserCard(); updateDashboard(); }catch(e){ console.warn('V76.4 dashboard vivo', e); } }
+  function tick(){ try{ updateUserCard(); updateDashboard(); }catch(e){ console.warn('V76.4 dashboard vivo', e); } }
   ready(()=>{ document.body.classList.add('v764-dashboard-vivo'); setTimeout(tick,400); setTimeout(tick,1800); setInterval(tick,30000); document.addEventListener('click',()=>setTimeout(tick,300)); });
 })();
 
@@ -8075,9 +7949,14 @@ instalarV73();
     ];
   }
   function showSplash(){
-    // V92.3.0: splash V770 permanentemente desativado.
-    document.querySelectorAll("#appSplashV800,#appSplash,.v770-splash,.v800-splash")
-      .forEach(el => el.remove());
+    if(sessionStorage.getItem('jsc_v770_splash_seen')) return;
+    sessionStorage.setItem('jsc_v770_splash_seen','1');
+    const el=document.createElement('div');
+    el.className='v770-splash';
+    el.innerHTML=`<div class="v770-splash-card"><div class="v770-logo">🍀</div><strong>Assistente Jogos Santa Casa</strong><span>A preparar a tua dashboard...</span><i></i></div>`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.classList.add('is-leaving'),1150);
+    setTimeout(()=>el.remove(),1600);
   }
   function updateVersion(){
     document.querySelectorAll('.v72-pill,.v54-pill').forEach(el=>{ if(/^V\d+/.test((el.textContent||'').trim())) el.textContent=VERSION_LABEL; });
@@ -8193,7 +8072,7 @@ instalarV73();
       .replace(/[^a-z0-9_-]/g, '-');
     document.body.classList.add(`v780-${safeSlug}`);
     syncVersion(); exposeSupportInfo();
-    if(!window.__V92_ACTIVE){ setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000); }
+    setTimeout(syncVersion, 500); setTimeout(syncVersion, 1800); setInterval(syncVersion, 30000);
     // V80.2: sem log legado aqui para evitar versões duplicadas na consola.
   });
 })();
@@ -8347,9 +8226,12 @@ instalarV73();
    O utilizador confirma manualmente antes de guardar.
    ========================================================= */
 (function initScannerTalaoV803(){
-  const info = window.APP_INFO;
-  // V92.2.3: o Scanner legado já não altera a versão global.
-  // Mantém apenas as funcionalidades internas do módulo.
+  const info = window.APP_INFO || (window.APP_INFO = {});
+  info.version = "90.0";
+  info.label = "V90.0";
+  info.codename = "Android Native + ML Kit";
+  info.slug = "android-native-mlkit";
+  window.APP_VERSION = "v90.0-finalizacao-dashboard";
 
   const OCR_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 
@@ -8940,8 +8822,36 @@ instalarV73();
   }
 
   function showFirstRunNotifications(){
-    try { localStorage.setItem("jsc_v830_notificacoes_perguntadas","1"); } catch (_) {}
-    document.getElementById("v830NotifFirstRun")?.remove();
+    const key = "jsc_v830_notificacoes_perguntadas";
+    if (localStorage.getItem(key) === "1") return;
+    if (!("Notification" in window)) { localStorage.setItem(key,"1"); return; }
+    if (Notification.permission !== "default") { localStorage.setItem(key,"1"); return; }
+    if (document.getElementById("v830NotifFirstRun")) return;
+
+    const modal = document.createElement("div");
+    modal.id = "v830NotifFirstRun";
+    modal.innerHTML = `
+      <div class="v830-box" role="dialog" aria-modal="true" aria-labelledby="v830NotifTitle">
+        <h2 id="v830NotifTitle">🔔 Ativar notificações?</h2>
+        <p>Podemos avisar quando existirem novos resultados ou quando uma aposta tiver prémio. Esta escolha pode ser alterada nas definições do telemóvel.</p>
+        <div class="v830-actions">
+          <button id="v830NotifAllow" type="button">Permitir notificações</button>
+          <button id="v830NotifLater" type="button">Agora não</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    document.getElementById("v830NotifAllow")?.addEventListener("click", async () => {
+      localStorage.setItem(key,"1");
+      await requestNotifications();
+      modal.remove();
+      try { if (Notification.permission === "granted" && typeof v671RegistarPushCloud === "function") await v671RegistarPushCloud(); } catch(e) { console.warn(e); }
+    });
+    document.getElementById("v830NotifLater")?.addEventListener("click", () => {
+      localStorage.setItem(key,"1");
+      localStorage.setItem("jsc_notificacoes","0");
+      modal.remove();
+    });
   }
 
   function tick(){
@@ -8956,7 +8866,7 @@ instalarV73();
   });
   window.setTimeout(() => { tick(); showFirstRunNotifications(); }, 1200);
   window.setInterval(tick, 2500);
-  // V92 organizada: observer autorrecursivo removido; o setInterval(tick, 2500) mantém a atualização periódica.
+  new MutationObserver(() => tick()).observe(document.documentElement, {subtree:true,childList:true});
 
   console.log("🍀 Interface simplificada e scroll para o topo ativos");
 })();
@@ -9102,8 +9012,33 @@ instalarV73();
   }
 
   function modalPrimeiraExecucao(){
-    try { localStorage.setItem("jsc_v840_notificacoes_perguntadas","1"); } catch (_) {}
-    document.getElementById("v840NotifFirstRun")?.remove();
+    if (!nativeAndroid() || localStorage.getItem(ASK_KEY)==="1" || document.getElementById("v840NotifFirstRun")) return;
+    const modal=document.createElement("div");
+    modal.id="v840NotifFirstRun";
+    modal.innerHTML=`<div class="v840-box" role="dialog" aria-modal="true" aria-labelledby="v840NotifTitle">
+      <h2 id="v840NotifTitle">🔔 Ativar notificações?</h2>
+      <p>Recebe avisos nos dias de sorteio, lembretes para apostar, resultados disponíveis e alertas quando houver prémio.</p>
+      <div class="v840-actions"><button id="v840Allow" type="button">Ativar notificações</button><button id="v840Later" type="button">Agora não</button></div>
+    </div>`;
+    modal.style.cssText="position:fixed;inset:0;z-index:2147483640;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.68);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)";
+    const box=modal.querySelector('.v840-box');
+    if(box) box.style.cssText="width:min(430px,100%);background:#fff;border:1px solid rgba(15,23,42,.10);border-radius:24px;padding:26px 22px;box-shadow:0 28px 80px rgba(15,23,42,.45);color:#0f172a;text-align:left";
+    const title=modal.querySelector('h2');
+    if(title) title.style.cssText="margin:0 0 12px;font-size:28px;line-height:1.15;color:#0f172a;font-weight:900";
+    const text=modal.querySelector('p');
+    if(text) text.style.cssText="margin:0 0 22px;font-size:18px;line-height:1.45;color:#475569;font-weight:600";
+    const actions=modal.querySelector('.v840-actions');
+    if(actions) actions.style.cssText="display:grid;gap:11px";
+    const allow=modal.querySelector('#v840Allow');
+    if(allow) allow.style.cssText="width:100%;min-height:58px;border:0;border-radius:16px;background:#0f172a;color:#fff;font-size:18px;font-weight:900;padding:14px 18px";
+    const later=modal.querySelector('#v840Later');
+    if(later) later.style.cssText="width:100%;min-height:56px;border:1px solid #cbd5e1;border-radius:16px;background:#fff;color:#0f172a;font-size:17px;font-weight:800;padding:13px 18px";
+    document.body.appendChild(modal);
+    document.getElementById("v840Allow")?.addEventListener("click",async()=>{
+      try { await ativarNotificacoesNativas(); localStorage.setItem(ASK_KEY,"1"); modal.remove(); }
+      catch(e){ alert("Não foi possível ativar as notificações: "+(e?.message||e)); }
+    });
+    document.getElementById("v840Later")?.addEventListener("click",()=>{ localStorage.setItem(ASK_KEY,"1"); modal.remove(); });
   }
 
   async function init(){
@@ -9125,6 +9060,77 @@ instalarV73();
 })();
 
 
+/* =========================================================
+   V87.2 — Hotfix definitivo do arranque
+   Evita ciclo infinito do MutationObserver e garante saída do splash.
+   ========================================================= */
+(() => {
+  let applying = false;
+  let observerTimer = 0;
+
+  const setTextIfChanged = (el, value) => {
+    if (el && el.textContent !== value) el.textContent = value;
+  };
+
+  const applyCanonicalVersion = () => {
+    if (applying) return;
+    applying = true;
+    try {
+      const info = window.APP_INFO;
+      if (!info) return;
+      const label = info.label;
+      const full = window.APP_VERSION;
+
+      document.querySelectorAll('[data-app-version], .v72-pill, .v54-pill').forEach(el => {
+        const current = String(el.textContent || '').trim();
+        if (el.hasAttribute('data-app-version') || /^V\d+(?:\.\d+)?/i.test(current)) {
+          setTextIfChanged(el, label);
+        }
+      });
+
+      const splashVersion = document.getElementById('appSplashVersionV800');
+      setTextIfChanged(splashVersion, `${label} · ${info.codename}`);
+
+      const cloudVersion = document.getElementById('v67CloudVersion');
+      setTextIfChanged(cloudVersion, full);
+    } finally {
+      applying = false;
+    }
+  };
+
+  const removeSplash = () => {
+    const splash = document.getElementById('appSplashV800');
+    if (!splash) return;
+    splash.classList.add('is-leaving');
+    window.setTimeout(() => splash.remove(), 450);
+  };
+
+  applyCanonicalVersion();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    applyCanonicalVersion();
+    window.setTimeout(removeSplash, 1000);
+  });
+
+  window.addEventListener('load', () => {
+    applyCanonicalVersion();
+    window.setTimeout(removeSplash, 350);
+  });
+
+  const observer = new MutationObserver(() => {
+    window.clearTimeout(observerTimer);
+    observerTimer = window.setTimeout(applyCanonicalVersion, 80);
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+
+  // Segurança absoluta: mesmo que outro módulo falhe, o splash nunca fica preso.
+  window.setTimeout(removeSplash, 2200);
+  window.setInterval(applyCanonicalVersion, 5000);
+
+  console.log(`🍀 ${window.APP_INFO.label} — arranque estabilizado e FCM unificado`);
+})();
+
+
 // =========================================================
 // V89.0 — Dashboard Inteligente 2.0
 // =========================================================
@@ -9138,7 +9144,6 @@ instalarV73();
   };
 
   function canonicalVersionV88() {
-    if (window.__V92_ACTIVE) return;
     window.APP_INFO = Object.assign(window.APP_INFO || {}, V88);
     window.APP_VERSION = `v${V88.version}-${V88.slug}`;
 
@@ -9190,7 +9195,7 @@ instalarV73();
     return map[key] || value || 'Resultado';
   }
 
-  async function updateDashboardV88() { if(window.__V92_ACTIVE)return;
+  async function updateDashboardV88() {
     canonicalVersionV88();
 
     let user = null;
@@ -9420,7 +9425,7 @@ instalarV73();
     return parts.join('  •  ') || 'Resultado oficial disponível';
   };
 
-  async function refreshFinalDashboardV90() { if(window.__V92_ACTIVE)return;
+  async function refreshFinalDashboardV90() {
     window.APP_INFO = Object.assign(window.APP_INFO || {}, {
       version: '91.0',
       label: 'V91.0',
@@ -9681,7 +9686,7 @@ instalarV73();
     }
   }
 
-  function instalarV91() { if(window.__V92_ACTIVE)return;
+  function instalarV91() {
     try { renderPremiosGestaoV58?.(); } catch {}
     try { atualizarStatsV91(); } catch(e) { console.warn('V91 estatísticas', e); }
     document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{
@@ -9689,11 +9694,11 @@ instalarV73();
     });
   }
 
-  if (!window.__V92_ACTIVE) window.APP_INFO = Object.assign(window.APP_INFO || {}, {
+  window.APP_INFO = Object.assign(window.APP_INFO || {}, {
     version:'91.0', label:'V91.0', build:'2026.07.16',
     codename:'Correções finais e testes', slug:'correcoes-finais-testes'
   });
-  if (!window.__V92_ACTIVE) window.APP_VERSION='v91.0-correcoes-finais-testes';
+  window.APP_VERSION='v91.0-correcoes-finais-testes';
 
   document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600));
   setTimeout(instalarV91, 1600);
@@ -9702,13 +9707,13 @@ instalarV73();
 })();
 
 // =========================================================
-// V92.2 — Correção de Prémios #1
+// V92.0 — Estado Global Unificado
 // Uma única fonte para Home, Prémios, Estatísticas e Perfil.
 // =========================================================
 (() => {
-  const V92 = window.APP_INFO;
+  const V92 = { version:'92.0', label:'V92.0', build:'2026.07.16', codename:'Estado Global Unificado', slug:'estado-global-unificado' };
   window.APP_INFO = Object.assign(window.APP_INFO || {}, V92);
-  window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
+  window.APP_VERSION = 'v92.0-estado-global-unificado';
 
   const norm = value => String(value ?? '').toLowerCase().normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
@@ -9793,12 +9798,10 @@ instalarV73();
   }
   function candidateValue(item){
     if(isKnownToto055(item)) return 3.97;
-    const direct=asNumber(item?.valorPremio ?? item?.valor ?? item?.premioValor ?? item?.montante);
+    const direct=asNumber(item?.valorPremio||item?.valor||item?.premioValor);
     if(direct>0) return direct;
     const txt=String(item?.premio||'');
-    if(/consultar|sem valor|indispon/i.test(txt)) return 0;
-    const euro=txt.match(/(\d{1,3}(?:[.\s]\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*€/);
-    return euro ? asNumber(euro[1]) : 0;
+    const euro=txt.match(/(\d+(?:[.,]\d{1,2})?)\s*€/); return euro ? asNumber(euro[1]) : 0;
   }
   function legacyIds(item){
     const ids=[];
@@ -9820,12 +9823,15 @@ instalarV73();
     const out=[], seen=new Set();
     rawHistory().forEach(raw=>{
       const c=canonicalCandidate(raw); if(!c) return;
-      const key=gameKey(c.jogo);
-      const numbered=['euromilhoes','totoloto','eurodreams'].includes(key);
-      // Jogos de números só entram como prémio real quando existe montante oficial positivo.
-      if(numbered && candidateValue(c)<=0) return;
+      if(gameKey(c.jogo)!=='totoloto' && isKnownToto055(c)) return;
       const k=candidateKey(c); if(seen.has(k)) return; seen.add(k); out.push(c);
     });
+    // Garante o prémio oficial conhecido mesmo quando o histórico contaminado foi removido.
+    const totoBet=(rawBets().totoloto||[]).find(a=>betNorm(a)==='3 4 7 26 30 + 7');
+    if(totoBet){
+      const c=canonicalCandidate({jogo:'Totoloto',sorteio:TOTO_055.sorteio,dataSorteio:TOTO_055.data,aposta:totoBet,resultado:'3 número(s)',valorPremio:3.97,premio:'4.º Prémio — 3,97 €'});
+      const k=candidateKey(c); if(!seen.has(k)){seen.add(k);out.push(c);}
+    }
     return out.sort((a,b)=>(parseDate(b.dataSorteio||b.data)?.getTime()||0)-(parseDate(a.dataSorteio||a.data)?.getTime()||0));
   }
   function betsByGame(){
@@ -9927,7 +9933,7 @@ instalarV73();
     try{renderDashboard();}catch(e){console.warn('V92 dashboard',e)}
     try{renderPremiumAndProfile();}catch(e){console.warn('V92 perfil',e)}
     try{renderCounters();}catch(e){console.warn('V92 contadores',e)}
-    document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{if(el.hasAttribute('data-app-version')||/^V\d+/i.test((el.textContent||'').trim()))el.textContent='V92.2';});
+    document.querySelectorAll('[data-app-version],.v72-pill,.v54-pill,.version-badge').forEach(el=>{if(el.hasAttribute('data-app-version')||/^V\d+/i.test((el.textContent||'').trim()))el.textContent='V92.0';});
   }
   window.JSC_RENDER_V92=renderAll;
 
@@ -9943,9 +9949,6 @@ instalarV73();
   document.addEventListener('DOMContentLoaded',()=>setTimeout(renderAll,500),{once:true});
   document.addEventListener('click',()=>setTimeout(renderAll,150));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderAll();});
-  setTimeout(renderAll,500); setTimeout(renderAll,1800);
-  window.addEventListener('jsc:data-changed', renderAll);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderAll();});
-  setInterval(renderAll,60000);
+  setTimeout(renderAll,1200); setTimeout(renderAll,3000); setInterval(renderAll,10000);
 })();
 

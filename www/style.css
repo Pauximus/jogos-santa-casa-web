@@ -3282,3 +3282,11 @@ body.v770-launch-polish .v72-pill,body.v770-launch-polish .v54-pill{box-shadow:0
 
 /* V92.0 — estado unificado: evita oscilações visuais durante recalculo */
 [data-v92-updating="1"]{transition:none!important}
+
+
+/* V92.2.5 — Diagnóstico: marcador visual caso o splash sobreviva à remoção direta. */
+#appSplashV800[data-jsc-diagnostic="forced-hidden"]{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}

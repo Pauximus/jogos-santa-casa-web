@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "999107393170",
+    "project_id": "assistente-jogos-santa-casa",
+    "storage_bucket": "assistente-jogos-santa-casa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:999107393170:android:e7edb521a04ed1c7de984b",
+        "android_client_info": {
+          "package_name": "pt.pauximus.assistentejogossantacasa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "999107393170-c89u8udlnrgt3c24ckgcbhb386v1tcd9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPHhIbx7lu2Ff5ssn59f5njgAd2YLM_Vs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "999107393170-c89u8udlnrgt3c24ckgcbhb386v1tcd9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
