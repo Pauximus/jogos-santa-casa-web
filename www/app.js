@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "93.1.0",
-  label: "V93.1.0",
+  version: "93.1.1",
+  label: "V93.1.1",
   build: "2026.07.21",
-  codename: "Prémios Canónicos · Reconciliação Cloud",
-  slug: "premios-canonicos-reconciliacao-cloud",
+  codename: "Prémios Canónicos · Estados Claros",
+  slug: "premios-canonicos-estados-claros",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -9860,9 +9860,28 @@ instalarV73();
     renderResultadoLotaria=function(data){return old({...data,premios:normalizeLotteryPrizes(data?.premios)});};
   }
 
+  function resumoPremiosV9311(s){
+    const total=s.candidates.length;
+    const confirmados=s.confirmed.length;
+    const levantados=s.lifted.length;
+    const porConfirmar=total-confirmados;
+    const porLevantar=Math.max(0,confirmados-levantados);
+
+    const partes=[];
+    if(porConfirmar>0){
+      partes.push(`${total} ${total===1?'candidato':'candidatos'}`);
+      partes.push(`${porConfirmar} por confirmar`);
+    }else{
+      partes.push(`${confirmados} ${confirmados===1?'prémio confirmado':'prémios confirmados'}`);
+    }
+    if(levantados>0) partes.push(`${levantados} ${levantados===1?'levantado':'levantados'}`);
+    if(porLevantar>0) partes.push(`${porLevantar} por levantar`);
+    return partes.join(' · ');
+  }
+
   function renderPrizeManagement(){
     const s=state(), conf=confirmationMap(), lev=liftedMap();
-    setText('premiosGestaoResumoV58',`${s.candidates.length} candidato(s) · ${s.candidates.filter(x=>!isConfirmed(x)).length} por confirmar`);
+    setText('premiosGestaoResumoV58',resumoPremiosV9311(s));
     setText('v58TotalGanho',money(s.totalConfirmed));
     setText('v58TotalLevantado',money(s.lifted.reduce((a,c)=>a+candidateValue(c),0)));
     setText('v58TotalPorLevantar',money(Math.max(0,s.totalConfirmed-s.lifted.reduce((a,c)=>a+candidateValue(c),0))));
@@ -9901,14 +9920,18 @@ instalarV73();
     setText('dvProximaAcao',s.candidates.some(c=>!isConfirmed(c))?'Confirmar prémio':'Acompanhar resultados');
     setText('dvProximaAcaoMeta',s.candidates.some(c=>!isConfirmed(c))?'Tens prémios por confirmar.':'As tuas apostas já estão prontas.');
     setText('dvBadge',s.candidates.length?'🍀 Atualizado':'Novo');
-    setText('dvFrase',`Tens ${s.candidates.length} candidato(s), ${s.confirmed.length} confirmado(s) e total confirmado de ${money(s.totalConfirmed)}.`);
+    setText('dvFrase',
+      s.candidates.some(c=>!isConfirmed(c))
+        ? `Tens ${s.candidates.length} ${s.candidates.length===1?'candidato':'candidatos'}, ${s.confirmed.length} confirmado(s) e total confirmado de ${money(s.totalConfirmed)}.`
+        : `${s.confirmed.length} ${s.confirmed.length===1?'prémio confirmado':'prémios confirmados'} · ${Math.max(0,s.confirmed.length-s.lifted.length)} por levantar · ${s.lifted.length} levantado(s) · total ${money(s.totalConfirmed)}.`
+    );
   }
 
   function renderPremiumAndProfile(){
     const s=state(), big=s.biggest, top=s.topPrize;
     setText('premioTotalGanho',money(s.totalConfirmed)); setText('premioTotalNota',s.confirmed.length?'Valores confirmados pelo utilizador.':'Confirma os prémios para somar ao total.');
     setText('premioMaior',big?money(candidateValue(big)):'—'); setText('premioMelhorJogo',top?`${top.label} (${top.value})`:'—');
-    setText('premioTendencia',s.candidates.length?'→ Estável':'—'); setText('premiosNivelBadge',money(s.totalConfirmed)); setText('premiosPremiumResumo',`${s.candidates.length} prémio(s) · ${s.candidates.filter(c=>!isConfirmed(c)).length} por confirmar`);
+    setText('premioTendencia',s.candidates.length?'→ Estável':'—'); setText('premiosNivelBadge',money(s.totalConfirmed)); setText('premiosPremiumResumo',resumoPremiosV9311(s));
     const list=document.getElementById('premiosPremiumLista');if(list)list.innerHTML=s.candidates.length?s.candidates.slice(0,5).map(c=>`<div class="premio-row valor"><div><strong>${gameName(c.jogo)}</strong><span>${fmtDate(c.dataSorteio||c.data)} · ${c.resultado||''}</span></div><b>${money(candidateValue(c))}</b></div>`).join(''):'<div class="premios-empty">Ainda sem prémios registados.</div>';
     setText('perfilApostas',s.totalBets); setText('perfilPremios',s.candidates.length); setText('perfilTotalGanho',money(s.totalConfirmed)); setText('perfilMaiorPremio',big?money(candidateValue(big)):'—');
     setText('perfilJogoFavorito',s.topBet?`${s.topBet.label} (${s.topBet.value})`:'—'); setText('perfilTaxa',`${s.totalBets?Math.round(s.candidates.length/s.totalBets*100):0}%`); setText('perfilSeqSem',`${Math.max(0,s.totalBets-s.candidates.length)} aposta(s)`); setText('perfilSeqPremios',`${s.candidates.length} prémio(s)`);
@@ -9956,11 +9979,11 @@ instalarV73();
 (() => {
   const canonical = Object.freeze({
     name:"Assistente Jogos Santa Casa",
-    version:"93.1.0",
-    label:"V93.1.0",
+    version:"93.1.1",
+    label:"V93.1.1",
     build:"2026.07.21",
-    codename:"Prémios Canónicos · Reconciliação Cloud",
-    slug:"premios-canonicos-reconciliacao-cloud",
+    codename:"Prémios Canónicos · Estados Claros",
+    slug:"premios-canonicos-estados-claros",
     environment:"Production",
     backend:"Supabase",
     push:"Firebase",
