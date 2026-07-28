@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "93.2.0",
-  label: "V93.2.0",
+  version: "93.2.1",
+  label: "V93.2.1",
   build: "2026.07.21",
-  codename: "Base Estável · Limpeza Segura",
-  slug: "base-estavel-limpeza-segura",
+  codename: "Base Estável · Dashboard Completo",
+  slug: "base-estavel-dashboard-completo",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -7185,7 +7185,7 @@ async function v73GerarSugestao(tipo='estatistica'){
   const sug=tipo==='aleatoria' ? v73SugestaoAleatoria(jogo) : await v73SugestaoEstatistica(jogo);
   v73RenderSugestao(tipo,jogo,sug);
 }
-async function atualizarDashboardInteligenteV73(){ if(window.__V92_ACTIVE)return;
+async function atualizarDashboardInteligenteV73(){
   const prox=v73NextDraw(); const hoje=v73GameToday(); const ap=v73ApostasResumo(); const cl=await v73CloudResumo();
   const nomeV73 = (aliasUtilizador || currentUser?.email?.split('@')?.[0] || 'Paulo');
   v73Text('v73Greeting', `${v73Saudacao()}, ${nomeV73} 👋`);
@@ -8781,7 +8781,7 @@ instalarV73();
     return map[key] || value || 'Resultado';
   }
 
-  async function updateDashboardV88() { if(window.__V92_ACTIVE)return;
+  async function updateDashboardV88() {
     canonicalVersionV88();
 
     let user = null;
@@ -9572,6 +9572,50 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
 
 
 
+
+// =========================================================
+// V93.2.1 — DASHBOARD INTELIGENTE COMPLETO
+// Recalcula o topo após sincronização, login e regresso à Home.
+// Não altera o Dashboard Vivo nem cria ciclos permanentes.
+// =========================================================
+(() => {
+  let timerV9321 = 0;
+
+  const refreshV9321 = () => {
+    clearTimeout(timerV9321);
+    timerV9321 = window.setTimeout(async () => {
+      try { await atualizarDashboardInteligenteV73(); }
+      catch (e) { console.warn("V93.2.1 dashboard V73:", e); }
+
+      try { await updateDashboardV88(); }
+      catch (e) { console.warn("V93.2.1 dashboard V88:", e); }
+    }, 120);
+  };
+
+  window.JSC_REFRESH_DASHBOARD_V9321 = refreshV9321;
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", refreshV9321, { once: true });
+  } else {
+    refreshV9321();
+  }
+
+  window.addEventListener("load", refreshV9321, { once: true });
+  window.addEventListener("jsc:data-changed", refreshV9321);
+  window.addEventListener("online", refreshV9321);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshV9321();
+  });
+  document.addEventListener("click", event => {
+    if (event.target?.closest?.('[data-v75-nav="home"]')) refreshV9321();
+  });
+
+  // Chamadas únicas para cobrir login e sincronização assíncrona inicial.
+  window.setTimeout(refreshV9321, 500);
+  window.setTimeout(refreshV9321, 1800);
+  window.setTimeout(refreshV9321, 4000);
+})();
+
 // =========================================================
 // V93.0 — FECHO CANÓNICO
 // Nenhum módulo antigo pode voltar a alterar a versão ou criar cartões duplicados.
@@ -9579,11 +9623,11 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
 (() => {
   const canonical = Object.freeze({
     name:"Assistente Jogos Santa Casa",
-    version:"93.2.0",
-    label:"V93.2.0",
+    version:"93.2.1",
+    label:"V93.2.1",
     build:"2026.07.21",
-    codename:"Base Estável · Limpeza Segura",
-    slug:"base-estavel-limpeza-segura",
+    codename:"Base Estável · Dashboard Completo",
+    slug:"base-estavel-dashboard-completo",
     environment:"Production",
     backend:"Supabase",
     push:"Firebase",
