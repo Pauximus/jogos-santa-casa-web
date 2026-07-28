@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "93.3.0",
-  label: "V93.3.0",
+  version: "93.4.0",
+  label: "V93.4.0",
   build: "2026.07.21",
-  codename: "Base Estável · Proprietários Únicos",
-  slug: "base-estavel-proprietarios-unicos",
+  codename: "Dashboard · Últimos Resultados Agrupados",
+  slug: "dashboard-ultimos-resultados-agrupados",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -13,6 +13,13 @@ window.APP_INFO = {
 
 window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
 window.__V92_ACTIVE = true;
+
+// =========================================================
+// V93.4.0 — ÚLTIMOS RESULTADOS AGRUPADOS
+// Ordenação pela data real e agrupamento de todos os jogos do dia mais recente.
+// Exemplo: Euromilhões + M1lhão quando os dois resultados são do mesmo dia.
+// =========================================================
+
 
 // =========================================================
 // V93.3.0 — GRANDE LIMPEZA DO DASHBOARD
@@ -8795,6 +8802,131 @@ instalarV73();
     return map[key] || value || 'Resultado';
   }
 
+
+  function parseOfficialDateV934(value) {
+    if (!value) return null;
+    if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+
+    const text = String(value).trim();
+    if (!text) return null;
+
+    // DD/MM/AAAA ou DD-MM-AAAA, com hora opcional.
+    const pt = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:[ T](\d{1,2}):?(\d{2})?(?::(\d{2}))?)?/);
+    if (pt) {
+      const d = new Date(
+        Number(pt[3]),
+        Number(pt[2]) - 1,
+        Number(pt[1]),
+        Number(pt[4] || 12),
+        Number(pt[5] || 0),
+        Number(pt[6] || 0)
+      );
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    // AAAA-MM-DD / ISO.
+    const iso = new Date(text);
+    return Number.isNaN(iso.getTime()) ? null : iso;
+  }
+
+  function officialDateInfoV934(result) {
+    const candidates = [
+      result?.data_sorteio,
+      result?.data,
+      result?.draw_date,
+      result?.date,
+      result?.updated_at,
+      result?.created_at
+    ];
+
+    for (const value of candidates) {
+      const date = parseOfficialDateV934(value);
+      if (date) {
+        return {
+          date,
+          key: [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, "0"),
+            String(date.getDate()).padStart(2, "0")
+          ].join("-")
+        };
+      }
+    }
+
+    return null;
+  }
+
+  function drawLabelV934(result) {
+    const raw = String(result?.sorteio || result?.concurso || "").trim();
+    if (!raw || /^(último|ultimo)(\s+sorteio)?$/i.test(raw)) return "";
+    return /^sorteio\s+/i.test(raw) ? raw : `Sorteio ${raw}`;
+  }
+
+  function formatOfficialDayV934(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    return date.toLocaleDateString("pt-PT", {
+      timeZone: "Europe/Lisbon",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+  }
+
+  function uniqueLatestResultsV934(rows) {
+    const valid = (Array.isArray(rows) ? rows : [])
+      .map(result => ({ result, info: officialDateInfoV934(result) }))
+      .filter(item => item.info)
+      .sort((a, b) => b.info.date.getTime() - a.info.date.getTime());
+
+    if (!valid.length) return [];
+
+    const newestKey = valid[0].info.key;
+    const sameDay = valid.filter(item => item.info.key === newestKey);
+
+    const seen = new Set();
+    return sameDay.filter(item => {
+      const game = String(item.result?.jogo || "").toLowerCase().trim();
+      if (!game || seen.has(game)) return false;
+      seen.add(game);
+      return true;
+    });
+  }
+
+  function renderLatestResultsV934(rows) {
+    const latest = uniqueLatestResultsV934(rows);
+
+    if (!latest.length) {
+      setDashboardCard(
+        "v73UltimoResultado",
+        "Sem resultados",
+        "Ainda não existem resultados oficiais importados."
+      );
+      return;
+    }
+
+    const names = latest.map(item => gameNameV88(item.result.jogo));
+    const title = names.join(" + ");
+    const dateText = formatOfficialDayV934(latest[0].info.date);
+
+    let detail = dateText;
+    if (latest.length === 1) {
+      const draw = drawLabelV934(latest[0].result);
+      detail = [draw, dateText].filter(Boolean).join(" · ") || "Resultado oficial disponível";
+    } else {
+      const draws = latest
+        .map(item => {
+          const name = gameNameV88(item.result.jogo);
+          const draw = drawLabelV934(item.result);
+          return draw ? `${name}: ${draw.replace(/^Sorteio\s+/i, "")}` : "";
+        })
+        .filter(Boolean);
+
+      detail = [dateText, draws.join(" · ")].filter(Boolean).join(" · ");
+    }
+
+    setDashboardCard("v73UltimoResultado", title, detail || "Resultados oficiais disponíveis");
+  }
+
   async function updateDashboardV88() {
     canonicalVersionV88();
 
@@ -8844,32 +8976,18 @@ instalarV73();
     }
 
     try {
+      // A coluna data_sorteio é texto em instalações antigas; por isso não confiamos
+      // na ordenação alfabética do Supabase. Lemos os resultados recentes e ordenamos
+      // localmente pela data real.
       const { data, error } = await supabaseClient
-        .from('resultados_oficiais')
-        .select('*')
-        .order('data_sorteio', { ascending: false })
-        .limit(1);
+        .from("resultados_oficiais")
+        .select("*")
+        .limit(200);
 
       if (error) throw error;
-      const result = data?.[0];
-      if (result) {
-        const rawDraw = String(result.sorteio || '').trim();
-        const invalidDraw = !rawDraw || /^(último|ultimo)\s+sorteio$/i.test(rawDraw) || /^(último|ultimo)$/i.test(rawDraw);
-        const dateValue = result.data_sorteio || result.data || result.created_at || result.updated_at;
-        let detail = '';
-        if (!invalidDraw) detail = /^sorteio\s+/i.test(rawDraw) ? rawDraw : `Sorteio ${rawDraw}`;
-        if (!detail && dateValue) {
-          const d = new Date(dateValue);
-          detail = Number.isNaN(d.getTime())
-            ? String(dateValue)
-            : d.toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon', day: '2-digit', month: '2-digit', year: 'numeric' });
-        }
-        setDashboardCard('v73UltimoResultado', gameNameV88(result.jogo), detail || 'Resultado oficial disponível');
-      } else {
-        setDashboardCard('v73UltimoResultado', 'Sem resultados', 'Ainda não existem resultados importados.');
-      }
+      renderLatestResultsV934(data || []);
     } catch (error) {
-      console.warn('V88: último resultado indisponível', error);
+      console.warn("V93.4: últimos resultados indisponíveis", error);
     }
   }
 
@@ -9628,11 +9746,11 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
 (() => {
   const canonical = Object.freeze({
     name:"Assistente Jogos Santa Casa",
-    version:"93.3.0",
-    label:"V93.3.0",
+    version:"93.4.0",
+    label:"V93.4.0",
     build:"2026.07.21",
-    codename:"Base Estável · Proprietários Únicos",
-    slug:"base-estavel-proprietarios-unicos",
+    codename:"Dashboard · Últimos Resultados Agrupados",
+    slug:"dashboard-ultimos-resultados-agrupados",
     environment:"Production",
     backend:"Supabase",
     push:"Firebase",
