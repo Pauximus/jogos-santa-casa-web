@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "93.4.0",
-  label: "V93.4.0",
+  version: "94.0.0",
+  label: "V94.0.0",
   build: "2026.07.21",
-  codename: "Dashboard · Últimos Resultados Agrupados",
-  slug: "dashboard-ultimos-resultados-agrupados",
+  codename: "Nova Base · Refatorização Segura",
+  slug: "nova-base-refatorizacao-segura",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -15,29 +15,11 @@ window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
 window.__V92_ACTIVE = true;
 
 // =========================================================
-// V93.4.0 — ÚLTIMOS RESULTADOS AGRUPADOS
-// Ordenação pela data real e agrupamento de todos os jogos do dia mais recente.
-// Exemplo: Euromilhões + M1lhão quando os dois resultados são do mesmo dia.
+// V94.0.0 — NOVA BASE / REFATORIZAÇÃO SEGURA
+// Base funcional preservada: V93.4.0.
+// Escritores antigos de APP_INFO e APP_VERSION neutralizados.
+// Nenhuma função de produção foi removida nesta passagem.
 // =========================================================
-
-
-// =========================================================
-// V93.3.0 — GRANDE LIMPEZA DO DASHBOARD
-// Cada campo tem agora um único proprietário.
-// Removida a disputa V73/V88/V93 que fazia valores desaparecer.
-// Referência segura anterior: V93.2.1.
-// =========================================================
-
-
-// =========================================================
-// V93.2.0 — LIMPEZA SEGURA
-// Referência estável: V93.1.1.
-// Foram removidos apenas módulos antigos de diagnóstico/instrumentação
-// e atribuições de versão que nunca podiam executar.
-// O motor funcional da aplicação foi preservado.
-// =========================================================
-
-
 
 // V92.3.0 — gestor único de arranque e interação.
 // Remove apenas elementos legados que cobrem o ecrã e bloqueiam toques.
@@ -7658,7 +7640,7 @@ instalarV73();
 
 // V76.5 — Premium Polish / atividade objetiva
 (function initV765PremiumPolish(){
-  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-${window.APP_INFO.slug || 'store-ready'}`;
+  const LEGACY_APP_VERSION_FALLBACK_1 = window.APP_VERSION || `v${window.APP_INFO.version}-${window.APP_INFO.slug || 'store-ready'}`;
   const VERSION_LABEL = window.APP_INFO?.label || 'V80.0';
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
@@ -7742,7 +7724,7 @@ instalarV73();
 
 // V77.0 — Launch polish: splash, conquistas e níveis
 (function initV770LaunchPolish(){
-  window.APP_VERSION = window.APP_VERSION || `v${window.APP_INFO.version}-${window.APP_INFO.slug || 'store-ready'}`;
+  const LEGACY_APP_VERSION_FALLBACK_2 = window.APP_VERSION || `v${window.APP_INFO.version}-${window.APP_INFO.slug || 'store-ready'}`;
   const VERSION_LABEL = window.APP_INFO?.label || 'V80.0';
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
@@ -7847,7 +7829,7 @@ instalarV73();
 
 // V78.0 — Store Ready: versão centralizada e limpeza final
 (function initV780LaunchReady(){
-  window.APP_INFO = window.APP_INFO || {
+  const LEGACY_APP_INFO_V83 = window.APP_INFO || {
     version: "78.0",
     label: "V80.0",
     build: "2026.07.08",
@@ -7857,7 +7839,7 @@ instalarV73();
     push: "Firebase",
     cloud: true
   };
-  window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug || 'store-ready'}`;
+  const LEGACY_APP_VERSION_V83 = `v${window.APP_INFO.version}-${window.APP_INFO.slug || 'store-ready'}`;
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
   function byId(id){ return document.getElementById(id); }
   function totalApostas(){
@@ -8751,8 +8733,8 @@ instalarV73();
 
   function canonicalVersionV88() {
     if (window.__V92_ACTIVE) return;
-    window.APP_INFO = Object.assign(window.APP_INFO || {}, V88);
-    window.APP_VERSION = `v${V88.version}-${V88.slug}`;
+    const LEGACY_APP_INFO_V88 = Object.assign({}, window.APP_INFO || {}, V88);
+    const LEGACY_APP_VERSION_V88 = `v${V88.version}-${V88.slug}`;
 
     document.querySelectorAll('[data-app-version], .v72-pill, .v54-pill, .version-badge').forEach(el => {
       const current = String(el.textContent || '').trim();
@@ -9144,14 +9126,14 @@ instalarV73();
   };
 
   async function refreshFinalDashboardV90() { if(window.__V92_ACTIVE)return;
-    window.APP_INFO = Object.assign(window.APP_INFO || {}, {
+    const LEGACY_APP_INFO_V91 = Object.assign({}, window.APP_INFO || {}, {
       version: '91.0',
       label: 'V91.0',
       build: '2026.07.15',
       codename: 'Finalização do Dashboard',
       slug: 'finalizacao-dashboard'
     });
-    window.APP_VERSION = 'v91.0-correcoes-finais-testes';
+    const LEGACY_APP_VERSION_V91 = 'v91.0-correcoes-finais-testes';
 
     document.querySelectorAll('[data-app-version], .v72-pill, .v54-pill, .version-badge').forEach(el => {
       const current = String(el.textContent || '').trim();
@@ -9425,8 +9407,7 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
 // =========================================================
 (() => {
   const V92 = window.APP_INFO;
-  window.APP_INFO = Object.assign(window.APP_INFO || {}, V92);
-  window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
+  // V94.0.0: escritores globais V92 removidos; APP_INFO permanece canónico.
 
   const norm = value => String(value ?? '').toLowerCase().normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
@@ -9746,11 +9727,11 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
 (() => {
   const canonical = Object.freeze({
     name:"Assistente Jogos Santa Casa",
-    version:"93.4.0",
-    label:"V93.4.0",
+    version:"94.0.0",
+    label:"V94.0.0",
     build:"2026.07.21",
-    codename:"Dashboard · Últimos Resultados Agrupados",
-    slug:"dashboard-ultimos-resultados-agrupados",
+    codename:"Nova Base · Refatorização Segura",
+    slug:"nova-base-refatorizacao-segura",
     environment:"Production",
     backend:"Supabase",
     push:"Firebase",
