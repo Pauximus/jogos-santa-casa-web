@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "93.2.1",
-  label: "V93.2.1",
+  version: "93.3.0",
+  label: "V93.3.0",
   build: "2026.07.21",
-  codename: "Base Estável · Dashboard Completo",
-  slug: "base-estavel-dashboard-completo",
+  codename: "Base Estável · Proprietários Únicos",
+  slug: "base-estavel-proprietarios-unicos",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -13,6 +13,14 @@ window.APP_INFO = {
 
 window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
 window.__V92_ACTIVE = true;
+
+// =========================================================
+// V93.3.0 — GRANDE LIMPEZA DO DASHBOARD
+// Cada campo tem agora um único proprietário.
+// Removida a disputa V73/V88/V93 que fazia valores desaparecer.
+// Referência segura anterior: V93.2.1.
+// =========================================================
+
 
 // =========================================================
 // V93.2.0 — LIMPEZA SEGURA
@@ -7130,18 +7138,9 @@ function v73ApostasResumo(){
   const top=[...jogosMap.entries()].sort((a,b)=>b[1]-a[1])[0];
   return {total, topJogo: top ? `${v73NomeJogo(top[0])} (${top[1]})` : '—'};
 }
+// V93.3.0: v73CloudResumo removida.
 async function v73CloudResumo(){
-  const out={push:'—',cloud:'—',lastRun:'—',lastResult:'—'};
-  try{ out.push=document.getElementById('v672PushEngineStatus')?.textContent?.trim() || '—'; }catch{}
-  try{ out.cloud=document.getElementById('v67CloudStatus')?.textContent?.trim() || '—'; }catch{}
-  try{ out.lastRun=document.getElementById('v68PushEngineLastRun')?.textContent?.trim() || '—'; }catch{}
-  try{
-    if(window.supabaseClient){
-      const {data}=await supabaseClient.from('draw_results').select('game,draw_number,draw_date').order('draw_date',{ascending:false}).limit(1);
-      if(data?.[0]) out.lastResult=`${v73NomeJogo(data[0].game)} — ${data[0].draw_number || data[0].draw_date || 'último'}`;
-    }
-  }catch(e){ console.warn('V73 last result indisponível', e); }
-  return out;
+  return {push:"",cloud:"",lastRun:"",lastResult:""};
 }
 function v73SugestaoAleatoria(jogo='euromilhoes'){
   const maxN=jogo==='totoloto'?49:(jogo==='eurodreams'?40:50);
@@ -7185,32 +7184,47 @@ async function v73GerarSugestao(tipo='estatistica'){
   const sug=tipo==='aleatoria' ? v73SugestaoAleatoria(jogo) : await v73SugestaoEstatistica(jogo);
   v73RenderSugestao(tipo,jogo,sug);
 }
-async function atualizarDashboardInteligenteV73(){
-  const prox=v73NextDraw(); const hoje=v73GameToday(); const ap=v73ApostasResumo(); const cl=await v73CloudResumo();
-  const nomeV73 = (aliasUtilizador || currentUser?.email?.split('@')?.[0] || 'Paulo');
-  v73Text('v73Greeting', `${v73Saudacao()}, ${nomeV73} 👋`);
-  v73Text('v73ProximoJogo', prox ? prox.nome : 'Sem sorteio próximo');
-  v73Text('v73ProximoTempo', prox ? `Faltam ${v73TempoRestante(prox.date)} · ${prox.hora}` : '—');
-  v73Text('v73Hoje', hoje ? `Hoje há ${hoje.nome}` : 'Hoje sem sorteio principal');
-  v73Text('v73ApostasAtivas', String(ap.total || 0));
-  v73Text('v73ApostasMeta', ap.topJogo !== '—' ? `Mais usado: ${ap.topJogo}` : 'Regista apostas para alimentar a IA.');
-  v73Text('v73CloudResumo', cl.cloud || '—');
-  v73Text('v73PushResumo', cl.push || '—');
-  v73Text('v73UltimoResultado', cl.lastResult || '—');
-  v73Text('v73UltimaExecucao', cl.lastRun || '—');
-  const frase = hoje ? `Hoje é dia de ${hoje.nome}. O Assistente vai acompanhar o Push Engine e avisar-te se houver novidades.` : `O próximo destaque é ${prox?.nome || 'o próximo sorteio'}. Tudo fica preparado para receber resultados e notificações automaticamente.`;
-  v73Text('v73Insight', frase);
+function atualizarHeroDashboardV933(){
+  const prox=v73NextDraw();
+  const hoje=v73GameToday();
+  const ap=v73ApostasResumo();
+  const nome=(aliasUtilizador || currentUser?.email?.split("@")?.[0] || "Paulo");
+
+  v73Text("v73Greeting", `${v73Saudacao()}, ${nome} 👋`);
+  v73Text("v73ProximoJogo", prox ? prox.nome : "Sem sorteio próximo");
+  v73Text("v73ProximoTempo", prox ? `Faltam ${v73TempoRestante(prox.date)} · ${prox.hora}` : "—");
+  v73Text("v73Hoje", hoje ? `Hoje há ${hoje.nome}` : "Hoje sem sorteio principal");
+  v73Text("v73ApostasAtivas", String(ap.total || 0));
+  v73Text("v73ApostasMeta", ap.topJogo !== "—" ? `Mais usado: ${ap.topJogo}` : "Regista apostas para alimentar a IA.");
+
+  const frase=hoje
+    ? `Hoje é dia de ${hoje.nome}. O Assistente acompanha os resultados e as notificações.`
+    : `O próximo destaque é ${prox?.nome || "o próximo sorteio"}.`;
+  v73Text("v73Insight", frase);
 }
 function instalarV73(){
-  document.documentElement.classList.add('v73-dashboard');
-  const sel=document.getElementById('v73SugestaoJogo');
-  if(sel && !sel.dataset.v73){ sel.dataset.v73='1'; sel.addEventListener('change',()=>v73GerarSugestao('estatistica')); }
-  const b1=document.getElementById('v73GerarEstatistica'); if(b1 && !b1.dataset.v73){ b1.dataset.v73='1'; b1.addEventListener('click',()=>v73GerarSugestao('estatistica')); }
-  const b2=document.getElementById('v73GerarAleatoria'); if(b2 && !b2.dataset.v73){ b2.dataset.v73='1'; b2.addEventListener('click',()=>v73GerarSugestao('aleatoria')); }
-  setTimeout(()=>{ atualizarDashboardInteligenteV73(); v73GerarSugestao('estatistica'); },700);
-  setTimeout(()=>{ atualizarDashboardInteligenteV73(); },2500);
-  setTimeout(()=>{ atualizarDashboardInteligenteV73(); },60000);
-  document.addEventListener('click',()=>setTimeout(()=>atualizarDashboardInteligenteV73(),400));
+  document.documentElement.classList.add("v73-dashboard");
+
+  const sel=document.getElementById("v73SugestaoJogo");
+  if(sel && !sel.dataset.v73){
+    sel.dataset.v73="1";
+    sel.addEventListener("change",()=>v73GerarSugestao("estatistica"));
+  }
+
+  const b1=document.getElementById("v73GerarEstatistica");
+  if(b1 && !b1.dataset.v73){
+    b1.dataset.v73="1";
+    b1.addEventListener("click",()=>v73GerarSugestao("estatistica"));
+  }
+
+  const b2=document.getElementById("v73GerarAleatoria");
+  if(b2 && !b2.dataset.v73){
+    b2.dataset.v73="1";
+    b2.addEventListener("click",()=>v73GerarSugestao("aleatoria"));
+  }
+
+  atualizarHeroDashboardV933();
+  window.setTimeout(()=>v73GerarSugestao("estatistica"),700);
 }
 instalarV73();
 
@@ -9513,7 +9527,7 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
   function renderDashboard(){
     const s=state(); const latest=s.latestOfficial;
     setText('v73ApostasAtivas',s.totalBets); setText('v73ApostasMeta',s.topBet?`Mais usado: ${s.topBet.label} (${s.topBet.value})`:'Sem apostas');
-    if(latest){setText('v73UltimoResultado',gameName(latest.jogo));const small=document.getElementById('v73UltimoResultado')?.parentElement?.querySelector('small');if(small)small.textContent=`Sorteio ${latest.sorteio||'—'} · ${fmtDate(latest.data_sorteio||latest.data)}`;}
+    // V93.3.0: v73UltimoResultado pertence exclusivamente ao motor V88.
     const last=s.candidates[0]; setText('dvUltimoPremio',last?`${gameName(last.jogo)} — ${money(candidateValue(last))}`:'Ainda sem prémios');
     setText('dvUltimoPremioMeta',last?`${fmtDate(last.dataSorteio||last.data)} · ${last.resultado||''}`:'Quando houver prémios, aparecem aqui.');
     setText('dvTotalGanho',money(s.totalConfirmed)); setText('dvSequencia',`${s.candidates.length} prémio(s)`);
@@ -9574,60 +9588,51 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
 
 
 // =========================================================
-// V93.2.1 — DASHBOARD INTELIGENTE COMPLETO
-// Recalcula o topo após sincronização, login e regresso à Home.
-// Não altera o Dashboard Vivo nem cria ciclos permanentes.
+// =========================================================
+// V93.3.0 — COORDENADOR ÚNICO DO DASHBOARD
+// Hero: atualizarHeroDashboardV933
+// Cloud/Push/Último resultado: updateDashboardV88
+// Dashboard Vivo/Prémios/Estatísticas: motor canónico V93
 // =========================================================
 (() => {
-  let timerV9321 = 0;
-
-  const refreshV9321 = () => {
-    clearTimeout(timerV9321);
-    timerV9321 = window.setTimeout(async () => {
-      try { await atualizarDashboardInteligenteV73(); }
-      catch (e) { console.warn("V93.2.1 dashboard V73:", e); }
-
-      try { await updateDashboardV88(); }
-      catch (e) { console.warn("V93.2.1 dashboard V88:", e); }
-    }, 120);
+  let timerV933=0;
+  const refreshHeroV933=()=>{
+    clearTimeout(timerV933);
+    timerV933=window.setTimeout(()=>{
+      try{ atualizarHeroDashboardV933(); }
+      catch(e){ console.warn("V93.3 hero:",e); }
+    },80);
   };
 
-  window.JSC_REFRESH_DASHBOARD_V9321 = refreshV9321;
+  window.JSC_REFRESH_HERO_V933=refreshHeroV933;
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", refreshV9321, { once: true });
-  } else {
-    refreshV9321();
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",refreshHeroV933,{once:true});
+  }else{
+    refreshHeroV933();
   }
 
-  window.addEventListener("load", refreshV9321, { once: true });
-  window.addEventListener("jsc:data-changed", refreshV9321);
-  window.addEventListener("online", refreshV9321);
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) refreshV9321();
+  window.addEventListener("jsc:data-changed",refreshHeroV933);
+  window.addEventListener("online",refreshHeroV933);
+  document.addEventListener("visibilitychange",()=>{
+    if(!document.hidden) refreshHeroV933();
   });
-  document.addEventListener("click", event => {
-    if (event.target?.closest?.('[data-v75-nav="home"]')) refreshV9321();
+  document.addEventListener("click",event=>{
+    if(event.target?.closest?.('[data-v75-nav="home"]')) refreshHeroV933();
   });
-
-  // Chamadas únicas para cobrir login e sincronização assíncrona inicial.
-  window.setTimeout(refreshV9321, 500);
-  window.setTimeout(refreshV9321, 1800);
-  window.setTimeout(refreshV9321, 4000);
 })();
 
-// =========================================================
 // V93.0 — FECHO CANÓNICO
 // Nenhum módulo antigo pode voltar a alterar a versão ou criar cartões duplicados.
 // =========================================================
 (() => {
   const canonical = Object.freeze({
     name:"Assistente Jogos Santa Casa",
-    version:"93.2.1",
-    label:"V93.2.1",
+    version:"93.3.0",
+    label:"V93.3.0",
     build:"2026.07.21",
-    codename:"Base Estável · Dashboard Completo",
-    slug:"base-estavel-dashboard-completo",
+    codename:"Base Estável · Proprietários Únicos",
+    slug:"base-estavel-proprietarios-unicos",
     environment:"Production",
     backend:"Supabase",
     push:"Firebase",
