@@ -1,4 +1,4 @@
-ASSISTENTE JOGOS SANTA CASA — V95.0.0
+ASSISTENTE JOGOS SANTA CASA — V95.0.1
 
 CORREÇÕES PRINCIPAIS
 - Confirmação e levantamento de prémios passam a ser gravados no Supabase.
@@ -7,7 +7,7 @@ CORREÇÕES PRINCIPAIS
 - Remoção das chaves locais antigas após migração concluída.
 - Campos confirmado/levantado carregados com o histórico cloud.
 - Correção de declarações JavaScript duplicadas que impediam o node --check.
-- Cache-buster e Service Worker atualizados para V95.0.0.
+- Cache-buster e Service Worker atualizados para V95.0.1.
 
 FICHEIROS A SUBSTITUIR
 - app.js

@@ -1,7 +1,7 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "95.0.0",
-  label: "V95.0.0",
+  version: "95.0.1",
+  label: "V95.0.1",
   build: "2026.07.29",
   codename: "Prémios Cloud · Sincronização Total",
   slug: "premios-cloud-sincronizacao-total",
@@ -15,7 +15,7 @@ window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
 window.__V92_ACTIVE = true;
 
 // =========================================================
-// V95.0.0 — PRÉMIOS CLOUD / SINCRONIZAÇÃO TOTAL
+// V95.0.1 — HOTFIX INTERAÇÃO / VERSÃO CANÓNICA
 // Base funcional preservada: V93.4.0.
 // Escritores antigos de APP_INFO e APP_VERSION neutralizados.
 // Nenhuma função de produção foi removida nesta passagem.
@@ -5710,7 +5710,7 @@ async function testarNotifV58(){try{if(typeof Notification==="undefined"){alert(
 function resetNotifV58(){if(confirm("Limpar memória de notificações enviadas?")){localStorage.removeItem(JSC_NOTIFS_ENVIADAS_KEY_V58);notificarPremiosNovosV58()}}
 function instalarV58(){document.querySelectorAll("[data-filtro-premios-v58]").forEach(b=>{if(b.__v58)return;b.__v58=true;b.addEventListener("click",()=>{document.querySelectorAll("[data-filtro-premios-v58]").forEach(x=>x.classList.remove("active"));b.classList.add("active");renderPremiosGestaoV58()})});const t=document.getElementById("btnTesteNotifV58");if(t&&!t.__v58){t.__v58=true;t.addEventListener("click",testarNotifV58)}const r=document.getElementById("btnResetNotifV58");if(r&&!r.__v58){r.__v58=true;r.addEventListener("click",resetNotifV58)}renderPremiosGestaoV58();notificarPremiosNovosV58()}
 try{if(typeof renderHistorico==="function"&&!renderHistorico.__v58Hook){const o=renderHistorico;renderHistorico=function(...a){const res=o.apply(this,a);setTimeout(()=>{renderPremiosGestaoV58();notificarPremiosNovosV58()},300);return res};renderHistorico.__v58Hook=true}}catch{}
-setTimeout(instalarV58,1000);setTimeout(instalarV58,2500);document.addEventListener("click",()=>setTimeout(renderPremiosGestaoV58,250));
+setTimeout(instalarV58,1000);setTimeout(instalarV58,2500);// V95.0.1: listener global legado removido — causava rerender/piscar em cada clique.
 
 
 
@@ -5936,7 +5936,7 @@ function instalarV59(){
 }
 setTimeout(instalarV59,800);
 setTimeout(instalarV59,2200);
-document.addEventListener("click",()=>setTimeout(instalarV59,250));
+// V95.0.1: instalador V59 por clique removido — causava handlers duplicados.
 
 
 
@@ -6119,7 +6119,7 @@ function instalarV61(){
 }
 setTimeout(instalarV61, 600);
 setTimeout(instalarV61, 1800);
-document.addEventListener("click", () => setTimeout(instalarV61, 200));
+// V95.0.1: instalador V61 por clique removido — causava handlers duplicados.
 
 
 
@@ -6348,7 +6348,7 @@ function renderPremiosGestaoV58__legacy_260664_4(){
 }
 function notificarPremiosNovosV58__legacy_263962_4(){return 0}
 function instalarV63(){limparLocalV63();try{renderPremiosGestaoV58()}catch(e){console.warn('V63 gestão',e)}try{atualizarDashboardVivoV54?.()}catch{}try{atualizarPremiosPremiumV42?.()}catch{}try{atualizarEstatisticas?.()}catch{}}
-setTimeout(instalarV63,700);setTimeout(instalarV63,2000);document.addEventListener('click',()=>setTimeout(instalarV63,250));
+setTimeout(instalarV63,700);setTimeout(instalarV63,2000);// V95.0.1: instalador V63 por clique removido — causava handlers duplicados.
 
 
 
@@ -6455,7 +6455,7 @@ function atualizarResumosSegurosV64(){
 function notificarPremiosNovosV58(){return 0}
 function limparAvisosTecnicosV64(){const a=document.getElementById("avisoTotolotoV62");if(a)a.remove()}
 function instalarV64(){limparAvisosTecnicosV64();try{renderPremiosGestaoV58()}catch(e){console.warn("V64 gestão",e)}try{atualizarResumosSegurosV64()}catch{}}
-setTimeout(instalarV64,700);setTimeout(instalarV64,2000);document.addEventListener("click",()=>setTimeout(instalarV64,250));
+setTimeout(instalarV64,700);setTimeout(instalarV64,2000);// V95.0.1: instalador V64 por clique removido — causava handlers duplicados.
 
 
 
@@ -6582,7 +6582,7 @@ try{
 
 setTimeout(instalarV65,700);
 setTimeout(instalarV65,1800);
-document.addEventListener("click",()=>setTimeout(instalarV65,250));
+// V95.0.1: instalador V65 por clique removido — causava handlers duplicados.
 
 
 
@@ -6689,7 +6689,7 @@ function renderResultadoLotaria(data) {
   resultado.innerHTML = html; return eventos;
 }
 function instalarV66(){ removerAvisoPremiosV65?.(); document.querySelectorAll('#avisoPremiosV59,#avisoTotolotoV62,.aviso-totoloto-v62').forEach(e=>e.remove()); }
-setTimeout(instalarV66,500); setTimeout(instalarV66,1500); document.addEventListener('click',()=>setTimeout(instalarV66,200));
+setTimeout(instalarV66,500); setTimeout(instalarV66,1500); // V95.0.1: instalador V66 por clique removido — causava handlers duplicados.
 
 
 // V67.1 - Cloud & Push / Multiutilizador / Dispositivo / Push Subscriptions
@@ -9795,7 +9795,7 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
   histSeguroV59=candidates; histV58=candidates; histSeguroV61=candidates;
 
   document.addEventListener('DOMContentLoaded',()=>setTimeout(renderAll,500),{once:true});
-  document.addEventListener('click',()=>setTimeout(renderAll,150));
+  // V95.0.1: render global por clique removido — os dados atualizam por eventos jsc:data-changed.
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderAll();});
   setTimeout(renderAll,500); setTimeout(renderAll,1800);
   window.addEventListener('jsc:data-changed', renderAll);
@@ -9847,11 +9847,11 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
 (() => {
   const canonical = Object.freeze({
     name:"Assistente Jogos Santa Casa",
-    version:"94.0.0",
-    label:"V94.0.0",
-    build:"2026.07.21",
-    codename:"Nova Base · Refatorização Segura",
-    slug:"nova-base-refatorizacao-segura",
+    version:"95.0.1",
+    label:"V95.0.1",
+    build:"2026.07.29",
+    codename:"Prémios Cloud · Interação Estável",
+    slug:"premios-cloud-interacao-estavel",
     environment:"Production",
     backend:"Supabase",
     push:"Firebase",
@@ -9885,7 +9885,7 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
   };
 
   document.addEventListener("DOMContentLoaded",()=>setTimeout(applyVersion,700),{once:true});
-  document.addEventListener("click",()=>setTimeout(applyVersion,80));
+  // V95.0.1: aplicação de versão por clique removida — evitava alternância/piscar.
   window.addEventListener("jsc:data-changed",()=>setTimeout(applyVersion,50));
   setTimeout(applyVersion,700);
   setTimeout(applyVersion,1800);

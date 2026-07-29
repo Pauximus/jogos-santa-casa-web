@@ -1,4 +1,4 @@
-const APP_VERSION = "95.0.0";
+const APP_VERSION = "95.0.1";
 const CACHE_NAME = `jogos-santa-casa-v${APP_VERSION.replace(/\./g, "-")}`;
 const APP_SHELL = [
   "./",
