@@ -1,10 +1,10 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "94.0.0",
-  label: "V94.0.0",
-  build: "2026.07.21",
-  codename: "Nova Base · Refatorização Segura",
-  slug: "nova-base-refatorizacao-segura",
+  version: "95.0.0",
+  label: "V95.0.0",
+  build: "2026.07.29",
+  codename: "Prémios Cloud · Sincronização Total",
+  slug: "premios-cloud-sincronizacao-total",
   environment: "Production",
   backend: "Supabase",
   push: "Firebase",
@@ -15,7 +15,7 @@ window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
 window.__V92_ACTIVE = true;
 
 // =========================================================
-// V94.0.0 — NOVA BASE / REFATORIZAÇÃO SEGURA
+// V95.0.0 — PRÉMIOS CLOUD / SINCRONIZAÇÃO TOTAL
 // Base funcional preservada: V93.4.0.
 // Escritores antigos de APP_INFO e APP_VERSION neutralizados.
 // Nenhuma função de produção foi removida nesta passagem.
@@ -918,6 +918,10 @@ function normalizarRegistoCloud(h) {
       valorPremio: 3.97,
       categoria: "3+0",
       dataRegisto: h.data_registo ? new Date(h.data_registo).toLocaleString("pt-PT") : "",
+      confirmado: h.confirmado === true,
+      confirmadoEm: h.confirmado_em || null,
+      levantado: h.levantado === true,
+      levantadoEm: h.levantado_em || null,
       __reconciliadoV931: true
     };
   }
@@ -980,6 +984,52 @@ async function reconciliarPremioTotoloto055CloudV931(rows = []) {
   }
 }
 
+async function migrarEstadosLocaisPremiosV95(rows = []) {
+  if (!currentUser || !Array.isArray(rows) || !rows.length) return false;
+  const migrationKey = `jsc_v95_estados_cloud_migrados_${currentUser.id}`;
+  if (localStorage.getItem(migrationKey) === "1") return false;
+
+  const confAntigos = jsonV59(JSC_PREMIOS_CONFIRMADOS_KEY_V59, {});
+  const levAntigos = jsonV59(JSC_PREMIOS_LEVANTADOS_KEY_V59, {});
+  if (!Object.keys(confAntigos).length && !Object.keys(levAntigos).length) {
+    localStorage.setItem(migrationKey, "1");
+    return false;
+  }
+
+  let alterou = false;
+  for (const row of rows) {
+    const item = normalizarRegistoCloud(row);
+    const ids = idsPremioCloudV95(item);
+    const confirmadoAntigo = ids.some(id => !!confAntigos[id]);
+    const levantadoAntigo = ids.some(id => !!levAntigos[id]);
+    if (!confirmadoAntigo && !levantadoAntigo) continue;
+
+    const confirmado = confirmadoAntigo || levantadoAntigo;
+    const levantado = levantadoAntigo;
+    const confData = ids.map(id => confAntigos[id]?.data).find(Boolean) || new Date().toISOString();
+    const levData = ids.map(id => levAntigos[id]?.data).find(Boolean) || (levantado ? new Date().toISOString() : null);
+    const { error } = await supabaseClient.from(SUPABASE_HISTORICO).update({
+      confirmado,
+      confirmado_em: confirmado ? confData : null,
+      levantado,
+      levantado_em: levantado ? levData : null
+    }).eq("id", row.id).eq("user_id", currentUser.id);
+    if (error) throw error;
+    row.confirmado = confirmado;
+    row.confirmado_em = confirmado ? confData : null;
+    row.levantado = levantado;
+    row.levantado_em = levantado ? levData : null;
+    alterou = true;
+  }
+
+  localStorage.setItem(migrationKey, "1");
+  localStorage.removeItem(JSC_PREMIOS_CONFIRMADOS_KEY_V59);
+  localStorage.removeItem(JSC_PREMIOS_LEVANTADOS_KEY_V59);
+  localStorage.removeItem("jsc_premios_levantados_v58");
+  if (alterou) console.info("V95: estados antigos dos prémios migrados para a cloud.");
+  return alterou;
+}
+
 async function carregarHistoricoCloud(chamarRender = true) {
   if (!currentUser) return;
 
@@ -996,6 +1046,7 @@ async function carregarHistoricoCloud(chamarRender = true) {
     if (error) throw error;
 
     await reconciliarPremioTotoloto055CloudV931(data || []);
+    await migrarEstadosLocaisPremiosV95(data || []);
     historico = (data || []).map(normalizarRegistoCloud); window.dispatchEvent(new Event("jsc:data-changed"));
     guardarHistoricoLocal();
 
@@ -1334,7 +1385,7 @@ async function verificar() {
   }
 }
 
-function renderCabecalhoResultado(data, conteudo) {
+function renderCabecalhoResultado__legacy_43781_1(data, conteudo) {
   return `
     <div class="result-title">${data.jogo.toUpperCase()}</div>
     <div class="result-meta">
@@ -1345,7 +1396,7 @@ function renderCabecalhoResultado(data, conteudo) {
   `;
 }
 
-function renderResultadoNumerosExtra(data) {
+function renderResultadoNumerosExtra__legacy_44078_1(data) {
   const numeros = converterParaArray(data.numeros);
   const extras = converterParaArray(data.extras);
   const eventos = [];
@@ -1437,7 +1488,7 @@ function renderResultadoNumerosExtra(data) {
   return eventos;
 }
 
-function renderResultadoCodigo(data) {
+function renderResultadoCodigo__legacy_47969_1(data) {
   const codigoResultado = (data.codigo || "").replace(/\s+/g, "").toUpperCase();
   const eventos = [];
 
@@ -1471,7 +1522,7 @@ function renderResultadoCodigo(data) {
   return eventos;
 }
 
-function renderResultadoLotaria(data) {
+function renderResultadoLotaria__legacy_49025_1(data) {
   const premios = data.premios || [];
   const numerosPremiados = premios.map(p => String(p.numero).padStart(5, "0"));
   const eventos = [];
@@ -2711,7 +2762,7 @@ async function obterServiceWorkerV37() {
   }
 }
 
-async function enviarNotificacaoV37(titulo, body, tag = "jsc-notificacao") {
+async function enviarNotificacaoV37__legacy_96247_1(titulo, body, tag = "jsc-notificacao") {
   if (!notifSuportadasV37() || Notification.permission !== "granted") return false;
 
   const reg = await obterServiceWorkerV37();
@@ -2735,7 +2786,7 @@ async function enviarNotificacaoV37(titulo, body, tag = "jsc-notificacao") {
   }
 }
 
-async function enviarNotificacaoTesteV37() {
+async function enviarNotificacaoTesteV37__legacy_96914_1() {
   if (estadoNotificacoesV37() !== "granted") {
     atualizarMiniNotificacoesV37("Primeiro ativa as notificações.");
     return;
@@ -3412,7 +3463,7 @@ function urlDestinoNotifV41(tipo) {
   return "./";
 }
 
-async function mostrarNotificacaoPremiumV41(tipo, titulo, body, extra = {}) {
+async function mostrarNotificacaoPremiumV41__legacy_122735_1(tipo, titulo, body, extra = {}) {
   if (estadoNotifV41() !== "granted") return false;
   const reg = await swReadyV41();
   const options = {
@@ -3498,7 +3549,7 @@ function concursoPremioV41(item) {
   return "";
 }
 
-function corpoPremioV41(item) {
+function corpoPremioV41__legacy_126611_1(item) {
   const jogo = jogoPremioV41(item);
   const concurso = concursoPremioV41(item);
   const acertos = acertosPremioV41(item);
@@ -3510,7 +3561,7 @@ function corpoPremioV41(item) {
   return linhas.join("\n");
 }
 
-async function verificarPremiosPremiumV41() {
+async function verificarPremiosPremiumV41__legacy_127001_1() {
   if (estadoNotifV41() !== "granted") return;
   const hist = obterHistoricoPremiosV41();
   const total = hist.length;
@@ -3586,7 +3637,7 @@ async function verificarSorteiosPremiumV41() {
 async function enviarNotificacaoV37(titulo, body, tag = "jsc-notificacao") {
   return mostrarNotificacaoPremiumV41("geral", titulo, body, { tag: gerarTagUnicaV41(tag) });
 }
-async function enviarNotificacaoTesteV37() {
+async function enviarNotificacaoTesteV37__legacy_130278_2() {
   return mostrarNotificacaoPremiumV41("geral", "🍀 Jogos Santa Casa", "Teste enviado com sucesso. Som por defeito do telemóvel.", { tag: gerarTagUnicaV41("jsc-teste") });
 }
 enviarNotificacaoTesteV35 = async function(){ return enviarNotificacaoTesteV37(); };
@@ -3648,7 +3699,7 @@ function limparPremioTextoV411(txt) {
     .trim();
 }
 
-function corpoPremioV41(item) {
+function corpoPremioV41__legacy_132456_2(item) {
   const jogo = jogoPremioV41(item);
   const concurso = concursoPremioV41(item);
   const acertos = acertosPremioV41(item);
@@ -3727,7 +3778,7 @@ function historicoPremiosV42() {
   return [];
 }
 
-function valorConhecidoPremioV42(item) {
+function valorConhecidoPremioV42__legacy_135734_1(item) {
   try {
     if (typeof valorPremioV411 === "function") return parseValorPremioV42(valorPremioV411(item));
     if (typeof valorPremioV41 === "function") return parseValorPremioV42(valorPremioV41(item));
@@ -3971,7 +4022,7 @@ function procurarValorEmObjetoV43(obj, profundidade = 0) {
   return null;
 }
 
-function valorConhecidoPremioV42(item) {
+function valorConhecidoPremioV42__legacy_144487_2(item) {
   const direto = procurarValorEmObjetoV43(item);
   if (direto !== null) return direto;
 
@@ -4246,7 +4297,7 @@ function valorOficialPremioV431(item){
   }
   return null;
 }
-function valorConhecidoPremioV42(item){
+function valorConhecidoPremioV42__legacy_154816_3(item){
   const oficial=valorOficialPremioV431(item);
   if(oficial!==null)return oficial;
   try{const direto=procurarValorEmObjetoV43?.(item); if(direto!==null&&direto!==undefined)return direto}catch{}
@@ -4818,9 +4869,9 @@ function histV48(){try{if(typeof obterHistoricoArrayV434==="function")return obt
 function valorDoHistV48(item){const d=valorTxtV48(item?.valorPremio||item?.valor||item?.premioValor);if(d)return d;try{const c=calcularValorHistoricoV434?.(item);const t=valorTxtV48(c);if(t)return t}catch{}try{const v=valorConhecidoPremioV42?.(item);const t=valorTxtV48(v);if(t)return t}catch{}return""}
 function premioHistV48(jogo,aposta,dataSorteio){const j=normJogoV48(jogo),a=normApostaV48(aposta),d=String(dataSorteio||"").trim();const lista=histV48();for(const exact of [true,false]){for(const item of lista){if(!item)continue;const ij=normJogoV48(item.jogo||""),ia=normApostaV48(item.aposta||""),id=String(item.dataSorteio||item.data||"").trim();if(j&&ij&&j!==ij)continue;if(a&&ia&&a!==ia)continue;if(exact&&d&&id&&d!==id)continue;const valor=valorDoHistV48(item);if(valor)return{premio:(item.premio&&!/consultar/i.test(String(item.premio)))?item.premio:"Prémio",valor,resultado:item.resultado||item.acertos||"",item}}}return null}
 function premioCatV48(data,categoria){const info=data?.premios?data.premios[categoria]:null;if(!info)return null;return{premio:info.premio||"Prémio",valor:valorTxtV48(info.valor)||info.valor||"valor a consultar"}}
-function renderResultadoNumerosExtra(data){const numeros=data.numeros||[],extras=data.extras||[],eventos=[];let html=renderCabecalhoResultado(data,`<div>Resultado: [${numeros.join(", ")}] + [${extras.join(", ")}]</div>`);if(!apostas[jogoAtual].length)html+=`<div class="result-card warn">Sem apostas guardadas.</div>`;apostas[jogoAtual].forEach((aposta,index)=>{const parsed=parseAposta(aposta);const nums=parsed.nums,apostaExtras=parsed.extras;const acertosNums=nums.filter(n=>numeros.includes(n)).length;const acertosExtras=apostaExtras.filter(e=>extras.includes(e)).length;const categoria=`${acertosNums}+${acertosExtras}`;const extraNome=data.extra_nome||"extra";let premioInfo=premioCatV48(data,categoria);let premiado=!!premioInfo||categoriaTemPremio(jogoAtual,acertosNums,acertosExtras);let resultadoTxt=`${acertosNums} número(s) + ${acertosExtras} ${extraNome}(s)`;const hp=premioHistV48(data.jogo,aposta,data.data);if(hp){premioInfo=hp;premiado=true;resultadoTxt=hp.resultado||resultadoTxt}const comAcertos=acertosNums||acertosExtras;let titulo="🔴 SEM PRÉMIO",classe="bad",premio="",valor="";if(premiado){premio=premioInfo?.premio||"Prémio";valor=premioInfo?.valor||"valor a consultar";titulo=`🏆 PREMIADO — ${premio}${valor?` — ${valor}`:""}`;classe="ok"}else if(comAcertos){titulo="🟡 COM ACERTOS — sem prémio";classe="warn"}if(premiado){eventos.push({jogo:data.jogo,aposta,resultado:resultadoTxt,sorteio:data.sorteio||"último sorteio",dataSorteio:data.data||"",premio:`${premio} — ${valor}`})}const valorHtml=classe==="ok"&&valorTxtV48(valor)?`<div class="resultado-final-valor"><span>💰 Valor</span><strong>${valorTxtV48(valor)}</strong></div>`:"";html+=`<div class="result-card ${classe}${classe==="ok"?" resultado-premio-final":""}"><strong>${titulo}</strong><br>Aposta ${index+1}: ${aposta}<br>Acertos: ${resultadoTxt}${valorHtml}</div>`});resultado.innerHTML=html;return eventos}
-function renderResultadoCodigo(data){const codigoResultado=(data.codigo||"").replace(/\s+/g,"").toUpperCase();const eventos=[];let html=renderCabecalhoResultado(data,`<div>Resultado: ${codigoResultado||"não encontrado"}</div>`);if(!apostas[jogoAtual].length)html+=`<div class="result-card warn">Sem códigos guardados.</div>`;apostas[jogoAtual].forEach((aposta,index)=>{const codigo=aposta.replace(/\s+/g,"").toUpperCase();let premiado=codigo&&codigo===codigoResultado,premio="M1lhão",valor="valor a consultar";const hp=premioHistV48(data.jogo,aposta,data.data);if(hp){premiado=true;premio=hp.premio||premio;valor=hp.valor||valor}if(premiado)eventos.push({jogo:data.jogo,aposta,resultado:codigoResultado||codigo,sorteio:data.sorteio||"último sorteio",dataSorteio:data.data||"",premio:`${premio} — ${valor}`});html+=`<div class="result-card ${premiado?"ok resultado-premio-final":"bad"}"><strong>${premiado?`🏆 PREMIADO — ${premio} — ${valor}`:"🔴 SEM PRÉMIO"}</strong><br>Código ${index+1}: ${aposta}${premiado&&valorTxtV48(valor)?`<div class="resultado-final-valor"><span>💰 Valor</span><strong>${valorTxtV48(valor)}</strong></div>`:""}</div>`});resultado.innerHTML=html;return eventos}
-function renderResultadoLotaria(data){const premios=data.premios||[];const numerosPremiados=premios.map(p=>String(p.numero).padStart(5,"0"));const eventos=[];let listaPremios=premios.map(p=>`${p.premio}: ${p.numero}`).join("<br>");let html=renderCabecalhoResultado(data,`<div>${listaPremios||"Prémios não encontrados"}</div>`);if(!apostas[jogoAtual].length)html+=`<div class="result-card warn">Sem números guardados.</div>`;apostas[jogoAtual].forEach((aposta,index)=>{const numero=String(aposta).padStart(5,"0");const pos=numerosPremiados.indexOf(numero);let premiado=pos>=0,premio=premiado?premios[pos].premio:"",valor="";const hp=premioHistV48(data.jogo,numero,data.data)||premioHistV48(data.jogo,aposta,data.data);if(hp){premiado=true;premio=hp.premio||premio||"Prémio";valor=hp.valor||""}if(premiado)eventos.push({jogo:data.jogo,aposta:numero,resultado:numero,sorteio:data.sorteio||"último sorteio",dataSorteio:data.data||"",premio:valor?`${premio} — ${valor}`:premio});html+=`<div class="result-card ${premiado?"ok resultado-premio-final":"bad"}"><strong>${premiado?`🏆 PREMIADO — ${premio}${valor?` — ${valor}`:""}`:"🔴 SEM PRÉMIO"}</strong><br>Número ${index+1}: ${numero}${premiado&&valorTxtV48(valor)?`<div class="resultado-final-valor"><span>💰 Valor</span><strong>${valorTxtV48(valor)}</strong></div>`:""}</div>`});resultado.innerHTML=html;return eventos}
+function renderResultadoNumerosExtra__legacy_188223_2(data){const numeros=data.numeros||[],extras=data.extras||[],eventos=[];let html=renderCabecalhoResultado(data,`<div>Resultado: [${numeros.join(", ")}] + [${extras.join(", ")}]</div>`);if(!apostas[jogoAtual].length)html+=`<div class="result-card warn">Sem apostas guardadas.</div>`;apostas[jogoAtual].forEach((aposta,index)=>{const parsed=parseAposta(aposta);const nums=parsed.nums,apostaExtras=parsed.extras;const acertosNums=nums.filter(n=>numeros.includes(n)).length;const acertosExtras=apostaExtras.filter(e=>extras.includes(e)).length;const categoria=`${acertosNums}+${acertosExtras}`;const extraNome=data.extra_nome||"extra";let premioInfo=premioCatV48(data,categoria);let premiado=!!premioInfo||categoriaTemPremio(jogoAtual,acertosNums,acertosExtras);let resultadoTxt=`${acertosNums} número(s) + ${acertosExtras} ${extraNome}(s)`;const hp=premioHistV48(data.jogo,aposta,data.data);if(hp){premioInfo=hp;premiado=true;resultadoTxt=hp.resultado||resultadoTxt}const comAcertos=acertosNums||acertosExtras;let titulo="🔴 SEM PRÉMIO",classe="bad",premio="",valor="";if(premiado){premio=premioInfo?.premio||"Prémio";valor=premioInfo?.valor||"valor a consultar";titulo=`🏆 PREMIADO — ${premio}${valor?` — ${valor}`:""}`;classe="ok"}else if(comAcertos){titulo="🟡 COM ACERTOS — sem prémio";classe="warn"}if(premiado){eventos.push({jogo:data.jogo,aposta,resultado:resultadoTxt,sorteio:data.sorteio||"último sorteio",dataSorteio:data.data||"",premio:`${premio} — ${valor}`})}const valorHtml=classe==="ok"&&valorTxtV48(valor)?`<div class="resultado-final-valor"><span>💰 Valor</span><strong>${valorTxtV48(valor)}</strong></div>`:"";html+=`<div class="result-card ${classe}${classe==="ok"?" resultado-premio-final":""}"><strong>${titulo}</strong><br>Aposta ${index+1}: ${aposta}<br>Acertos: ${resultadoTxt}${valorHtml}</div>`});resultado.innerHTML=html;return eventos}
+function renderResultadoCodigo__legacy_190117_2(data){const codigoResultado=(data.codigo||"").replace(/\s+/g,"").toUpperCase();const eventos=[];let html=renderCabecalhoResultado(data,`<div>Resultado: ${codigoResultado||"não encontrado"}</div>`);if(!apostas[jogoAtual].length)html+=`<div class="result-card warn">Sem códigos guardados.</div>`;apostas[jogoAtual].forEach((aposta,index)=>{const codigo=aposta.replace(/\s+/g,"").toUpperCase();let premiado=codigo&&codigo===codigoResultado,premio="M1lhão",valor="valor a consultar";const hp=premioHistV48(data.jogo,aposta,data.data);if(hp){premiado=true;premio=hp.premio||premio;valor=hp.valor||valor}if(premiado)eventos.push({jogo:data.jogo,aposta,resultado:codigoResultado||codigo,sorteio:data.sorteio||"último sorteio",dataSorteio:data.data||"",premio:`${premio} — ${valor}`});html+=`<div class="result-card ${premiado?"ok resultado-premio-final":"bad"}"><strong>${premiado?`🏆 PREMIADO — ${premio} — ${valor}`:"🔴 SEM PRÉMIO"}</strong><br>Código ${index+1}: ${aposta}${premiado&&valorTxtV48(valor)?`<div class="resultado-final-valor"><span>💰 Valor</span><strong>${valorTxtV48(valor)}</strong></div>`:""}</div>`});resultado.innerHTML=html;return eventos}
+function renderResultadoLotaria__legacy_191301_2(data){const premios=data.premios||[];const numerosPremiados=premios.map(p=>String(p.numero).padStart(5,"0"));const eventos=[];let listaPremios=premios.map(p=>`${p.premio}: ${p.numero}`).join("<br>");let html=renderCabecalhoResultado(data,`<div>${listaPremios||"Prémios não encontrados"}</div>`);if(!apostas[jogoAtual].length)html+=`<div class="result-card warn">Sem números guardados.</div>`;apostas[jogoAtual].forEach((aposta,index)=>{const numero=String(aposta).padStart(5,"0");const pos=numerosPremiados.indexOf(numero);let premiado=pos>=0,premio=premiado?premios[pos].premio:"",valor="";const hp=premioHistV48(data.jogo,numero,data.data)||premioHistV48(data.jogo,aposta,data.data);if(hp){premiado=true;premio=hp.premio||premio||"Prémio";valor=hp.valor||""}if(premiado)eventos.push({jogo:data.jogo,aposta:numero,resultado:numero,sorteio:data.sorteio||"último sorteio",dataSorteio:data.data||"",premio:valor?`${premio} — ${valor}`:premio});html+=`<div class="result-card ${premiado?"ok resultado-premio-final":"bad"}"><strong>${premiado?`🏆 PREMIADO — ${premio}${valor?` — ${valor}`:""}`:"🔴 SEM PRÉMIO"}</strong><br>Número ${index+1}: ${numero}${premiado&&valorTxtV48(valor)?`<div class="resultado-final-valor"><span>💰 Valor</span><strong>${valorTxtV48(valor)}</strong></div>`:""}</div>`});resultado.innerHTML=html;return eventos}
 function limparDebugV48(){document.getElementById("debugResultadosCard")?.remove();document.getElementById("debugValoresCard")?.remove()}
 setTimeout(()=>{try{limparDebugV48()}catch{}try{verificar()}catch{}},900);
 
@@ -4866,7 +4917,7 @@ function limparDebugV51() {
   });
 }
 
-function refrescarUICompletaV51(motivo = "refresh") {
+function refrescarUICompletaV51__legacy_194204_1(motivo = "refresh") {
   if (__v51Refreshing) return;
   __v51Refreshing = true;
 
@@ -4974,7 +5025,7 @@ try {
 } catch {}
 
 // Observador leve: se a assinatura do histórico mudar, refresca.
-function iniciarWatcherV51() {
+function iniciarWatcherV51__legacy_198910_1() {
   limparDebugV51();
   __v51LastHistSignature = assinaturaHistoricoV51();
 
@@ -5042,11 +5093,11 @@ function limparDebugV52() {
 
 // Override da V51 para impedir loop infinito.
 // Mantemos o nome para que hooks antigos chamem esta versão segura.
-function refrescarUICompletaV51(motivo = "refresh") {
+function refrescarUICompletaV51__legacy_200842_2(motivo = "refresh") {
   refrescarUIInteligenteV52(motivo);
 }
 
-async function refrescarUIInteligenteV52(motivo = "refresh") {
+async function refrescarUIInteligenteV52__legacy_200936_1(motivo = "refresh") {
   const agora = Date.now();
   if (__v52Refreshing) return;
   if (agora - __v52LastRun < 1800) return;
@@ -5088,7 +5139,7 @@ async function refrescarUIInteligenteV52(motivo = "refresh") {
 }
 
 // Reverte/neutraliza watchers antigos da V51 quando possível.
-function iniciarWatcherV51() {
+function iniciarWatcherV51__legacy_202992_2() {
   limparDebugV52();
   __v52LastSignature = assinaturaHistoricoV52();
   setTimeout(() => refrescarUIInteligenteV52("arranque"), 1000);
@@ -5614,10 +5665,10 @@ window.addEventListener("resize",aplicarMobileCompactV57);
 // V58 - Gestão de Prémios + Notificações inteligentes + FCM Ready
 const JSC_PREMIOS_LEVANTADOS_KEY_V58="jsc_premios_levantados_v58";
 const JSC_NOTIFS_ENVIADAS_KEY_V58="jsc_notificacoes_premios_enviadas_v58";
-function histV58(){try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}try{if(typeof historicoPremiosV42==="function")return historicoPremiosV42()||[]}catch{}try{if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[]}catch{}try{if(Array.isArray(historico))return historico}catch{}return[]}
+function histV58__legacy_226911_1(){try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}try{if(typeof historicoPremiosV42==="function")return historicoPremiosV42()||[]}catch{}try{if(typeof obterHistoricoPremiosV41==="function")return obterHistoricoPremiosV41()||[]}catch{}try{if(Array.isArray(historico))return historico}catch{}return[]}
 function dinheiroNumV58(v){if(v==null)return 0;if(typeof v==="number"&&Number.isFinite(v))return v;const s=String(v).replace(/\s/g,"").replace("€","").replace(/\./g,"").replace(",",".");const n=Number(s.replace(/[^\d.-]/g,""));return Number.isFinite(n)?n:0}
 function dinheiroTxtV58(n){return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}
-function valorItemV58(item){
+function valorItemV58__legacy_227639_1(item){
   const aposta=String(item?.aposta||"").trim().replace(/\s+/g," ");
   const sorteio=String(item?.sorteio||item?.dataSorteio||item?.data||"");
   const resultado=String(item?.resultado||item?.acertos||"");
@@ -5627,7 +5678,7 @@ function valorItemV58(item){
   return 0
 }
 function normV58(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim()}
-function premioIdV58(item){return [normV58(item?.jogo),normV58(item?.sorteio),normV58(item?.dataSorteio||item?.data),normV58(item?.aposta),normV58(item?.resultado||item?.acertos),valorItemV58(item)].join("|")}
+function premioIdV58__legacy_228369_1(item){return [normV58(item?.jogo),normV58(item?.sorteio),normV58(item?.dataSorteio||item?.data),normV58(item?.aposta),normV58(item?.resultado||item?.acertos),valorItemV58(item)].join("|")}
 function loadJsonV58(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch{return f}}
 function saveJsonV58(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function levantadosV58(){return loadJsonV58(JSC_PREMIOS_LEVANTADOS_KEY_V58,{})}
@@ -5636,7 +5687,7 @@ function notifEnviadasV58(){return loadJsonV58(JSC_NOTIFS_ENVIADAS_KEY_V58,{})}
 function setNotifEnviadaV58(id){const st=notifEnviadasV58();st[id]={enviada:true,data:new Date().toISOString()};saveJsonV58(JSC_NOTIFS_ENVIADAS_KEY_V58,st)}
 function parseApostaV58(a){const p=String(a||"").split("+");return{nums:(p[0]||"").trim().split(/\s+/).map(Number).filter(Number.isFinite),extras:(p[1]||"").trim().split(/\s+/).map(Number).filter(Number.isFinite)}}
 function explicarPremioV58(item){const p=parseApostaV58(item?.aposta);const resumo=String(item?.resultado||item?.acertos||"Prémio encontrado");return{nums:p.nums,extras:p.extras,resumo}}
-function renderPremiosGestaoV58(){
+function renderPremiosGestaoV58__legacy_229662_1(){
  const lista=histV58(), lev=levantadosV58(), filtro=document.querySelector("[data-filtro-premios-v58].active")?.dataset?.filtroPremiosV58||"todos";
  const total=lista.reduce((s,i)=>s+valorItemV58(i),0), totalLev=lista.reduce((s,i)=>s+(lev[premioIdV58(i)]?valorItemV58(i):0),0), pend=total-totalLev;
  document.getElementById("premiosGestaoResumoV58")&&(premiosGestaoResumoV58.textContent=`${lista.length} prémio(s)`);
@@ -5654,7 +5705,7 @@ function renderPremiosGestaoV58(){
  <button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}">${l?"Reverter levantamento":"Marcar como levantado"}</button></article>`}).join("");
  el.querySelectorAll(".btn-levantar-v58").forEach(b=>{if(b.__v58)return;b.__v58=true;b.addEventListener("click",()=>{const id=decodeURIComponent(b.dataset.id||"");setLevantadoV58(id,!levantadosV58()[id]);renderPremiosGestaoV58()})});
 }
-function notificarPremiosNovosV58(){const lista=histV58(), env=notifEnviadasV58();let novas=0;lista.forEach(item=>{const id=premioIdV58(item);if(env[id])return;const val=valorItemV58(item);if(!val&&!item?.premio)return;try{if(typeof Notification!=="undefined"&&Notification.permission==="granted"){new Notification("🎉 Prémio encontrado!",{body:`${item.jogo||"Jogo"}: ${val?dinheiroTxtV58(val):(item.premio||"Prémio")}`,tag:`premio-${id}`,renotify:false})}}catch{}setNotifEnviadaV58(id);novas++});const r=document.getElementById("notifResumoV58");if(r)r.textContent=`${Object.keys(notifEnviadasV58()).length} prémio(s) já notificado(s) neste dispositivo.`;return novas}
+function notificarPremiosNovosV58__legacy_231945_1(){const lista=histV58(), env=notifEnviadasV58();let novas=0;lista.forEach(item=>{const id=premioIdV58(item);if(env[id])return;const val=valorItemV58(item);if(!val&&!item?.premio)return;try{if(typeof Notification!=="undefined"&&Notification.permission==="granted"){new Notification("🎉 Prémio encontrado!",{body:`${item.jogo||"Jogo"}: ${val?dinheiroTxtV58(val):(item.premio||"Prémio")}`,tag:`premio-${id}`,renotify:false})}}catch{}setNotifEnviadaV58(id);novas++});const r=document.getElementById("notifResumoV58");if(r)r.textContent=`${Object.keys(notifEnviadasV58()).length} prémio(s) já notificado(s) neste dispositivo.`;return novas}
 async function testarNotifV58(){try{if(typeof Notification==="undefined"){alert("Este browser não suporta notificações.");return}let p=Notification.permission;if(p==="default")p=await Notification.requestPermission();if(p!=="granted"){alert("Notificações não autorizadas.");return}new Notification("🍀 Teste Jogos Santa Casa",{body:"As notificações locais estão a funcionar.",tag:"teste-v58"})}catch(e){alert("Erro: "+e.message)}}
 function resetNotifV58(){if(confirm("Limpar memória de notificações enviadas?")){localStorage.removeItem(JSC_NOTIFS_ENVIADAS_KEY_V58);notificarPremiosNovosV58()}}
 function instalarV58(){document.querySelectorAll("[data-filtro-premios-v58]").forEach(b=>{if(b.__v58)return;b.__v58=true;b.addEventListener("click",()=>{document.querySelectorAll("[data-filtro-premios-v58]").forEach(x=>x.classList.remove("active"));b.classList.add("active");renderPremiosGestaoV58()})});const t=document.getElementById("btnTesteNotifV58");if(t&&!t.__v58){t.__v58=true;t.addEventListener("click",testarNotifV58)}const r=document.getElementById("btnResetNotifV58");if(r&&!r.__v58){r.__v58=true;r.addEventListener("click",resetNotifV58)}renderPremiosGestaoV58();notificarPremiosNovosV58()}
@@ -5669,17 +5720,86 @@ const JSC_PREMIOS_LEVANTADOS_KEY_V59 = "jsc_premios_levantados_v59";
 
 function jsonV59(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch{return f}}
 function saveV59(k,v){localStorage.setItem(k,JSON.stringify(v))}
-function confirmadosV59(){return jsonV59(JSC_PREMIOS_CONFIRMADOS_KEY_V59,{})}
-function levantadosV59(){return jsonV59(JSC_PREMIOS_LEVANTADOS_KEY_V59,{})}
-function setConfirmadoV59(id,val){const st=confirmadosV59();if(val)st[id]={confirmado:true,data:new Date().toISOString()};else delete st[id];saveV59(JSC_PREMIOS_CONFIRMADOS_KEY_V59,st)}
-function setLevantadoV59(id,val){const st=levantadosV59();if(val)st[id]={levantado:true,data:new Date().toISOString()};else delete st[id];saveV59(JSC_PREMIOS_LEVANTADOS_KEY_V59,st)}
 
-function histSeguroV59(){
+// V95: o estado confirmado/levantado vem da cloud. O localStorage é lido apenas
+// pela migração única de instalações antigas.
+function idsPremioCloudV95(item){
+  const ids=[];
+  const fns=[
+    typeof idGlobalPremioV64==="function"?idGlobalPremioV64:null,
+    typeof premioIdSeguroV59==="function"?premioIdSeguroV59:null,
+    typeof premioIdV58==="function"?premioIdV58:null
+  ];
+  for(const fn of fns){try{if(fn){const id=fn(item);if(id)ids.push(id)}}catch{}}
+  if(item?.cloudId!=null) ids.push(`cloud-${item.cloudId}`,String(item.cloudId));
+  return [...new Set(ids.filter(Boolean))];
+}
+function mapaEstadoCloudV95(campo){
+  const mapa={};
+  (Array.isArray(historico)?historico:[]).forEach(item=>{
+    if(item?.[campo]!==true)return;
+    idsPremioCloudV95(item).forEach(id=>mapa[id]={
+      [campo]:true,
+      data:item?.[campo+"Em"]||item?.dataRegisto||null,
+      cloudId:item?.cloudId??null
+    });
+  });
+  return mapa;
+}
+function confirmadosV59(){return mapaEstadoCloudV95("confirmado")}
+function levantadosV59(){return mapaEstadoCloudV95("levantado")}
+function encontrarPremioPorIdV95(id){
+  return (Array.isArray(historico)?historico:[]).find(item=>idsPremioCloudV95(item).includes(id))||null;
+}
+async function atualizarEstadoPremioCloudV95(id,patch){
+  const item=encontrarPremioPorIdV95(id);
+  if(!item||!currentUser){console.warn("V95: prémio não encontrado para atualizar",id);return false;}
+  const anterior={confirmado:item.confirmado,confirmadoEm:item.confirmadoEm,levantado:item.levantado,levantadoEm:item.levantadoEm};
+  Object.assign(item,patch);
+  guardarHistoricoLocal();
+  window.dispatchEvent(new Event("jsc:data-changed"));
+  try{if(typeof window.JSC_RENDER_V93==="function")window.JSC_RENDER_V93()}catch{}
+  try{
+    const cloudPatch={};
+    if(Object.prototype.hasOwnProperty.call(patch,"confirmado")){
+      cloudPatch.confirmado=patch.confirmado===true;
+      cloudPatch.confirmado_em=patch.confirmado===true?(patch.confirmadoEm||new Date().toISOString()):null;
+    }
+    if(Object.prototype.hasOwnProperty.call(patch,"levantado")){
+      cloudPatch.levantado=patch.levantado===true;
+      cloudPatch.levantado_em=patch.levantado===true?(patch.levantadoEm||new Date().toISOString()):null;
+    }
+    let q=supabaseClient.from(SUPABASE_HISTORICO).update(cloudPatch).eq("user_id",currentUser.id);
+    if(item.cloudId!=null) q=q.eq("id",item.cloudId);
+    else q=q.eq("jogo",item.jogo).eq("aposta",item.aposta).eq("premio",item.premio).eq("sorteio",item.sorteio);
+    const {error}=await q;
+    if(error)throw error;
+    return true;
+  }catch(err){
+    Object.assign(item,anterior);guardarHistoricoLocal();
+    console.warn("V95: não foi possível sincronizar o estado do prémio:",err);
+    alert("Não foi possível guardar o estado do prémio na cloud. Tenta novamente.");
+    try{if(typeof window.JSC_RENDER_V93==="function")window.JSC_RENDER_V93()}catch{}
+    return false;
+  }
+}
+function setConfirmadoV59(id,val){
+  const agora=new Date().toISOString();
+  const patch={confirmado:!!val,confirmadoEm:val?agora:null};
+  if(!val)Object.assign(patch,{levantado:false,levantadoEm:null});
+  void atualizarEstadoPremioCloudV95(id,patch);
+}
+function setLevantadoV59(id,val){
+  const item=encontrarPremioPorIdV95(id);if(!item?.confirmado&&val)return;
+  void atualizarEstadoPremioCloudV95(id,{levantado:!!val,levantadoEm:val?new Date().toISOString():null});
+}
+
+function histSeguroV59__legacy_237992_1(){
   try{return histV58?.()||[]}catch{}
   try{if(typeof obterHistoricoArrayV434==="function")return obterHistoricoArrayV434()||[]}catch{}
   return [];
 }
-function valorItemSeguroV59(item){
+function valorItemSeguroV59__legacy_238168_1(item){
   const aposta=String(item?.aposta||"").trim().replace(/\s+/g," ");
   const sorteio=String(item?.sorteio||item?.dataSorteio||item?.data||"");
   const resultado=String(item?.resultado||item?.acertos||"");
@@ -5690,7 +5810,7 @@ function valorItemSeguroV59(item){
 function dinheiroV59(n){
   try{return dinheiroTxtV58?.(n)||Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}catch{return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}
 }
-function premioIdSeguroV59(item){
+function premioIdSeguroV59__legacy_238823_1(item){
   try{return premioIdV58?.(item)}catch{}
   return [item?.jogo,item?.sorteio,item?.dataSorteio||item?.data,item?.aposta,item?.resultado||item?.acertos,valorItemSeguroV59(item)].join("|");
 }
@@ -5704,7 +5824,7 @@ function motivoSeguroV59(item){
 }
 
 // Override render da V58 com comportamento seguro
-function renderPremiosGestaoV58(){
+function renderPremiosGestaoV58__legacy_239366_2(){
   const lista = histSeguroV59();
   const conf = confirmadosV59();
   const lev = levantadosV59();
@@ -5786,7 +5906,7 @@ function renderPremiosGestaoV58(){
 }
 
 // Notificações: só para prémios confirmados ou novos que não tenham sido sinalizados como suspeitos
-function notificarPremiosNovosV58(){
+function notificarPremiosNovosV58__legacy_243171_2(){
   const lista=histSeguroV59();
   const env=notifEnviadasV58?.()||{};
   const conf=confirmadosV59();
@@ -5868,15 +5988,15 @@ function dedupeV61(lista){
   });
   return [...map.values()];
 }
-function histSeguroV61(){
+function histSeguroV61__legacy_245604_1(){
   return dedupeV61(histBaseV61());
 }
 
 // Override seguro das fontes da V58/V59.
-function histSeguroV59(){ return histSeguroV61(); }
-function histV58(){ return histSeguroV61(); }
-function premioIdSeguroV59(item){ return keyPremioV61(item); }
-function premioIdV58(item){ return keyPremioV61(item); }
+function histSeguroV59__legacy_245710_2(){ return histSeguroV61(); }
+function histV58__legacy_245762_2(){ return histSeguroV61(); }
+function premioIdSeguroV59__legacy_245808_2(item){ return keyPremioV61(item); }
+function premioIdV58__legacy_245871_2(item){ return keyPremioV61(item); }
 
 // Limpeza local uma única vez e sem recursão.
 function limparDuplicadosLocalV61(){
@@ -5896,7 +6016,7 @@ function limparDuplicadosLocalV61(){
 }
 
 // Render da gestão em modo seguro: nada conta sem confirmação manual.
-function renderPremiosGestaoV58(){
+function renderPremiosGestaoV58__legacy_246509_3(){
   const lista = histSeguroV61();
   const conf = (typeof confirmadosV59 === "function") ? confirmadosV59() : {};
   const lev = (typeof levantadosV59 === "function") ? levantadosV59() : {};
@@ -5989,7 +6109,7 @@ function renderPremiosGestaoV58(){
 }
 
 // Notificações: nunca para candidatos não confirmados.
-function notificarPremiosNovosV58(){
+function notificarPremiosNovosV58__legacy_251101_3(){
   return 0;
 }
 
@@ -6130,7 +6250,7 @@ function recalcHistoricoLocalV62(){
 }
 
 // Override valor e ids para Totoloto recalculado.
-function valorItemSeguroV59(item){
+function valorItemSeguroV59__legacy_255708_2(item){
   if(isTotolotoV62(item)){
     const ev = avaliarTotolotoV62(item.aposta, item.sorteio || item.dataSorteio);
     if(ev && ev.temPremio && ev.valor > 0) return ev.valor;
@@ -6139,7 +6259,7 @@ function valorItemSeguroV59(item){
   try{return valorItemV58?.(item)||0}catch{}
   return 0;
 }
-function valorItemV58(item){
+function valorItemV58__legacy_255989_2(item){
   return valorItemSeguroV59(item);
 }
 function keyRecalcV62(item){
@@ -6149,10 +6269,10 @@ function keyRecalcV62(item){
   }
   return [String(item?.jogo||""),String(item?.sorteio||""),String(item?.dataSorteio||item?.data||""),String(item?.aposta||""),String(item?.resultado||""),valorItemSeguroV59(item)].join("|");
 }
-function premioIdSeguroV59(item){ return keyRecalcV62(item); }
-function premioIdV58(item){ return keyRecalcV62(item); }
+function premioIdSeguroV59__legacy_256498_3(item){ return keyRecalcV62(item); }
+function premioIdV58__legacy_256561_3(item){ return keyRecalcV62(item); }
 
-function histSeguroV59(){
+function histSeguroV59__legacy_256619_3(){
   const base = histBaseV61 ? histBaseV61() : [];
   const out = [];
   const seen = new Set();
@@ -6173,7 +6293,7 @@ function histSeguroV59(){
   });
   return out;
 }
-function histV58(){ return histSeguroV59(); }
+function histV58__legacy_257248_3(){ return histSeguroV59(); }
 
 function instalarV62(){
   const mudou = recalcHistoricoLocalV62();
@@ -6205,16 +6325,16 @@ function cleanItemV63(i){if(isTotoV63(i)){const ev=evalTotoV63(i);if(ev){if(!ev.
 function keyV63(i){return [normV63(i?.jogo),normV63(i?.sorteio),normV63(i?.dataSorteio||i?.data),apostaNormV63(i?.aposta),normV63(i?.resultado||i?.acertos),valorV63(i)].join("|")}
 function histFiltradoV63(){const seen=new Set(),out=[];(baseHistV63()||[]).forEach(raw=>{const i=cleanItemV63(raw);if(!i)return;const k=keyV63(i);if(!seen.has(k)){seen.add(k);out.push(i)}});return out}
 function limparLocalV63(){try{Object.keys(localStorage).forEach(k=>{if(!/^historicoJSC/.test(k))return;const arr=JSON.parse(localStorage.getItem(k)||"[]");if(!Array.isArray(arr))return;const seen=new Set(),clean=[];arr.forEach(raw=>{const i=cleanItemV63(raw);if(!i)return;const id=keyV63(i);if(!seen.has(id)){seen.add(id);clean.push(i)}});if(JSON.stringify(clean)!==JSON.stringify(arr))localStorage.setItem(k,JSON.stringify(clean))})}catch(e){console.warn("V63 limpar",e)}}
-function histSeguroV59(){return histFiltradoV63()}
-function histV58(){return histFiltradoV63()}
-function histSeguroV61(){return histFiltradoV63()}
+function histSeguroV59__legacy_260058_4(){return histFiltradoV63()}
+function histV58__legacy_260109_4(){return histFiltradoV63()}
+function histSeguroV61__legacy_260154_2(){return histFiltradoV63()}
 function valorItemSeguroV59(i){return valorV63(i)}
 function valorItemV58(i){return valorV63(i)}
-function premioIdSeguroV59(i){return keyV63(i)}
-function premioIdV58(i){return keyV63(i)}
+function premioIdSeguroV59__legacy_260301_4(i){return keyV63(i)}
+function premioIdV58__legacy_260349_4(i){return keyV63(i)}
 function moneyV63(n){try{return dinheiroV59(n)}catch{return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}}
 function parseApostaV63(a){try{return parseApostaSeguroV59?.(a)||parseApostaV58?.(a)||{nums:[],extras:[]}}catch{return{nums:[],extras:[]}}}
-function renderPremiosGestaoV58(){
+function renderPremiosGestaoV58__legacy_260664_4(){
  const lista=histFiltradoV63(),conf=typeof confirmadosV59==="function"?confirmadosV59():{},lev=typeof levantadosV59==="function"?levantadosV59():{},filtro=document.querySelector("[data-filtro-premios-v58].active")?.dataset?.filtroPremiosV58||"todos";
  const total=lista.reduce((s,i)=>s+(conf[keyV63(i)]?valorV63(i):0),0), totalLev=lista.reduce((s,i)=>s+(lev[keyV63(i)]?valorV63(i):0),0), porConf=lista.filter(i=>!conf[keyV63(i)]).length;
  document.getElementById("premiosGestaoResumoV58")&&(premiosGestaoResumoV58.textContent=`${lista.length} prémio(s) real(is) · ${porConf} por confirmar`);
@@ -6226,7 +6346,7 @@ function renderPremiosGestaoV58(){
  el.querySelectorAll(".btn-levantar-v58").forEach(b=>{if(b.__v63)return;b.__v63=true;b.addEventListener("click",()=>{const id=decodeURIComponent(b.dataset.id||"");if(typeof confirmadosV59==="function"&&!confirmadosV59()[id])return;if(typeof setLevantadoV59==="function")setLevantadoV59(id,!levantadosV59()[id]);renderPremiosGestaoV58()})});
  const aviso=document.getElementById("avisoTotolotoV62");if(aviso)aviso.textContent="✅ V63: Totoloto corrigido. Sorteio 052 sem prémio foi removido; só ficam 050/051 quando há 2 números + Nº da Sorte.";
 }
-function notificarPremiosNovosV58(){return 0}
+function notificarPremiosNovosV58__legacy_263962_4(){return 0}
 function instalarV63(){limparLocalV63();try{renderPremiosGestaoV58()}catch(e){console.warn('V63 gestão',e)}try{atualizarDashboardVivoV54?.()}catch{}try{atualizarPremiosPremiumV42?.()}catch{}try{atualizarEstatisticas?.()}catch{}}
 setTimeout(instalarV63,700);setTimeout(instalarV63,2000);document.addEventListener('click',()=>setTimeout(instalarV63,250));
 

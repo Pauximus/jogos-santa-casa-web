@@ -1,10 +1,10 @@
-const APP_VERSION = "86.0";
+const APP_VERSION = "95.0.0";
 const CACHE_NAME = `jogos-santa-casa-v${APP_VERSION.replace(/\./g, "-")}`;
 const APP_SHELL = [
   "./",
   "index.html",
-  "style.css?v=910",
-  "app.js?v=910",
+  "style.css?v=9500",
+  "app.js?v=9500",
   "manifest.webmanifest?v=860",
   "icons/icon-192.png",
   "icons/icon-512.png",
