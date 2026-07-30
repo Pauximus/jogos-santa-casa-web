@@ -1,7 +1,7 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "95.0.1",
-  label: "V95.0.1",
+  version: "95.0.2",
+  label: "V95.0.2",
   build: "2026.07.29",
   codename: "Prémios Cloud · Sincronização Total",
   slug: "premios-cloud-sincronizacao-total",
@@ -15,7 +15,7 @@ window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
 window.__V92_ACTIVE = true;
 
 // =========================================================
-// V95.0.1 — HOTFIX INTERAÇÃO / VERSÃO CANÓNICA
+// V95.0.2 — HOTFIX ID CLOUD NOS BOTÕES DE PRÉMIOS
 // Base funcional preservada: V93.4.0.
 // Escritores antigos de APP_INFO e APP_VERSION neutralizados.
 // Nenhuma função de produção foi removida nesta passagem.
@@ -937,7 +937,11 @@ function normalizarRegistoCloud(h) {
     premio: h.premio || "",
     valorPremio: Number(h.valor_premio ?? h.valorPremio ?? h.valor ?? 0),
     categoria: h.categoria || "",
-    dataRegisto: h.data_registo ? new Date(h.data_registo).toLocaleString("pt-PT") : ""
+    dataRegisto: h.data_registo ? new Date(h.data_registo).toLocaleString("pt-PT") : "",
+    confirmado: h.confirmado === true,
+    confirmadoEm: h.confirmado_em || null,
+    levantado: h.levantado === true,
+    levantadoEm: h.levantado_em || null
   };
 }
 
@@ -9722,9 +9726,9 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
     const filter=document.querySelector('[data-filtro-premios-v58].active')?.dataset?.filtroPremiosV58||'todos';
     const list=s.candidates.filter(c=>filter==='levantados'?isLifted(c):filter==='porLevantar'?isConfirmed(c)&&!isLifted(c):true);
     if(!list.length){box.innerHTML='<div class="empty-v58">Sem prémios neste filtro.</div>';return;}
-    box.innerHTML=list.map(c=>{const id=legacyIds(c)[0]||candidateKey(c),confirmed=isConfirmed(c),lifted=isLifted(c);let p={nums:[],extras:[]};try{p=parseAposta(c.aposta)}catch{}const nums=(p.nums||[]).map(n=>`<span>${n}</span>`).join('');const extras=(p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join('');return `<article class="premio-gestao-item-v58 ${lifted?'levantado':confirmed?'pendente':'por-confirmar'}"><div class="premio-gestao-top-v58"><div><strong>🏆 ${gameName(c.jogo)} — ${money(candidateValue(c))}</strong><small>Sorteio ${c.sorteio||'—'} · ${fmtDate(c.dataSorteio||c.data)}</small></div><span>${lifted?'✅ Levantado':confirmed?'🟡 Por levantar':'⚠️ Por confirmar'}</span></div><div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:''}</p></div><div><b>Motivo correto</b><p>${c.resultado||'Prémio oficial'}</p></div><div><b>Estado</b><p>${confirmed?'Confirmado pelo utilizador':'Não conta no total ganho até confirmares'}</p></div></div><div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${confirmed?'Retirar confirmação':'Confirmar prémio'}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!confirmed?'disabled':''}>${lifted?'Reverter levantamento':'Marcar como levantado'}</button></div></article>`;}).join('');
-    box.querySelectorAll('.btn-confirmar-v59').forEach(btn=>btn.onclick=()=>{const id=decodeURIComponent(btn.dataset.id||'');try{setConfirmadoV59(id,!confirmationMap()[id]);}catch{}renderAll();});
-    box.querySelectorAll('.btn-levantar-v58').forEach(btn=>btn.onclick=()=>{const id=decodeURIComponent(btn.dataset.id||'');try{if(!confirmationMap()[id])return;setLevantadoV59(id,!liftedMap()[id]);}catch{}renderAll();});
+    box.innerHTML=list.map(c=>{const id=c?.cloudId!=null?`cloud-${c.cloudId}`:(legacyIds(c)[0]||candidateKey(c)),confirmed=isConfirmed(c),lifted=isLifted(c);let p={nums:[],extras:[]};try{p=parseAposta(c.aposta)}catch{}const nums=(p.nums||[]).map(n=>`<span>${n}</span>`).join('');const extras=(p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join('');return `<article class="premio-gestao-item-v58 ${lifted?'levantado':confirmed?'pendente':'por-confirmar'}"><div class="premio-gestao-top-v58"><div><strong>🏆 ${gameName(c.jogo)} — ${money(candidateValue(c))}</strong><small>Sorteio ${c.sorteio||'—'} · ${fmtDate(c.dataSorteio||c.data)}</small></div><span>${lifted?'✅ Levantado':confirmed?'🟡 Por levantar':'⚠️ Por confirmar'}</span></div><div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:''}</p></div><div><b>Motivo correto</b><p>${c.resultado||'Prémio oficial'}</p></div><div><b>Estado</b><p>${confirmed?'Confirmado pelo utilizador':'Não conta no total ganho até confirmares'}</p></div></div><div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}" data-next="${confirmed?'0':'1'}">${confirmed?'Retirar confirmação':'Confirmar prémio'}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" data-next="${lifted?'0':'1'}" ${!confirmed?'disabled':''}>${lifted?'Reverter levantamento':'Marcar como levantado'}</button></div></article>`;}).join('');
+    box.querySelectorAll('.btn-confirmar-v59').forEach(btn=>btn.onclick=async()=>{const id=decodeURIComponent(btn.dataset.id||'');const val=btn.dataset.next==='1';btn.disabled=true;try{await atualizarEstadoPremioCloudV95(id,{confirmado:val,confirmadoEm:val?new Date().toISOString():null,...(!val?{levantado:false,levantadoEm:null}:{})});}finally{renderAll();}});
+    box.querySelectorAll('.btn-levantar-v58').forEach(btn=>btn.onclick=async()=>{const id=decodeURIComponent(btn.dataset.id||'');const val=btn.dataset.next==='1';btn.disabled=true;try{await atualizarEstadoPremioCloudV95(id,{levantado:val,levantadoEm:val?new Date().toISOString():null});}finally{renderAll();}});
   }
 
   function renderStats(){
