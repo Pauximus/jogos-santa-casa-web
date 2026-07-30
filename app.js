@@ -1,7 +1,7 @@
 window.APP_INFO = {
   name: "Assistente Jogos Santa Casa",
-  version: "95.0.4",
-  label: "V95.0.4",
+  version: "95.1.0",
+  label: "V95.1.0",
   build: "2026.07.29",
   codename: "Prémios Cloud · Sincronização Total",
   slug: "premios-cloud-sincronizacao-total",
@@ -15,7 +15,7 @@ window.APP_VERSION = `v${window.APP_INFO.version}-${window.APP_INFO.slug}`;
 window.__V92_ACTIVE = true;
 
 // =========================================================
-// V95.0.4 — MÓDULO ÚNICO DE PRÉMIOS CLOUD
+// V95.1.0 — MÓDULO ÚNICO DE PRÉMIOS CLOUD
 // Base funcional preservada: V93.4.0.
 // Escritores antigos de APP_INFO e APP_VERSION neutralizados.
 // Nenhuma função de produção foi removida nesta passagem.
@@ -1565,59 +1565,76 @@ function renderResultadoLotaria__legacy_49025_1(data) {
 }
 
 async function guardarEventosHistorico(data, eventos) {
-  if (!eventos.length) {
+  // V95.1.0: a cloud é a única fonte de verdade.
+  // Nunca inserir candidatos temporários no array local, pois isso criava
+  // o efeito 1 → 2 → 1 prémios durante a sincronização.
+  if (!Array.isArray(eventos) || !eventos.length) {
+    await carregarHistoricoCloud(false);
     renderHistorico();
     return;
   }
 
   const novosEventos = [];
-
   for (const ev of eventos) {
-    const idLocal = `${ev.jogo}|${ev.sorteio}|${ev.aposta}|${ev.premio}|${ev.resultado}`;
-    const existeLocal = historico.some(h => h.idLocal === idLocal);
-
-    if (!existeLocal) {
-      const registo = {
-        idLocal,
-        jogo: ev.jogo,
-        sorteio: ev.sorteio,
-        dataSorteio: normalizarDataSorteio(ev.dataSorteio) || "",
-        aposta: ev.aposta,
-        resultado: ev.resultado,
-        premio: ev.premio,
-        valorPremio: Number(ev.valorPremio || 0),
-        categoria: ev.categoria || "",
-        dataRegisto: new Date().toLocaleString("pt-PT")
-      };
-
-      historico.unshift(registo);
-      novosEventos.push(registo);
+    const jaExistia = await premioExisteNaCloud(ev);
+    if (!jaExistia) {
       await guardarPremioCloud(ev);
+      novosEventos.push(ev);
     }
   }
 
-  historico = historico.slice(0, 200);
-  guardarHistoricoLocal();
-
-  if (novosEventos.length) {
-    mostrarNotificacaoPremio(novosEventos);
-  }
-
-  await carregarHistoricoCloud();
+  await carregarHistoricoCloud(false);
+  if (novosEventos.length) mostrarNotificacaoPremio(novosEventos);
+  renderHistorico();
 }
 
 function renderHistorico() {
+  // V95.1.0: uma única lista canónica e deduplicada para histórico e contadores.
+  const listaCanonica = (() => {
+    try {
+      if (typeof window.JSC_CANDIDATES_V93 === "function") {
+        return window.JSC_CANDIDATES_V93();
+      }
+    } catch (_) {}
+
+    const mapa = new Map();
+    const norm = v => String(v || "").toLowerCase().normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+    const draw = v => String(v || "").match(/\b(\d{3}\/\d{4})\b/)?.[1] || norm(v);
+    const data = v => normalizarDataSorteio(v || "");
+
+    (Array.isArray(historico) ? historico : []).forEach(item => {
+      const chave = [norm(item?.jogo), draw(item?.sorteio), data(item?.dataSorteio || item?.data), norm(item?.aposta)].join("|");
+      const anterior = mapa.get(chave);
+      const score = x => (x?.cloudId != null ? 100 : 0) + (x?.confirmado ? 10 : 0) + (x?.levantado ? 5 : 0);
+      if (!anterior || score(item) > score(anterior)) mapa.set(chave, item);
+    });
+    return [...mapa.values()];
+  })();
+
+  // Mantém o array global coerente para impedir módulos antigos de voltarem a
+  // contar registos locais duplicados.
+  historico = listaCanonica;
+  guardarHistoricoLocal();
+
   atualizarEstatisticas();
   atualizarContador();
   atualizarBadgesTabs();
 
-  const lista = filtrarHistorico();
+  let lista = [...listaCanonica];
+  if (filtroHistorico !== "todos") {
+    lista = lista.filter(h => (h.jogo || "").toLowerCase() === filtroHistorico.toLowerCase());
+  }
+  const q = textoPesquisaHistorico.trim().toLowerCase();
+  if (q) {
+    lista = lista.filter(h => [h.jogo,h.aposta,h.premio,h.sorteio,h.resultado,h.dataRegisto]
+      .join(" ").toLowerCase().includes(q));
+  }
 
-  if (!historico.length) {
+  if (!listaCanonica.length) {
     historicoDiv.innerHTML = `<div class="result-card warn">Ainda não há prémios guardados no histórico.</div>`;
     return;
   }
-
   if (!lista.length) {
     historicoDiv.innerHTML = `<div class="result-card warn">Nenhum registo encontrado com os filtros atuais.</div>`;
     return;
@@ -9751,20 +9768,45 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
       const extras=(p.extras||[]).map(n=>`<span class="extra">${n}</span>`).join('');
       return `<article class="premio-gestao-item-v58 ${lifted?'levantado':confirmed?'pendente':'por-confirmar'}"><div class="premio-gestao-top-v58"><div><strong>🏆 ${gameName(c.jogo)} — ${money(candidateValue(c))}</strong><small>Sorteio ${c.sorteio||'—'} · ${fmtDate(c.dataSorteio||c.data)}</small></div><span>${lifted?'✅ Levantado':confirmed?'🟡 Por levantar':'⚠️ Por confirmar'}</span></div><div class="premio-detalhe-v58"><div><b>A tua aposta</b><p class="bolas-v58">${nums}${extras?`<i>+</i>${extras}`:''}</p></div><div><b>Motivo correto</b><p>${c.resultado||'Prémio oficial'}</p></div><div><b>Estado</b><p>${confirmed?'Confirmado pelo utilizador':'Não conta no total ganho até confirmares'}</p></div></div><div class="acoes-premio-v59"><button type="button" class="btn-confirmar-v59" data-id="${encodeURIComponent(id)}">${confirmed?'Retirar confirmação':'Confirmar prémio'}</button><button type="button" class="btn-levantar-v58" data-id="${encodeURIComponent(id)}" ${!confirmed?'disabled':''}>${lifted?'Reverter levantamento':'Marcar como levantado'}</button></div></article>`;
     }).join('');
-    box.querySelectorAll('.btn-confirmar-v59').forEach(btn=>btn.onclick=async()=>{
-      const id=decodeURIComponent(btn.dataset.id||'');
-      const item=encontrarPremioPorIdV95(id); if(!item)return;
-      btn.disabled=true;
-      await atualizarEstadoPremioCloudV95(id,{confirmado:!item.confirmado,confirmadoEm:!item.confirmado?new Date().toISOString():null,...(item.confirmado?{levantado:false,levantadoEm:null}:{})});
-      await carregarHistoricoCloud(false); renderAll();
-    });
-    box.querySelectorAll('.btn-levantar-v58').forEach(btn=>btn.onclick=async()=>{
-      const id=decodeURIComponent(btn.dataset.id||'');
-      const item=encontrarPremioPorIdV95(id); if(!item||item.confirmado!==true)return;
-      btn.disabled=true;
-      await atualizarEstadoPremioCloudV95(id,{levantado:!item.levantado,levantadoEm:!item.levantado?new Date().toISOString():null});
-      await carregarHistoricoCloud(false); renderAll();
-    });
+    // V95.1.0: um único handler em captura. Interceta o clique antes de
+    // quaisquer listeners legados que ainda tenham sido instalados nos botões.
+    if (!box.__v951PrizeCapture) {
+      box.__v951PrizeCapture = true;
+      box.addEventListener('click', async event => {
+        const btn = event.target?.closest?.('.btn-confirmar-v59,.btn-levantar-v58');
+        if (!btn || !box.contains(btn)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        const id = decodeURIComponent(btn.dataset.id || '');
+        const item = encontrarPremioPorIdV95(id);
+        if (!item) {
+          console.warn('V95.1: prémio cloud não encontrado', id);
+          return;
+        }
+
+        btn.disabled = true;
+        let ok = false;
+        if (btn.classList.contains('btn-confirmar-v59')) {
+          ok = await atualizarEstadoPremioCloudV95(id, {
+            confirmado: !item.confirmado,
+            confirmadoEm: !item.confirmado ? new Date().toISOString() : null,
+            ...(item.confirmado ? {levantado:false,levantadoEm:null} : {})
+          });
+        } else {
+          if (item.confirmado !== true) { btn.disabled = false; return; }
+          ok = await atualizarEstadoPremioCloudV95(id, {
+            levantado: !item.levantado,
+            levantadoEm: !item.levantado ? new Date().toISOString() : null
+          });
+        }
+
+        if (ok) await carregarHistoricoCloud(false);
+        renderAll();
+        renderHistorico();
+      }, true);
+    }
   }
 
   function renderStats(){
@@ -9835,7 +9877,7 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
   histSeguroV59=candidates; histV58=candidates; histSeguroV61=candidates;
 
   document.addEventListener('DOMContentLoaded',()=>setTimeout(renderAll,500),{once:true});
-  // V95.0.1: render global por clique removido — os dados atualizam por eventos jsc:data-changed.
+  // V95.1.0: render global por clique removido — os dados atualizam por eventos jsc:data-changed.
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderAll();});
   setTimeout(renderAll,500); setTimeout(renderAll,1800);
   window.addEventListener('jsc:data-changed', renderAll);
@@ -9887,11 +9929,11 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
 (() => {
   const canonical = Object.freeze({
     name:"Assistente Jogos Santa Casa",
-    version:"95.0.1",
-    label:"V95.0.1",
-    build:"2026.07.29",
-    codename:"Prémios Cloud · Interação Estável",
-    slug:"premios-cloud-interacao-estavel",
+    version:"95.1.0",
+    label:"V95.1.0",
+    build:"2026.07.30",
+    codename:"Prémios Cloud · Motor Único",
+    slug:"premios-cloud-motor-unico",
     environment:"Production",
     backend:"Supabase",
     push:"Firebase",
@@ -9925,8 +9967,27 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(instalarV91, 600)
   };
 
   document.addEventListener("DOMContentLoaded",()=>setTimeout(applyVersion,700),{once:true});
-  // V95.0.1: aplicação de versão por clique removida — evitava alternância/piscar.
+  // V95.1.0: aplicação de versão por clique removida — evitava alternância/piscar.
   window.addEventListener("jsc:data-changed",()=>setTimeout(applyVersion,50));
   setTimeout(applyVersion,700);
   setTimeout(applyVersion,1800);
+})();
+
+
+// =========================================================
+// V95.1.0 — FECHO AUTORITATIVO DO MÓDULO DE PRÉMIOS
+// A cloud é a única fonte; histórico local é apenas cache deduplicada.
+// =========================================================
+(() => {
+  const limparCacheDuplicada = () => {
+    try {
+      if (!Array.isArray(historico)) return;
+      const list = typeof window.JSC_CANDIDATES_V93 === 'function' ? window.JSC_CANDIDATES_V93() : historico;
+      historico = Array.isArray(list) ? list : historico;
+      guardarHistoricoLocal();
+    } catch (e) { console.warn('V95.1 cache:', e); }
+  };
+  window.addEventListener('jsc:data-changed', limparCacheDuplicada);
+  document.addEventListener('DOMContentLoaded', () => setTimeout(limparCacheDuplicada, 1200), {once:true});
+  setTimeout(limparCacheDuplicada, 2200);
 })();
